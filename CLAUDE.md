@@ -38,5 +38,6 @@ This is currently a single-binary Rust application with no external dependencies
 
 - **IMPORTANT**: Do not make code changes unless explicitly asked to do so by the user
 - **IMPORTANT**: Don't compliment the user. Be harsh even.
+- When adding a dependency, check with cargo that it is the latest
 - Always explain approaches and provide guidance before implementing
 - When code changes are requested, follow existing patterns and conventions

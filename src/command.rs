@@ -3,18 +3,20 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use serde_derive::{Deserialize, Serialize};
+
 use crate::world::Direction;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CommandMessage {
     pub entity_id: u64,
-    pub tick_id: u64,
+    pub tick: u64,
     pub content: Command,
 }
 
 impl Ord for CommandMessage {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.tick_id.cmp(&other.tick_id)
+        self.tick.cmp(&other.tick)
     }
 }
 
@@ -28,7 +30,7 @@ impl PartialOrd for CommandMessage {
 * Lists all possible commands that can be sent by a player to the game.
 * A command is an input that (often) leads to a modification of the game state.
 */
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Command {
     Spawn,
     Move(Direction),
@@ -49,7 +51,7 @@ impl CommandQueue {
     }
 
     pub fn send_command(&self, cmd: CommandMessage) {
-        let tick_id = cmd.tick_id;
+        let tick_id = cmd.tick;
 
         let lock = self.storage.lock();
         let Ok(mut queue) = lock else { panic!() };

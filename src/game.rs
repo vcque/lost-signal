@@ -15,18 +15,19 @@ use crate::{
 const TICK_DURATION: Duration = Duration::from_millis(300);
 
 pub fn gameloop(world_ref: Arc<Mutex<World>>, command_queue: CommandQueue) {
-    let mut tick: u64 = 0;
     let mut world: World;
     {
         world = world_ref.lock().unwrap().clone();
     }
     loop {
+        let mut tick = world.tick;
         let inputs = command_queue.get_commands(tick);
         enact_tick(&mut world, inputs);
         {
             *world_ref.lock().unwrap() = world.clone();
         }
         tick = tick.wrapping_add(1);
+        world.tick = tick;
         // We advance ticks by fixed duration but it might change in the future.
         sleep(TICK_DURATION);
     }

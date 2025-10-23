@@ -144,8 +144,9 @@ impl GameTui {
         }
 
         let content = lines.join("\n");
+        let game_title = format!("Game View - Turn {}", world.tick);
         let game_view = Paragraph::new(content)
-            .block(Block::default().borders(Borders::ALL).title("Game View"));
+            .block(Block::default().borders(Borders::ALL).title(game_title));
 
         f.render_widget(game_view, area);
     }

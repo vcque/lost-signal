@@ -1,5 +1,7 @@
 use std::{collections::HashMap, str::FromStr};
 
+use serde_derive::{Deserialize, Serialize};
+
 use crate::entity::Entity;
 
 const MAP_SIZE: usize = 256;
@@ -39,7 +41,7 @@ impl Tiles {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Direction {
     Up,
     UpRight,

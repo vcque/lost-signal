@@ -47,7 +47,7 @@ impl Robot {
     fn spawn_robot(&self) {
         let spawn_command = CommandMessage {
             entity_id: ROBOT_ID,
-            tick_id: self.current_tick,
+            tick: self.current_tick,
             content: Command::Spawn,
         };
 
@@ -71,7 +71,7 @@ impl Robot {
 
         let move_command = CommandMessage {
             entity_id: ROBOT_ID,
-            tick_id: self.current_tick,
+            tick: self.current_tick,
             content: Command::Move(random_direction),
         };
 

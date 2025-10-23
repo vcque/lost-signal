@@ -3,7 +3,7 @@ use std::{
     thread::spawn,
 };
 
-use crate::{command::CommandQueue, robot::Robot, tui::GameTui, world::load_world};
+use crate::{command::CommandQueue, robot::Robot, server::Server, tui::GameTui, world::load_world};
 
 mod command;
 mod entity;
@@ -28,16 +28,20 @@ fn main() {
     }
 
     // Start robot in background
+    /*
     {
         let queue = queue.clone();
         spawn(|| {
             Robot::new(queue).run();
         });
     }
+    */
+
+    // Run server
+    let server = Server::new(&world, &queue);
+    server.run();
 
     // Run TUI
     let mut tui = GameTui::new(world);
-    if let Err(err) = tui.run() {
-        eprintln!("TUI error: {}", err);
-    }
+    tui.run().expect("Could not start TUI");
 }

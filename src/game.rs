@@ -4,10 +4,12 @@ use std::{
     time::Duration,
 };
 
+use log::*;
+
 use crate::{
     command::{Command, CommandMessage, CommandQueue},
     entity::Entity,
-    world::{Position, Tile, World},
+    world::{Tile, World},
 };
 
 const TICK_DURATION: Duration = Duration::from_millis(300);
@@ -40,6 +42,8 @@ pub fn enact_tick(world: &mut World, commands: Vec<CommandMessage>) {
                 let spawn_position = world.find_free_spawns();
                 let selected_spawn = spawn_position[entity_id as usize % spawn_position.len()];
 
+                info!("Entity {} spawned at {:?}", entity_id, selected_spawn);
+
                 world.entities.insert(
                     cmd.entity_id,
                     Entity {
@@ -52,12 +56,20 @@ pub fn enact_tick(world: &mut World, commands: Vec<CommandMessage>) {
                 let next_pos = ent.position.move_once(dir);
 
                 let tile = world.tiles.at(next_pos);
-                match tile {
-                    Tile::Wall => { /* NOOP */ }
-                    _ => ent.position = next_pos,
+                if !matches!(tile, Tile::Wall) {
+                    info!(
+                        "Entity {} moved from {:?} to {:?}",
+                        entity_id, ent.position, next_pos
+                    );
+                    ent.position = next_pos;
                 }
             }
-            _ => { /* NOOP */ }
+            (_, ent) => {
+                warn!(
+                    "Cannot execute the following: ({:?} -> {:?}) {:?}",
+                    entity_id, ent, cmd
+                );
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 use std::sync::{Arc, Mutex};
 
 use crossterm::{
@@ -18,12 +20,9 @@ pub struct GameTui {
     world: Arc<Mutex<World>>,
 }
 
-
 impl GameTui {
     pub fn new(world: Arc<Mutex<World>>) -> Self {
-        Self {
-            world,
-        }
+        Self { world }
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -85,8 +84,11 @@ impl GameTui {
         f.render_widget(status, left_chunks[1]);
 
         // Logs panel - using tui-logger
-        let logger_widget = tui_logger::TuiLoggerWidget::default()
-            .block(Block::default().title("Game Logs").borders(ratatui::widgets::Borders::ALL));
+        let logger_widget = tui_logger::TuiLoggerWidget::default().block(
+            Block::default()
+                .title("Game Logs")
+                .borders(ratatui::widgets::Borders::ALL),
+        );
         f.render_widget(logger_widget, chunks[1]);
     }
 
@@ -147,7 +149,6 @@ impl GameTui {
 
         f.render_widget(game_view, area);
     }
-
 
     fn get_view_center(&self, world: &World) -> Position {
         // Center on first entity if exists, otherwise center of map

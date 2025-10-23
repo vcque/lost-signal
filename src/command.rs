@@ -20,7 +20,7 @@ impl Ord for CommandMessage {
 
 impl PartialOrd for CommandMessage {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        return Some(self.cmp(other));
+        Some(self.cmp(other))
     }
 }
 
@@ -61,6 +61,6 @@ impl CommandQueue {
             panic!()
         };
 
-        return queue.remove(&tick_id).unwrap_or_default();
+        queue.remove(&tick_id).unwrap_or_default()
     }
 }

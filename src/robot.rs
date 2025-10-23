@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 use rand::{Rng, rng};
 use std::thread::sleep;
 use std::time::Duration;

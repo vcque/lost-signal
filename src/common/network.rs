@@ -1,6 +1,6 @@
 use serde_derive::{Deserialize, Serialize};
 
-use crate::common::{command::Command, sense::Senses};
+use crate::common::{action::Action, sense::Senses};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UdpPacket {
@@ -8,7 +8,7 @@ pub struct UdpPacket {
     /// If None, means it must use the latest tick
     pub tick: Option<u64>,
     /// Action the entity takes this tick
-    pub command: Command,
+    pub action: Action,
     /// Info then entity wants to gather this tick
     pub senses: Senses,
 }

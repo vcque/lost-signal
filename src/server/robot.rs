@@ -1,15 +1,12 @@
 #![allow(clippy::all)]
 #![allow(dead_code)]
 
-use lost_signal::common::{command::Command, sense::Senses, types::Direction};
+use lost_signal::common::{action::Action, sense::Senses, types::Direction};
 use rand::{Rng, rng};
 use std::time::Duration;
 use std::{sync::Arc, thread::sleep};
 
-use crate::{
-    command::CommandMessage,
-    states::States,
-};
+use crate::{command::CommandMessage, states::States};
 
 const ROBOT_ID: u64 = 1; // Fixed entity ID for the robot
 
@@ -50,7 +47,7 @@ impl Robot {
         let spawn_command = CommandMessage {
             entity_id: ROBOT_ID,
             tick: self.current_tick,
-            content: Command::Spawn,
+            action: Action::Spawn,
             senses: Senses::default(),
         };
 
@@ -75,7 +72,7 @@ impl Robot {
         let move_command = CommandMessage {
             entity_id: ROBOT_ID,
             tick: self.current_tick,
-            content: Command::Move(random_direction),
+            action: Action::Move(random_direction),
             senses: Senses::default(),
         };
 

@@ -34,7 +34,7 @@ impl Server {
                 let msg = CommandMessage {
                     entity_id: cmd.entity_id,
                     tick,
-                    content: cmd.command,
+                    action: cmd.action,
                     senses: cmd.senses,
                 };
 

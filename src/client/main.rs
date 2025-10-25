@@ -1,7 +1,7 @@
 #![allow(clippy::all)]
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
-use lost_signal::common::command::Command;
+use lost_signal::common::action::Action;
 use lost_signal::common::network::UdpPacket;
 use lost_signal::common::sense::{Senses, WorldSense};
 use lost_signal::common::types::Direction;
@@ -24,10 +24,10 @@ impl Client {
         Ok(Self { socket, entity_id })
     }
 
-    fn send_command(&mut self, command: Command) -> Result<(), Box<dyn std::error::Error>> {
+    fn send_action(&mut self, action: Action) -> Result<(), Box<dyn std::error::Error>> {
         let cmd = UdpPacket {
             entity_id: self.entity_id,
-            command,
+            action,
             tick: None,
             senses: Senses {
                 world: Some(WorldSense {}),
@@ -44,22 +44,22 @@ impl Client {
         match key {
             KeyCode::Char('q') => return Ok(false), // Quit
             KeyCode::Char('s') | KeyCode::Char('S') => {
-                self.send_command(Command::Spawn)?;
+                self.send_action(Action::Spawn)?;
             }
             // Numpad movements
-            KeyCode::Char('8') => self.send_command(Command::Move(Direction::Up))?,
-            KeyCode::Char('2') => self.send_command(Command::Move(Direction::Down))?,
-            KeyCode::Char('4') => self.send_command(Command::Move(Direction::Left))?,
-            KeyCode::Char('6') => self.send_command(Command::Move(Direction::Right))?,
-            KeyCode::Char('7') => self.send_command(Command::Move(Direction::UpLeft))?,
-            KeyCode::Char('9') => self.send_command(Command::Move(Direction::UpRight))?,
-            KeyCode::Char('1') => self.send_command(Command::Move(Direction::DownLeft))?,
-            KeyCode::Char('3') => self.send_command(Command::Move(Direction::DownRight))?,
+            KeyCode::Char('8') => self.send_action(Action::Move(Direction::Up))?,
+            KeyCode::Char('2') => self.send_action(Action::Move(Direction::Down))?,
+            KeyCode::Char('4') => self.send_action(Action::Move(Direction::Left))?,
+            KeyCode::Char('6') => self.send_action(Action::Move(Direction::Right))?,
+            KeyCode::Char('7') => self.send_action(Action::Move(Direction::UpLeft))?,
+            KeyCode::Char('9') => self.send_action(Action::Move(Direction::UpRight))?,
+            KeyCode::Char('1') => self.send_action(Action::Move(Direction::DownLeft))?,
+            KeyCode::Char('3') => self.send_action(Action::Move(Direction::DownRight))?,
             // Arrow keys as backup
-            KeyCode::Up => self.send_command(Command::Move(Direction::Up))?,
-            KeyCode::Down => self.send_command(Command::Move(Direction::Down))?,
-            KeyCode::Left => self.send_command(Command::Move(Direction::Left))?,
-            KeyCode::Right => self.send_command(Command::Move(Direction::Right))?,
+            KeyCode::Up => self.send_action(Action::Move(Direction::Up))?,
+            KeyCode::Down => self.send_action(Action::Move(Direction::Down))?,
+            KeyCode::Left => self.send_action(Action::Move(Direction::Left))?,
+            KeyCode::Right => self.send_action(Action::Move(Direction::Right))?,
             _ => {
                 println!("Unknown key. Use 's' to spawn, numpad (1-9) to move, 'q' to quit");
             }

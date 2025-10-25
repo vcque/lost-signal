@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use lost_signal::common::{command::Command, sense::Senses};
+use lost_signal::common::{action::Action, sense::Senses};
 use serde_derive::{Deserialize, Serialize};
 
 type CommandStorage = HashMap<u64, Vec<CommandMessage>>;
@@ -9,7 +9,7 @@ type CommandStorage = HashMap<u64, Vec<CommandMessage>>;
 pub struct CommandMessage {
     pub entity_id: u64,
     pub tick: u64,
-    pub content: Command,
+    pub action: Action,
     pub senses: Senses,
 }
 

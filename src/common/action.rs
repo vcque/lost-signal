@@ -7,7 +7,7 @@ use crate::common::types::Direction;
 * A command is an input that (often) leads to a modification of the game state.
 */
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub enum Command {
+pub enum Action {
     Spawn,
     Move(Direction),
 }

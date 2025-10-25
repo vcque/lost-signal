@@ -6,7 +6,7 @@ use std::{
 
 use log::*;
 use lost_signal::common::{
-    command::Command,
+    action::Action,
     types::{Entity, Tile},
 };
 
@@ -49,8 +49,8 @@ pub fn enact_tick(world: &mut World, commands: Vec<CommandMessage>) {
         let entity_id = cmd.entity_id;
         let entity = world.entities.get_mut(&entity_id);
 
-        match (cmd.content, entity) {
-            (Command::Spawn, None) => {
+        match (cmd.action, entity) {
+            (Action::Spawn, None) => {
                 let spawn_position = world.find_free_spawns();
                 let selected_spawn = spawn_position[entity_id as usize % spawn_position.len()];
 
@@ -64,7 +64,7 @@ pub fn enact_tick(world: &mut World, commands: Vec<CommandMessage>) {
                     },
                 );
             }
-            (Command::Move(dir), Some(ent)) => {
+            (Action::Move(dir), Some(ent)) => {
                 let next_pos = ent.position.move_once(dir);
 
                 let tile = world.tiles.at(next_pos);

@@ -9,6 +9,7 @@ use serde_derive::{Deserialize, Serialize};
 
 use crate::{
     command::{Command, CommandMessage, CommandQueue},
+    sense::Senses,
     world::World,
 };
 
@@ -43,7 +44,8 @@ impl Server {
                 let msg = CommandMessage {
                     entity_id: cmd.entity_id,
                     tick,
-                    content: cmd.content,
+                    content: cmd.command,
+                    senses: cmd.senses,
                 };
 
                 info!("Sending {:?}", msg);
@@ -57,6 +59,10 @@ impl Server {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UdpPacket {
     pub entity_id: u64,
+    /// If None, means it must use the latest tick
     pub tick: Option<u64>,
-    pub content: Command,
+    /// Action the entity takes this tick
+    pub command: Command,
+    /// Info then entity wants to gather this tick
+    pub senses: Senses,
 }

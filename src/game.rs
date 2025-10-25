@@ -1,6 +1,6 @@
 use std::{
     sync::{Arc, Mutex},
-    thread::sleep,
+    thread::{sleep, spawn},
     time::Duration,
 };
 
@@ -12,24 +12,39 @@ use crate::{
     world::{Tile, World},
 };
 
-const TICK_DURATION: Duration = Duration::from_millis(300);
+pub const TICK_DURATION: Duration = Duration::from_millis(300);
 
-pub fn gameloop(world_ref: Arc<Mutex<World>>, command_queue: CommandQueue) {
-    let mut world: World;
-    {
-        world = world_ref.lock().unwrap().clone();
-    }
-    loop {
-        let mut tick = world.tick;
-        let inputs = command_queue.get_commands(tick);
-        enact_tick(&mut world, inputs);
-        {
-            *world_ref.lock().unwrap() = world.clone();
+pub struct Game {
+    world: Arc<Mutex<World>>,
+    command_queue: CommandQueue,
+}
+
+impl Game {
+    pub fn new(world: &Arc<Mutex<World>>, command_queue: &CommandQueue) -> Game {
+        Game {
+            world: world.clone(),
+            command_queue: command_queue.clone(),
         }
-        tick = tick.wrapping_add(1);
-        world.tick = tick;
-        // We advance ticks by fixed duration but it might change in the future.
-        sleep(TICK_DURATION);
+    }
+
+    pub fn run(self) {
+        spawn(move || {
+            let mut world: World;
+            {
+                world = self.world.lock().unwrap().clone();
+            }
+            loop {
+                let tick = world.tick;
+                let inputs = self.command_queue.get_commands(tick);
+                enact_tick(&mut world, inputs);
+                {
+                    *self.world.lock().unwrap() = world.clone();
+                }
+                world.tick = tick.wrapping_add(1);
+                // We advance ticks by fixed duration but it might change in the future.
+                sleep(TICK_DURATION);
+            }
+        });
     }
 }
 

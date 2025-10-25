@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use crate::{
     command::{Command, CommandMessage, CommandQueue},
+    sense::Senses,
     world::Direction,
 };
 
@@ -49,6 +50,7 @@ impl Robot {
             entity_id: ROBOT_ID,
             tick: self.current_tick,
             content: Command::Spawn,
+            senses: Senses::default(),
         };
 
         self.command_queue.send_command(spawn_command);
@@ -73,6 +75,7 @@ impl Robot {
             entity_id: ROBOT_ID,
             tick: self.current_tick,
             content: Command::Move(random_direction),
+            senses: Senses::default(),
         };
 
         self.command_queue.send_command(move_command);

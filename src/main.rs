@@ -1,14 +1,15 @@
-use std::{
-    sync::{Arc, Mutex},
-    thread::spawn,
-};
+use std::sync::{Arc, Mutex};
 
-use crate::{command::CommandQueue, robot::Robot, server::Server, tui::GameTui, world::load_world};
+use crate::{
+    command::CommandQueue, game::Game, robot::Robot, server::Server, tui::GameTui,
+    world::load_world,
+};
 
 mod command;
 mod entity;
 mod game;
 mod robot;
+mod sense;
 mod server;
 mod tui;
 mod world;
@@ -21,11 +22,8 @@ fn main() {
     let queue = CommandQueue::new();
 
     // Start game loop in background
-    {
-        let world = world.clone();
-        let queue = queue.clone();
-        spawn(|| game::gameloop(world, queue));
-    }
+    let game = Game::new(&world, &queue);
+    game.run();
 
     // Start robot in background
     /*

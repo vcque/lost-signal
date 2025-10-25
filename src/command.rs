@@ -5,13 +5,14 @@ use std::{
 
 use serde_derive::{Deserialize, Serialize};
 
-use crate::world::Direction;
+use crate::{sense::Senses, world::Direction};
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CommandMessage {
     pub entity_id: u64,
     pub tick: u64,
     pub content: Command,
+    pub senses: Senses,
 }
 
 impl Ord for CommandMessage {

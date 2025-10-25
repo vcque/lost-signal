@@ -1,6 +1,8 @@
 #![allow(clippy::all)]
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
+use lost_signal::Gather;
+use lost_signal::sense::{Senses, WorldSense};
 use lost_signal::{Command, Direction, server::UdpPacket};
 
 use std::io::{self, Write};
@@ -24,8 +26,11 @@ impl Client {
     fn send_command(&mut self, command: Command) -> Result<(), Box<dyn std::error::Error>> {
         let cmd = UdpPacket {
             entity_id: self.entity_id,
-            content: command,
+            command,
             tick: None,
+            senses: Senses {
+                world: WorldSense {},
+            },
         };
 
         let json = serde_json::to_string(&cmd)?;
@@ -91,18 +96,19 @@ impl Client {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
-    
+
     if args.len() != 2 {
         eprintln!("Usage: {} <entity_id>", args[0]);
         eprintln!("Example: {} 42", args[0]);
         std::process::exit(1);
     }
-    
-    let entity_id: u64 = args[1].parse()
+
+    let entity_id: u64 = args[1]
+        .parse()
         .map_err(|_| "Entity ID must be a valid number")?;
-    
+
     println!("Starting client with entity ID: {}", entity_id);
-    
+
     let mut client = Client::new(entity_id)?;
     client.run()
 }

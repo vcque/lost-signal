@@ -3,9 +3,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use lost_signal::common::{command::Command, sense::Senses};
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{sense::Senses, world::Direction};
+type CommandStorage = HashMap<u64, Vec<CommandMessage>>;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CommandMessage {
@@ -26,18 +27,6 @@ impl PartialOrd for CommandMessage {
         Some(self.cmp(other))
     }
 }
-
-/**
-* Lists all possible commands that can be sent by a player to the game.
-* A command is an input that (often) leads to a modification of the game state.
-*/
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub enum Command {
-    Spawn,
-    Move(Direction),
-}
-
-type CommandStorage = HashMap<u64, Vec<CommandMessage>>;
 
 #[derive(Clone)]
 pub struct CommandQueue {

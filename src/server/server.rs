@@ -5,11 +5,10 @@ use std::{
 };
 
 use log::info;
-use serde_derive::{Deserialize, Serialize};
+use lost_signal::common::network::UdpPacket;
 
 use crate::{
-    command::{Command, CommandMessage, CommandQueue},
-    sense::Senses,
+    command::{CommandMessage, CommandQueue},
     world::World,
 };
 
@@ -54,15 +53,4 @@ impl Server {
             }
         });
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UdpPacket {
-    pub entity_id: u64,
-    /// If None, means it must use the latest tick
-    pub tick: Option<u64>,
-    /// Action the entity takes this tick
-    pub command: Command,
-    /// Info then entity wants to gather this tick
-    pub senses: Senses,
 }

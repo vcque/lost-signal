@@ -1,9 +1,10 @@
 #![allow(clippy::all)]
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
-use lost_signal::Gather;
-use lost_signal::sense::{Senses, WorldSense};
-use lost_signal::{Command, Direction, server::UdpPacket};
+use lost_signal::common::command::Command;
+use lost_signal::common::network::UdpPacket;
+use lost_signal::common::sense::{Senses, WorldSense};
+use lost_signal::common::types::Direction;
 
 use std::io::{self, Write};
 use std::net::UdpSocket;
@@ -29,7 +30,7 @@ impl Client {
             command,
             tick: None,
             senses: Senses {
-                world: WorldSense {},
+                world: Some(WorldSense {}),
             },
         };
 

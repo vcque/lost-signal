@@ -1,14 +1,12 @@
 #![allow(clippy::all)]
+#![allow(dead_code)]
 
+use lost_signal::common::{command::Command, sense::Senses, types::Direction};
 use rand::{Rng, rng};
 use std::thread::sleep;
 use std::time::Duration;
 
-use crate::{
-    command::{Command, CommandMessage, CommandQueue},
-    sense::Senses,
-    world::Direction,
-};
+use crate::command::{CommandMessage, CommandQueue};
 
 const ROBOT_ID: u64 = 1; // Fixed entity ID for the robot
 

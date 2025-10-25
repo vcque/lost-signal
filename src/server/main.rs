@@ -6,7 +6,6 @@ use crate::{
 };
 
 mod command;
-mod entity;
 mod game;
 mod robot;
 mod sense;

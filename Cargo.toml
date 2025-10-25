@@ -18,8 +18,8 @@ all = "warn"
 
 [[bin]]
 name = "server"
-path = "src/main.rs"
+path = "src/server/main.rs"
 
 [[bin]]
 name = "client"
-path = "src/bin/client.rs"
+path = "src/client/main.rs"

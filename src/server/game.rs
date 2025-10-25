@@ -5,11 +5,14 @@ use std::{
 };
 
 use log::*;
+use lost_signal::common::{
+    command::Command,
+    types::{Entity, Tile},
+};
 
 use crate::{
-    command::{Command, CommandMessage, CommandQueue},
-    entity::Entity,
-    world::{Tile, World},
+    command::{CommandMessage, CommandQueue},
+    world::World,
 };
 
 pub const TICK_DURATION: Duration = Duration::from_millis(300);

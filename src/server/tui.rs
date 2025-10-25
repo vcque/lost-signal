@@ -7,6 +7,7 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
+use lost_signal::common::types::{Position, Tile};
 use ratatui::{
     Frame, Terminal,
     backend::CrosstermBackend,
@@ -14,7 +15,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::world::{Position, Tile, World};
+use crate::world::World;
 
 pub struct GameTui {
     world: Arc<Mutex<World>>,
@@ -145,8 +146,8 @@ impl GameTui {
 
         let content = lines.join("\n");
         let game_title = format!("Game View - Turn {}", world.tick);
-        let game_view = Paragraph::new(content)
-            .block(Block::default().borders(Borders::ALL).title(game_title));
+        let game_view =
+            Paragraph::new(content).block(Block::default().borders(Borders::ALL).title(game_title));
 
         f.render_widget(game_view, area);
     }

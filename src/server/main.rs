@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    command::CommandQueue, game::Game, robot::Robot, server::Server, states::States, tui::GameTui,
+    command::CommandQueue, game::Game, server::Server, states::States, tui::GameTui,
     world::load_world,
 };
 

@@ -7,7 +7,7 @@ use std::time::Duration;
 use std::{sync::Arc, thread::sleep};
 
 use crate::{
-    command::{CommandMessage, CommandQueue},
+    command::CommandMessage,
     states::States,
 };
 

@@ -49,9 +49,10 @@ impl Robot {
             tick: self.current_tick,
             action: Action::Spawn,
             senses: Senses::default(),
+            address: None,
         };
 
-        self.states.command_queue.send_command(spawn_command);
+        self.states.commands.send_command(spawn_command);
     }
 
     fn move_randomly(&self) {
@@ -74,8 +75,9 @@ impl Robot {
             tick: self.current_tick,
             action: Action::Move(random_direction),
             senses: Senses::default(),
+            address: None,
         };
 
-        self.states.command_queue.send_command(move_command);
+        self.states.commands.send_command(move_command);
     }
 }

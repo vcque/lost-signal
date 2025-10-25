@@ -1,3 +1,5 @@
+use std::{net::SocketAddr, sync::mpsc::Sender};
+
 use lost_signal::common::{
     sense::{SenseInfo, Senses, WorldInfo, WorldSense},
     types::Entity,
@@ -46,3 +48,13 @@ pub fn gather(senses: &Senses, entity: Option<&Entity>, world: &World) -> SenseI
         world: senses.world.gather_opt(entity, world).flatten(),
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct SensesMessage {
+    // Should the server maintain a mapping between entities and return addresses ?
+    pub address: SocketAddr,
+    pub entity_id: Option<u64>,
+    pub senses: SenseInfo,
+}
+
+pub type SensesQueue = Sender<SensesMessage>;

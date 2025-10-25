@@ -2,7 +2,7 @@
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use lost_signal::common::action::Action;
-use lost_signal::common::network::UdpPacket;
+use lost_signal::common::network::UdpCommandPacket;
 use lost_signal::common::sense::{Senses, WorldSense};
 use lost_signal::common::types::Direction;
 
@@ -20,12 +20,13 @@ impl Client {
     fn new(entity_id: u64) -> Result<Self, Box<dyn std::error::Error>> {
         let socket = UdpSocket::bind("0.0.0.0:0")?;
         socket.connect(SERVER_ADDR)?;
+        socket.set_nonblocking(true)?;
 
         Ok(Self { socket, entity_id })
     }
 
     fn send_action(&mut self, action: Action) -> Result<(), Box<dyn std::error::Error>> {
-        let cmd = UdpPacket {
+        let cmd = UdpCommandPacket {
             entity_id: self.entity_id,
             action,
             tick: None,
@@ -37,6 +38,23 @@ impl Client {
         let json = serde_json::to_string(&cmd)?;
         self.socket.send(json.as_bytes())?;
 
+        Ok(())
+    }
+
+    fn check_messages(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut buffer = [0; 1024];
+        loop {
+            match self.socket.recv(&mut buffer) {
+                Ok(size) => {
+                    let message = String::from_utf8_lossy(&buffer[..size]);
+                    println!("Received: {}", message);
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    break;
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
         Ok(())
     }
 
@@ -79,6 +97,8 @@ impl Client {
         io::stdout().flush()?;
 
         loop {
+            self.check_messages()?;
+            
             if event::poll(std::time::Duration::from_millis(100))? {
                 if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                     if !self.handle_key(code)? {

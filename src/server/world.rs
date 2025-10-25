@@ -24,6 +24,10 @@ impl World {
             })
             .collect()
     }
+
+    pub fn find_entity(&self, id: u64) -> Option<&Entity> {
+        self.entities.get(&id)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

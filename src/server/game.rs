@@ -10,7 +10,12 @@ use lost_signal::common::{
     types::{Entity, Tile},
 };
 
-use crate::{command::CommandMessage, states::States, world::World};
+use crate::{
+    command::CommandMessage,
+    sense::{self, SensesMessage},
+    states::States,
+    world::World,
+};
 
 pub const TICK_DURATION: Duration = Duration::from_millis(300);
 
@@ -31,12 +36,15 @@ impl Game {
             }
             loop {
                 let tick = world.tick;
-                let inputs = self.states.command_queue.get_commands(tick);
-                enact_tick(&mut world, inputs);
+                let commands = self.states.commands.get_commands(tick);
+                enact_tick(&mut world, &commands);
                 {
                     *self.states.world.lock().unwrap() = world.clone();
                 }
-                world.tick = tick.wrapping_add(1);
+                for msg in gather_infos(&world, &commands) {
+                    self.states.senses.send(msg).unwrap();
+                }
+
                 // We advance ticks by fixed duration but it might change in the future.
                 sleep(TICK_DURATION);
             }
@@ -44,7 +52,8 @@ impl Game {
     }
 }
 
-pub fn enact_tick(world: &mut World, commands: Vec<CommandMessage>) {
+pub fn enact_tick(world: &mut World, commands: &Vec<CommandMessage>) {
+    world.tick = world.tick.wrapping_add(1);
     for cmd in commands {
         let entity_id = cmd.entity_id;
         let entity = world.entities.get_mut(&entity_id);
@@ -84,4 +93,24 @@ pub fn enact_tick(world: &mut World, commands: Vec<CommandMessage>) {
             }
         }
     }
+}
+
+fn gather_infos(world: &World, commands: &Vec<CommandMessage>) -> Vec<SensesMessage> {
+    commands
+        .iter()
+        .filter_map(|cmd| gather_info(world, cmd))
+        .collect()
+}
+
+fn gather_info(world: &World, cmd: &CommandMessage) -> Option<SensesMessage> {
+    let address = cmd.address?;
+    let entity_id = cmd.entity_id;
+    let entity = world.find_entity(entity_id);
+    let senses = sense::gather(&cmd.senses, entity, world);
+
+    Some(SensesMessage {
+        address,
+        entity_id: Some(entity_id),
+        senses,
+    })
 }

@@ -68,12 +68,13 @@ impl Position {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Tile {
     Wall,
     Empty,
     Spawn,
     Orb,
+    Unknown,
 }
 
 impl FromStr for Tile {
@@ -85,6 +86,7 @@ impl FromStr for Tile {
             "." => Ok(Tile::Empty),
             "S" => Ok(Tile::Spawn),
             "O" => Ok(Tile::Orb),
+            " " => Ok(Tile::Unknown),
             _ => Err(format!("Unknown tile character: '{}'", s)),
         }
     }

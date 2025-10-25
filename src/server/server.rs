@@ -35,8 +35,13 @@ impl Server {
                     let mut buf = [0; 1024];
 
                     let (size, address) = socket.recv_from(&mut buf).unwrap();
-                    let data = str::from_utf8(&buf[..size]).unwrap();
-                    let cmd: UdpCommandPacket = serde_json::from_str(data).unwrap();
+                    let cmd: UdpCommandPacket = match bincode::deserialize(&buf[..size]) {
+                        Ok(packet) => packet,
+                        Err(e) => {
+                            eprintln!("Failed to deserialize command packet: {}", e);
+                            continue;
+                        }
+                    };
 
                     info!("Receiving {:?}", cmd);
                     let tick: u64 = cmd
@@ -66,8 +71,14 @@ impl Server {
                         senses: msg.senses,
                     };
 
-                    let json = serde_json::to_string(&udppacket).unwrap();
-                    socket.send_to(json.as_bytes(), msg.address);
+                    let binary_data = match bincode::serialize(&udppacket) {
+                        Ok(data) => data,
+                        Err(e) => {
+                            eprintln!("Failed to serialize senses packet: {}", e);
+                            continue;
+                        }
+                    };
+                    let _ = socket.send_to(&binary_data, msg.address);
                 }
             }
         });

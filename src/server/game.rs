@@ -52,7 +52,7 @@ impl Game {
     }
 }
 
-pub fn enact_tick(world: &mut World, commands: &Vec<CommandMessage>) {
+pub fn enact_tick(world: &mut World, commands: &[CommandMessage]) {
     world.tick = world.tick.wrapping_add(1);
     for cmd in commands {
         let entity_id = cmd.entity_id;
@@ -95,7 +95,7 @@ pub fn enact_tick(world: &mut World, commands: &Vec<CommandMessage>) {
     }
 }
 
-fn gather_infos(world: &World, commands: &Vec<CommandMessage>) -> Vec<SensesMessage> {
+fn gather_infos(world: &World, commands: &[CommandMessage]) -> Vec<SensesMessage> {
     commands
         .iter()
         .filter_map(|cmd| gather_info(world, cmd))

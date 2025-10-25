@@ -137,6 +137,7 @@ impl GameTui {
                         Tile::Empty => '.',
                         Tile::Spawn => 'S',
                         Tile::Orb => 'O',
+                        Tile::Unknown => ' ',
                     };
                     line.push(char);
                 }

@@ -1,8 +1,9 @@
 use std::{net::SocketAddr, sync::mpsc::Sender};
 
+use log::info;
 use lost_signal::common::{
-    sense::{SenseInfo, Senses, WorldInfo, WorldSense},
-    types::Entity,
+    sense::{SenseInfo, Senses, TerrainInfo, TerrainSense, WorldInfo, WorldSense},
+    types::{Entity, MAP_SIZE, Position, Tile},
 };
 
 use crate::{game::TICK_DURATION, world::World};
@@ -31,6 +32,39 @@ impl Sense for WorldSense {
     }
 }
 
+impl Sense for TerrainSense {
+    type Output = TerrainInfo;
+
+    fn gather(&self, entity: &Entity, world: &World) -> Self::Output {
+        let center_x = entity.position.x as isize;
+        let center_y = entity.position.y as isize;
+        let radius = self.radius as isize;
+
+        let mut results = vec![];
+        for y in (center_y - radius)..(center_y + radius + 1) {
+            for x in (center_x - radius)..(center_x + radius + 1) {
+                if x < 0 || x >= MAP_SIZE as isize || y < 0 || y >= MAP_SIZE as isize {
+                    results.push(Tile::Unknown);
+                } else {
+                    let tile = world.tiles.at(Position {
+                        x: x as usize,
+                        y: y as usize,
+                    });
+                    if matches!(tile, Tile::Spawn) {
+                        info!("Found an S!");
+                    }
+                    results.push(tile);
+                }
+            }
+        }
+
+        TerrainInfo {
+            radius: self.radius,
+            tiles: results,
+        }
+    }
+}
+
 impl<T: Sense> Sense for Option<T> {
     type Output = Option<T::Output>;
 
@@ -46,6 +80,7 @@ impl<T: Sense> Sense for Option<T> {
 pub fn gather(senses: &Senses, entity: Option<&Entity>, world: &World) -> SenseInfo {
     SenseInfo {
         world: senses.world.gather_opt(entity, world).flatten(),
+        terrain: senses.terrain.gather_opt(entity, world).flatten(),
     }
 }
 

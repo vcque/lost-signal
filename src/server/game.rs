@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, Mutex},
+    sync::Arc,
     thread::{sleep, spawn},
     time::Duration,
 };
@@ -10,38 +10,31 @@ use lost_signal::common::{
     types::{Entity, Tile},
 };
 
-use crate::{
-    command::{CommandMessage, CommandQueue},
-    world::World,
-};
+use crate::{command::CommandMessage, states::States, world::World};
 
 pub const TICK_DURATION: Duration = Duration::from_millis(300);
 
 pub struct Game {
-    world: Arc<Mutex<World>>,
-    command_queue: CommandQueue,
+    states: Arc<States>,
 }
 
 impl Game {
-    pub fn new(world: &Arc<Mutex<World>>, command_queue: &CommandQueue) -> Game {
-        Game {
-            world: world.clone(),
-            command_queue: command_queue.clone(),
-        }
+    pub fn new(states: Arc<States>) -> Game {
+        Game { states }
     }
 
     pub fn run(self) {
         spawn(move || {
             let mut world: World;
             {
-                world = self.world.lock().unwrap().clone();
+                world = self.states.world.lock().unwrap().clone();
             }
             loop {
                 let tick = world.tick;
-                let inputs = self.command_queue.get_commands(tick);
+                let inputs = self.states.command_queue.get_commands(tick);
                 enact_tick(&mut world, inputs);
                 {
-                    *self.world.lock().unwrap() = world.clone();
+                    *self.states.world.lock().unwrap() = world.clone();
                 }
                 world.tick = tick.wrapping_add(1);
                 // We advance ticks by fixed duration but it might change in the future.

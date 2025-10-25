@@ -3,25 +3,28 @@
 
 use lost_signal::common::{command::Command, sense::Senses, types::Direction};
 use rand::{Rng, rng};
-use std::thread::sleep;
 use std::time::Duration;
+use std::{sync::Arc, thread::sleep};
 
-use crate::command::{CommandMessage, CommandQueue};
+use crate::{
+    command::{CommandMessage, CommandQueue},
+    states::States,
+};
 
 const ROBOT_ID: u64 = 1; // Fixed entity ID for the robot
 
 pub struct Robot {
-    command_queue: CommandQueue,
+    states: Arc<States>,
     // TOOD: might need to check the world state to know which tick to use
     current_tick: u64,
     spawned: bool,
 }
 
 impl Robot {
-    pub fn new(command_queue: CommandQueue) -> Self {
+    pub fn new(states: &Arc<States>) -> Self {
         Self {
-            command_queue,
-            current_tick: 1,
+            states: states.clone(),
+            current_tick: 0,
             spawned: false,
         }
     }
@@ -51,7 +54,7 @@ impl Robot {
             senses: Senses::default(),
         };
 
-        self.command_queue.send_command(spawn_command);
+        self.states.command_queue.send_command(spawn_command);
     }
 
     fn move_randomly(&self) {
@@ -76,6 +79,6 @@ impl Robot {
             senses: Senses::default(),
         };
 
-        self.command_queue.send_command(move_command);
+        self.states.command_queue.send_command(move_command);
     }
 }

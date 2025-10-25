@@ -1,6 +1,6 @@
 #![allow(clippy::all)]
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -15,15 +15,15 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 
-use crate::world::World;
+use crate::{states::States, world::World};
 
 pub struct GameTui {
-    world: Arc<Mutex<World>>,
+    states: Arc<States>,
 }
 
 impl GameTui {
-    pub fn new(world: Arc<Mutex<World>>) -> Self {
-        Self { world }
+    pub fn new(states: Arc<States>) -> Self {
+        Self { states }
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -94,7 +94,7 @@ impl GameTui {
     }
 
     fn render_game_view(&self, f: &mut Frame, area: Rect) {
-        let world = self.world.lock().unwrap();
+        let world = self.states.world.lock().unwrap();
 
         // Calculate view center
         let center = self.get_view_center(&world);

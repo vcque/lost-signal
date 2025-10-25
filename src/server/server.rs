@@ -1,27 +1,18 @@
-use std::{
-    net::UdpSocket,
-    sync::{Arc, Mutex},
-    thread::spawn,
-};
+use std::{net::UdpSocket, sync::Arc, thread::spawn};
 
 use log::info;
 use lost_signal::common::network::UdpPacket;
 
-use crate::{
-    command::{CommandMessage, CommandQueue},
-    world::World,
-};
+use crate::{command::CommandMessage, states::States};
 
 pub struct Server {
-    world: Arc<Mutex<World>>,
-    queue: CommandQueue,
+    states: Arc<States>,
 }
 
 impl Server {
-    pub fn new(world: &Arc<Mutex<World>>, queue: &CommandQueue) -> Server {
+    pub fn new(states: Arc<States>) -> Server {
         Server {
-            world: world.clone(),
-            queue: queue.clone(),
+            states: states.clone(),
         }
     }
 
@@ -38,7 +29,7 @@ impl Server {
                 info!("Receiving {:?}", cmd);
                 let tick: u64 = cmd
                     .tick
-                    .unwrap_or_else(|| self.world.lock().unwrap().tick + 1);
+                    .unwrap_or_else(|| self.states.world.lock().unwrap().tick + 1);
 
                 let msg = CommandMessage {
                     entity_id: cmd.entity_id,
@@ -49,7 +40,7 @@ impl Server {
 
                 info!("Sending {:?}", msg);
 
-                self.queue.send_command(msg);
+                self.states.command_queue.send_command(msg);
             }
         });
     }

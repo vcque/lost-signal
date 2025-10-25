@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    command::CommandQueue, game::Game, robot::Robot, server::Server, tui::GameTui,
+    command::CommandQueue, game::Game, robot::Robot, server::Server, states::States, tui::GameTui,
     world::load_world,
 };
 
@@ -10,6 +10,7 @@ mod game;
 mod robot;
 mod sense;
 mod server;
+mod states;
 mod tui;
 mod world;
 
@@ -17,11 +18,14 @@ fn main() {
     tui_logger::init_logger(log::LevelFilter::Trace).unwrap();
     tui_logger::set_default_level(log::LevelFilter::Trace);
 
-    let world = Arc::new(Mutex::new(load_world()));
-    let queue = CommandQueue::new();
+    let states = States {
+        world: Mutex::new(load_world()),
+        command_queue: CommandQueue::new(),
+    };
+    let states = Arc::new(states);
 
     // Start game loop in background
-    let game = Game::new(&world, &queue);
+    let game = Game::new(states.clone());
     game.run();
 
     // Start robot in background
@@ -35,10 +39,10 @@ fn main() {
     */
 
     // Run server
-    let server = Server::new(&world, &queue);
+    let server = Server::new(states.clone());
     server.run();
 
     // Run TUI
-    let mut tui = GameTui::new(world);
+    let mut tui = GameTui::new(states);
     tui.run().expect("Could not start TUI");
 }

@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, sync::Mutex};
 
 use lost_signal::common::{command::Command, sense::Senses};
 use serde_derive::{Deserialize, Serialize};
@@ -28,15 +25,14 @@ impl PartialOrd for CommandMessage {
     }
 }
 
-#[derive(Clone)]
 pub struct CommandQueue {
-    storage: Arc<Mutex<CommandStorage>>,
+    storage: Mutex<CommandStorage>,
 }
 
 impl CommandQueue {
     pub fn new() -> CommandQueue {
         CommandQueue {
-            storage: Arc::new(Mutex::new(CommandStorage::new())),
+            storage: Mutex::new(CommandStorage::new()),
         }
     }
 

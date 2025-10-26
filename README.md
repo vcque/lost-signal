@@ -24,8 +24,8 @@ Another goal is to have the real game only be the server. The client should not 
 
 # "Roadmap"
 
-- [ ] Move on from fixed game ticks to "on player action"
-- [ ] Implement a winning condition
+- [x] Move on from fixed game ticks to "on player action"
+- [x] Implement a winning condition
 - [ ] Rework the client from IA slop to something serious
 - [ ] Implement information retention for the client (keep memory of logs, seen terrain, etc...)
 - [ ] Implement foes

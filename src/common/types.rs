@@ -73,7 +73,6 @@ pub enum Tile {
     Wall,
     Empty,
     Spawn,
-    Orb,
     Unknown,
 }
 
@@ -83,17 +82,18 @@ impl FromStr for Tile {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "#" => Ok(Tile::Wall),
-            "." => Ok(Tile::Empty),
+            "¤" | "." => Ok(Tile::Empty),
             "S" => Ok(Tile::Spawn),
-            "O" => Ok(Tile::Orb),
             " " => Ok(Tile::Unknown),
             _ => Err(format!("Unknown tile character: '{}'", s)),
         }
     }
 }
 
+pub type EntityId = u32;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Entity {
-    pub id: u64,
+    pub id: EntityId,
     pub position: Position,
 }

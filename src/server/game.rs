@@ -84,6 +84,13 @@ pub fn enact_tick(world: &mut World, commands: &[CommandMessage]) {
                     );
                     ent.position = next_pos;
                 }
+
+                if Some(ent.position) == world.orb {
+                    // WIN !
+                    info!("The game was won by {}!", ent.id);
+                    world.orb = None;
+                    world.winner = Some(ent.id);
+                }
             }
             (_, ent) => {
                 warn!(
@@ -110,7 +117,7 @@ fn gather_info(world: &World, cmd: &CommandMessage) -> Option<SensesMessage> {
 
     Some(SensesMessage {
         address,
-        entity_id: Some(entity_id),
+        entity_id: entity_id,
         senses,
     })
 }

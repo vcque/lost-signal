@@ -4,7 +4,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent};
 use lost_signal::common::action::Action;
 use lost_signal::common::network::{UdpCommandPacket, UdpSensesPacket};
 use lost_signal::common::sense::{SenseInfo, Senses, TerrainInfo, TerrainSense, WorldSense};
-use lost_signal::common::types::{Direction, Tile};
+use lost_signal::common::types::{Direction, EntityId, Tile};
 
 use std::io;
 use std::net::UdpSocket;
@@ -26,11 +26,11 @@ const SERVER_ADDR: &str = "127.0.0.1:8080";
 
 struct NetworkClient {
     socket: UdpSocket,
-    entity_id: u64,
+    entity_id: EntityId,
 }
 
 impl NetworkClient {
-    fn new(entity_id: u64) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(entity_id: EntityId) -> Result<Self, Box<dyn std::error::Error>> {
         let socket = UdpSocket::bind("0.0.0.0:0")?;
         socket.connect(SERVER_ADDR)?;
         socket.set_nonblocking(true)?;
@@ -86,7 +86,7 @@ struct GameTUI {
 }
 
 impl GameTUI {
-    fn new(entity_id: u64) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(entity_id: EntityId) -> Result<Self, Box<dyn std::error::Error>> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen)?;
@@ -366,7 +366,6 @@ impl WorldView {
             Tile::Wall => '#',
             Tile::Empty => '.',
             Tile::Spawn => 'S',
-            Tile::Orb => 'O',
             Tile::Unknown => ' ',
         }
     }
@@ -376,7 +375,6 @@ impl WorldView {
             Tile::Wall => Color::Gray,
             Tile::Empty => Color::White,
             Tile::Spawn => Color::Blue,
-            Tile::Orb => Color::Yellow,
             Tile::Unknown => Color::Black,
         }
     }
@@ -391,7 +389,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    let entity_id: u64 = args[1]
+    let entity_id: EntityId = args[1]
         .parse()
         .map_err(|_| "Entity ID must be a valid number")?;
 

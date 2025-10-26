@@ -1,11 +1,11 @@
 use std::{net::SocketAddr, sync::mpsc::Sender};
 
-use lost_signal::common::{action::Action, sense::Senses};
+use lost_signal::common::{action::Action, sense::Senses, types::EntityId};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CommandMessage {
-    pub entity_id: u64,
+    pub entity_id: EntityId,
     pub tick: u64,
     pub address: Option<SocketAddr>,
     pub action: Action,

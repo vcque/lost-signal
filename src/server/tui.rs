@@ -129,6 +129,8 @@ impl GameTui {
                 // Check if there's an entity at this position
                 if let Some(_entity) = world.entities.values().find(|e| e.position == pos) {
                     line.push('@');
+                } else if Some(pos) == world.orb {
+                    line.push('¤');
                 } else {
                     // Render tile
                     let tile = world.tiles.at(pos);
@@ -136,7 +138,6 @@ impl GameTui {
                         Tile::Wall => '#',
                         Tile::Empty => '.',
                         Tile::Spawn => 'S',
-                        Tile::Orb => 'O',
                         Tile::Unknown => ' ',
                     };
                     line.push(char);

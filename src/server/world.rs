@@ -1,12 +1,15 @@
 use std::{collections::HashMap, str::FromStr};
 
-use lost_signal::common::types::{Entity, MAP_SIZE, Position, Tile};
+use lost_signal::common::types::{Entity, EntityId, MAP_SIZE, Position, Tile};
 
 #[derive(Debug, Clone)]
 pub struct World {
     pub tick: u64,
     pub tiles: Tiles,
-    pub entities: HashMap<u64, Entity>,
+    pub entities: HashMap<EntityId, Entity>,
+    /// retrieve the source, win the game.
+    pub orb: Option<Position>,
+    pub winner: Option<EntityId>,
 }
 
 impl World {
@@ -25,7 +28,7 @@ impl World {
             .collect()
     }
 
-    pub fn find_entity(&self, id: u64) -> Option<&Entity> {
+    pub fn find_entity(&self, id: EntityId) -> Option<&Entity> {
         self.entities.get(&id)
     }
 }
@@ -64,10 +67,15 @@ pub fn load_world() -> World {
     let Ok(tiles) = Tiles::from_str(world_str) else {
         panic!()
     };
+
+    let orb_pos = world_str.find("¤").map(Position::from);
+
     World {
         tick: 0,
         tiles,
+        orb: orb_pos,
         entities: HashMap::new(),
+        winner: None,
     }
 }
 
@@ -89,14 +97,6 @@ mod tests {
             .iter()
             .any(|&tile| matches!(tile, Tile::Spawn));
         assert!(spawn_found, "Spawn tile should be present in the world");
-
-        // Find orbs (should be 'O' in the map)
-        let orb_found = world
-            .tiles
-            .buf
-            .iter()
-            .any(|&tile| matches!(tile, Tile::Orb));
-        assert!(orb_found, "Orb tiles should be present in the world");
 
         // Check that we have walls
         let wall_found = world

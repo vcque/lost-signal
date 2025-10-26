@@ -1,6 +1,6 @@
 use serde_derive::{Deserialize, Serialize};
 
-use crate::common::types::Tile;
+use crate::common::types::{EntityId, Tile};
 
 /// Describe information that an entity want retrieved for a given turn
 #[derive(Default, Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
@@ -19,6 +19,7 @@ pub struct SenseInfo {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct WorldInfo {
     pub tick: u64,
+    pub winner: Option<EntityId>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]

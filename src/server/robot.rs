@@ -1,6 +1,7 @@
 #![allow(clippy::all)]
 #![allow(dead_code)]
 
+use lost_signal::common::types::EntityId;
 use lost_signal::common::{action::Action, sense::Senses, types::Direction};
 use rand::{Rng, rng};
 use std::time::Duration;
@@ -8,7 +9,7 @@ use std::{sync::Arc, thread::sleep};
 
 use crate::{command::CommandMessage, states::States};
 
-const ROBOT_ID: u64 = 1; // Fixed entity ID for the robot
+const ROBOT_ID: EntityId = 1; // Fixed entity ID for the robot
 
 pub struct Robot {
     states: Arc<States>,

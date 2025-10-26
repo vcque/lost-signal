@@ -3,7 +3,7 @@ use std::{net::SocketAddr, sync::mpsc::Sender};
 use log::info;
 use lost_signal::common::{
     sense::{SenseInfo, Senses, TerrainInfo, TerrainSense, WorldInfo, WorldSense},
-    types::{Entity, MAP_SIZE, Position, Tile},
+    types::{Entity, EntityId, MAP_SIZE, Position, Tile},
 };
 
 use crate::world::World;
@@ -25,7 +25,10 @@ impl Sense for WorldSense {
     }
 
     fn gather_opt(&self, _: Option<&Entity>, world: &World) -> Option<Self::Output> {
-        Some(WorldInfo { tick: world.tick })
+        Some(WorldInfo {
+            tick: world.tick,
+            winner: None,
+        })
     }
 }
 
@@ -85,7 +88,7 @@ pub fn gather(senses: &Senses, entity: Option<&Entity>, world: &World) -> SenseI
 pub struct SensesMessage {
     // Should the server maintain a mapping between entities and return addresses ?
     pub address: SocketAddr,
-    pub entity_id: Option<u64>,
+    pub entity_id: EntityId,
     pub senses: SenseInfo,
 }
 

@@ -1,7 +1,6 @@
 use std::{
-    sync::Arc,
-    thread::{sleep, spawn},
-    time::Duration,
+    sync::{Arc, mpsc::Receiver},
+    thread::spawn,
 };
 
 use log::*;
@@ -17,15 +16,14 @@ use crate::{
     world::World,
 };
 
-pub const TICK_DURATION: Duration = Duration::from_millis(300);
-
 pub struct Game {
     states: Arc<States>,
+    commands: Receiver<CommandMessage>,
 }
 
 impl Game {
-    pub fn new(states: Arc<States>) -> Game {
-        Game { states }
+    pub fn new(states: Arc<States>, commands: Receiver<CommandMessage>) -> Game {
+        Game { states, commands }
     }
 
     pub fn run(self) {
@@ -35,8 +33,7 @@ impl Game {
                 world = self.states.world.lock().unwrap().clone();
             }
             loop {
-                let tick = world.tick;
-                let commands = self.states.commands.get_commands(tick);
+                let commands = self.recv_cmds();
                 enact_tick(&mut world, &commands);
                 {
                     *self.states.world.lock().unwrap() = world.clone();
@@ -44,11 +41,14 @@ impl Game {
                 for msg in gather_infos(&world, &commands) {
                     self.states.senses.send(msg).unwrap();
                 }
-
-                // We advance ticks by fixed duration but it might change in the future.
-                sleep(TICK_DURATION);
             }
         });
+    }
+
+    fn recv_cmds(&self) -> Vec<CommandMessage> {
+        let mut results: Vec<CommandMessage> = self.commands.recv().into_iter().collect();
+        results.extend(self.commands.try_iter());
+        results
     }
 }
 

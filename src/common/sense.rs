@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use serde_derive::{Deserialize, Serialize};
 
 use crate::common::types::Tile;
@@ -21,7 +19,6 @@ pub struct SenseInfo {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct WorldInfo {
     pub tick: u64,
-    pub tick_duration: Duration,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]

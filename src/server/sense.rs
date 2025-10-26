@@ -6,7 +6,7 @@ use lost_signal::common::{
     types::{Entity, MAP_SIZE, Position, Tile},
 };
 
-use crate::{game::TICK_DURATION, world::World};
+use crate::world::World;
 
 trait Sense {
     type Output;
@@ -25,10 +25,7 @@ impl Sense for WorldSense {
     }
 
     fn gather_opt(&self, _: Option<&Entity>, world: &World) -> Option<Self::Output> {
-        Some(WorldInfo {
-            tick: world.tick,
-            tick_duration: TICK_DURATION,
-        })
+        Some(WorldInfo { tick: world.tick })
     }
 }
 

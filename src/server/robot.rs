@@ -52,7 +52,7 @@ impl Robot {
             address: None,
         };
 
-        self.states.commands.send_command(spawn_command);
+        self.states.commands.send(spawn_command).unwrap();
     }
 
     fn move_randomly(&self) {
@@ -78,6 +78,6 @@ impl Robot {
             address: None,
         };
 
-        self.states.commands.send_command(move_command);
+        self.states.commands.send(move_command).unwrap();
     }
 }

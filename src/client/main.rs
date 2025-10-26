@@ -248,7 +248,6 @@ impl GameTUI {
                 let mut content = String::new();
                 if let Some(ref world_info) = senses.world {
                     content.push_str(&format!("Tick: {}\n", world_info.tick));
-                    content.push_str(&format!("Tick Duration: {:?}\n\n", world_info.tick_duration));
                 } else {
                     content.push_str("No world info\n\n");
                 }

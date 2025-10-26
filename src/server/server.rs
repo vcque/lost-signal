@@ -58,7 +58,7 @@ impl Server {
 
                     info!("Sending {:?}", msg);
 
-                    states.commands.send_command(msg);
+                    states.commands.send(msg).unwrap();
                 }
             });
         }

@@ -56,8 +56,6 @@ impl Server {
                         address: Some(address),
                     };
 
-                    info!("Sending {:?}", msg);
-
                     states.commands.send(msg).unwrap();
                 }
             });
@@ -78,6 +76,12 @@ impl Server {
                             continue;
                         }
                     };
+
+                    info!(
+                        "sending senses to {} (size: {})",
+                        msg.address,
+                        binary_data.len()
+                    );
                     let _ = socket.send_to(&binary_data, msg.address);
                 }
             }

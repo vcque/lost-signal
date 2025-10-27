@@ -1,4 +1,7 @@
-use std::str::FromStr;
+use std::{
+    ops::{Add, Neg},
+    str::FromStr,
+};
 
 use serde_derive::{Deserialize, Serialize};
 
@@ -17,47 +20,57 @@ pub enum Direction {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct Offset {
+    pub x: isize,
+    pub y: isize,
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Position {
     pub x: usize,
     pub y: usize,
 }
 
+impl Add<Offset> for Position {
+    type Output = Position;
+
+    fn add(self, offset: Offset) -> Self::Output {
+        Position {
+            x: (self.x as isize).saturating_add(offset.x).max(0) as usize,
+            y: (self.y as isize).saturating_add(offset.y).max(0) as usize,
+        }
+    }
+}
+
+impl Neg for Offset {
+    type Output = Offset;
+
+    fn neg(mut self) -> Self::Output {
+        self.x = -self.x;
+        self.y = -self.y;
+        self
+    }
+}
+
+impl Direction {
+    pub fn offset(&self) -> Offset {
+        let (x, y) = match self {
+            Direction::Up => (0, -1),
+            Direction::UpRight => (1, -1),
+            Direction::UpLeft => (-1, -1),
+            Direction::Left => (-1, 0),
+            Direction::Right => (1, 0),
+            Direction::DownRight => (1, 1),
+            Direction::Down => (0, 1),
+            Direction::DownLeft => (-1, 0),
+        };
+        Offset { x, y }
+    }
+}
+
 impl Position {
     pub fn move_once(self, dir: Direction) -> Self {
-        match dir {
-            Direction::Up => Position {
-                x: self.x,
-                y: self.y.saturating_sub(1),
-            },
-            Direction::Down => Position {
-                x: self.x,
-                y: self.y + 1,
-            },
-            Direction::Left => Position {
-                x: self.x.saturating_sub(1),
-                y: self.y,
-            },
-            Direction::Right => Position {
-                x: self.x + 1,
-                y: self.y,
-            },
-            Direction::UpLeft => Position {
-                x: self.x.saturating_sub(1),
-                y: self.y.saturating_sub(1),
-            },
-            Direction::UpRight => Position {
-                x: self.x + 1,
-                y: self.y.saturating_sub(1),
-            },
-            Direction::DownLeft => Position {
-                x: self.x.saturating_sub(1),
-                y: self.y + 1,
-            },
-            Direction::DownRight => Position {
-                x: self.x + 1,
-                y: self.y + 1,
-            },
-        }
+        self + dir.offset()
     }
 
     pub fn from(index: usize) -> Position {

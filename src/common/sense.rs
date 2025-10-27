@@ -10,7 +10,7 @@ pub struct Senses {
     pub terrain: Option<TerrainSense>,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SenseInfo {
     pub world: Option<WorldInfo>,
     pub terrain: Option<TerrainInfo>,

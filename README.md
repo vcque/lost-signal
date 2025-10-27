@@ -26,8 +26,8 @@ Another goal is to have the real game only be the server. The client should not 
 
 - [x] Move on from fixed game ticks to "on player action"
 - [x] Implement a winning condition
-- [ ] Rework the client from IA slop to something serious
-- [ ] Implement information retention for the client (keep memory of logs, seen terrain, etc...)
+- [x] Rework the client from IA slop to something serious
+- [x] Implement information retention for the client (keep memory of logs, seen terrain, etc...)
 - [ ] Implement foes
 - [ ] Implement toggling of various senses
 - [ ] Implement a resource for gathering information (and taking actions?)

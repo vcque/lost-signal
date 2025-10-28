@@ -37,15 +37,8 @@ impl Tui {
 
     pub fn run(mut self) {
         let mut terminal = ratatui::init();
-        terminal::enable_raw_mode().unwrap();
-
-        std::panic::set_hook(Box::new(|_| {
-            ratatui::restore();
-            terminal::disable_raw_mode().unwrap();
-        }));
-        self.do_run(&mut terminal).unwrap();
+        let _ = self.do_run(&mut terminal);
         ratatui::restore();
-        terminal::disable_raw_mode().unwrap();
     }
 
     fn do_run(

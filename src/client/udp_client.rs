@@ -35,8 +35,8 @@ impl UdpClient {
         let Self { commands, senses } = self;
 
         let socket = UdpSocket::bind("0.0.0.0:0")?;
-        socket.set_nonblocking(true);
-        socket.connect(SERVER_ADDR);
+        socket.set_nonblocking(true)?;
+        socket.connect(SERVER_ADDR)?;
 
         let buf = &mut [0; 1024];
         loop {

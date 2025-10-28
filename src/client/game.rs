@@ -9,7 +9,7 @@ use std::{
 use lost_signal::common::{action::Action, sense::Senses, types::EntityId};
 
 use crate::{
-    client::{CommandMessage, SenseMessage},
+    udp_client::{CommandMessage, SenseMessage},
     world::WorldView,
 };
 

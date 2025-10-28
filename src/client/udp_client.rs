@@ -7,8 +7,10 @@ use std::{
 
 use anyhow::Result;
 use log::error;
-use lost_signal::common::network::{UdpCommandPacket, UdpSensesPacket};
+use lost_signal::common::network::UdpSensesPacket;
 use serde::{Deserialize, Serialize};
+
+use crate::{CommandMessage, SenseMessage};
 
 const SERVER_ADDR: &str = "127.0.0.1:8080";
 
@@ -16,9 +18,6 @@ pub struct UdpClient {
     commands: Receiver<CommandMessage>,
     senses: Sender<SenseMessage>,
 }
-
-pub type SenseMessage = UdpSensesPacket;
-pub type CommandMessage = UdpCommandPacket;
 
 impl UdpClient {
     pub fn new(commands: Receiver<CommandMessage>, senses: Sender<SenseMessage>) -> Self {
@@ -35,8 +34,8 @@ impl UdpClient {
         let Self { commands, senses } = self;
 
         let socket = UdpSocket::bind("0.0.0.0:0")?;
-        socket.set_nonblocking(true)?;
-        socket.connect(SERVER_ADDR)?;
+        socket.set_nonblocking(true);
+        socket.connect(SERVER_ADDR);
 
         let buf = &mut [0; 1024];
         loop {

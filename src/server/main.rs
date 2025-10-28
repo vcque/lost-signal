@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, mpsc};
 
 use crate::{
     command::CommandMessage, game::Game, sense::SensesMessage, states::States, tui::GameTui,
-    udp_server::Server, world::load_world,
+    world::load_world, ws_server::WsServer,
 };
 
 mod command;
@@ -45,7 +45,7 @@ fn main() {
     */
 
     // Run server
-    let server = Server::new(states.clone(), sense_receiver);
+    let server = WsServer::new(states.clone(), sense_receiver);
     server.run();
 
     // Run TUI

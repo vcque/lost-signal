@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::{Result, bail};
-use log::error;
+use log::{debug, error, info, warn};
 use lost_signal::common::{
     network::{UdpCommandPacket, UdpSensesPacket},
     types::EntityId,
@@ -21,12 +21,6 @@ type Ws = WebSocket<TcpStream>;
 pub struct WsServer {
     states: Arc<States>,
     senses: Receiver<SensesMessage>,
-}
-
-#[derive(Default)]
-struct Registry {
-    streams: HashMap<SocketAddr, Ws>,
-    addr_by_entity_id: HashMap<EntityId, SocketAddr>,
 }
 
 impl WsServer {
@@ -53,18 +47,35 @@ impl WsServer {
         let mut ws_by_addr = HashMap::<SocketAddr, Ws>::new();
         let mut addr_by_entity_id = HashMap::<EntityId, SocketAddr>::new();
 
+        info!("Launching server on 127.0.0.1:9001");
+
         loop {
+            match handle_incoming(&server) {
+                Ok((stream, addr)) => {
+                    ws_by_addr.insert(addr, stream);
+                }
+                Err(e) => {
+                    warn!("Could not establish connection: {:?}", e);
+                }
+            }
             if let Ok((stream, addr)) = handle_incoming(&server) {
                 ws_by_addr.insert(addr, stream);
             }
 
+            debug!("Reading ws");
             for (addr, stream) in ws_by_addr.iter_mut() {
-                if let Ok(cmd) = handle_read(stream) {
-                    addr_by_entity_id.insert(cmd.entity_id, *addr);
-                    states.commands.send(cmd)?;
+                match handle_read(stream) {
+                    Ok(cmd) => {
+                        addr_by_entity_id.insert(cmd.entity_id, *addr);
+                        states.commands.send(cmd)?;
+                    }
+                    Err(e) => {
+                        warn!("{e}");
+                    }
                 }
             }
 
+            debug!("Reading channels");
             for sense in senses.try_iter() {
                 let entity_id = sense.entity_id;
                 let ws = addr_by_entity_id
@@ -81,15 +92,15 @@ impl WsServer {
             }
             ws_by_addr.retain(|_, v| v.can_read());
 
-            sleep(Duration::from_millis(20));
+            sleep(Duration::from_millis(10));
         }
     }
 }
 
 fn handle_incoming(server: &TcpListener) -> Result<(Ws, SocketAddr)> {
     let (stream, addr) = server.accept()?;
-    let stream = tungstenite::accept(stream)?;
-
+    let mut stream = tungstenite::accept(stream)?;
+    stream.get_mut().set_nonblocking(true)?;
     Ok((stream, addr))
 }
 
@@ -106,6 +117,6 @@ fn handle_read(stream: &mut Ws) -> Result<UdpCommandPacket> {
 fn handle_write(ws: &mut Ws, msg: UdpSensesPacket) -> Result<()> {
     let msg = bincode::serialize(&msg)?;
     let msg = Bytes::from_owner(msg);
-    ws.write(Message::Binary(msg))?;
+    ws.send(Message::Binary(msg))?;
     Ok(())
 }

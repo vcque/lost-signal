@@ -8,10 +8,7 @@ use std::{
 
 use lost_signal::common::{action::Action, sense::Senses, types::EntityId};
 
-use crate::{
-    udp_client::{CommandMessage, SenseMessage},
-    world::WorldView,
-};
+use crate::{CommandMessage, SenseMessage, world::WorldView};
 
 pub struct GameSim {
     entity_id: EntityId,
@@ -60,12 +57,14 @@ impl GameSim {
             world.shift(-dir.offset());
         }
 
-        self.commands.send(CommandMessage {
-            entity_id: self.entity_id,
-            tick: None,
-            action,
-            senses,
-        });
+        self.commands
+            .send(CommandMessage {
+                entity_id: self.entity_id,
+                tick: None,
+                action,
+                senses,
+            })
+            .unwrap();
     }
 
     pub fn world(&self) -> WorldView {

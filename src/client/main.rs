@@ -1,17 +1,21 @@
 #![allow(clippy::all)]
 
+use lost_signal::common::network::{UdpCommandPacket, UdpSensesPacket};
 use lost_signal::common::types::EntityId;
 
 use std::sync::mpsc::channel;
 
 use crate::game::GameSim;
 use crate::tui::Tui;
-use crate::udp_client::{CommandMessage, SenseMessage};
 
 mod game;
 mod tui;
 mod udp_client;
 mod world;
+mod ws_client;
+
+pub type SenseMessage = UdpSensesPacket;
+pub type CommandMessage = UdpCommandPacket;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tui_logger::init_logger(log::LevelFilter::Trace).unwrap();
@@ -34,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (senses_send, senses_recv) = channel::<SenseMessage>();
     let (cmd_send, cmd_recv) = channel::<CommandMessage>();
 
-    let client = udp_client::UdpClient::new(cmd_recv, senses_send);
+    let client = ws_client::WsClient::new(cmd_recv, senses_send);
     client.run();
 
     let mut game = GameSim::new(entity_id, cmd_send, senses_recv);

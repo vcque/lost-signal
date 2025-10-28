@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use crossterm::terminal;
 use lost_signal::common::{
     action::Action,
     sense::{SenseInfo, Senses, TerrainSense, WorldSense},
@@ -25,12 +24,17 @@ pub struct Tui {
 struct TuiState {
     game: GameSim,
     exit: bool,
+    show_logs: bool,
 }
 
 impl Tui {
     pub fn new(game: GameSim) -> Self {
         Self {
-            state: TuiState { game, exit: false },
+            state: TuiState {
+                game,
+                exit: false,
+                show_logs: true,
+            },
             page: Box::new(MenuPage::default()),
         }
     }
@@ -48,6 +52,15 @@ impl Tui {
         while !self.state.exit {
             terminal.draw(|f| {
                 self.page.render(f.area(), f.buffer_mut(), &self.state);
+
+                if self.state.show_logs {
+                    let logger_widget = tui_logger::TuiLoggerWidget::default().block(
+                        Block::default()
+                            .title("Logs")
+                            .borders(ratatui::widgets::Borders::ALL),
+                    );
+                    f.render_widget(logger_widget, f.area());
+                }
             })?;
 
             if event::poll(Duration::from_millis(100))? {
@@ -59,6 +72,11 @@ impl Tui {
                         code: KeyCode::Char('q'),
                         ..
                     }) => self.state.exit = true,
+                    Event::Key(KeyEvent {
+                        code: KeyCode::Char('l'),
+                        ..
+                    }) => self.state.show_logs = !self.state.show_logs,
+
                     _ => {}
                 }
 

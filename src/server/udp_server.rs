@@ -16,14 +16,14 @@ use serde::Serialize;
 
 use crate::{sense::SensesMessage, states::States};
 
-pub struct Server {
+pub struct UdpServer {
     states: Arc<States>,
     senses: Receiver<SensesMessage>,
 }
 
-impl Server {
-    pub fn new(states: Arc<States>, senses: Receiver<SensesMessage>) -> Server {
-        Server {
+impl UdpServer {
+    pub fn new(states: Arc<States>, senses: Receiver<SensesMessage>) -> UdpServer {
+        UdpServer {
             states: states.clone(),
             senses,
         }

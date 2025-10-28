@@ -38,7 +38,7 @@ impl Server {
 
     fn do_run(self) -> Result<()> {
         let Self { states, senses } = self;
-        let socket = UdpSocket::bind("127.0.0.1:8080").expect("Couldn't bind to port");
+        let socket = UdpSocket::bind("127.0.0.1:8080")?;
         socket.set_nonblocking(true)?;
 
         let mut addr_by_entity_id = HashMap::<EntityId, SocketAddr>::new();

@@ -42,7 +42,7 @@ impl GameSim {
         let world = self.world.clone();
         spawn(move || {
             loop {
-                let sense_info = senses.recv().unwrap().info;
+                let sense_info = senses.recv().unwrap().senses;
 
                 // Handle each sense
                 {
@@ -62,6 +62,7 @@ impl GameSim {
 
         self.commands.send(CommandMessage {
             entity_id: self.entity_id,
+            tick: None,
             action,
             senses,
         });

@@ -4,7 +4,6 @@ use lost_signal::common::types::EntityId;
 
 use std::sync::mpsc::channel;
 
-
 use crate::client::{CommandMessage, SenseMessage};
 use crate::game::GameSim;
 use crate::tui::Tui;
@@ -35,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (senses_send, senses_recv) = channel::<SenseMessage>();
     let (cmd_send, cmd_recv) = channel::<CommandMessage>();
 
-    let client = client::NetworkClient::new(cmd_recv, senses_send)?;
+    let client = client::UdpClient::new(cmd_recv, senses_send);
     client.run();
 
     let mut game = GameSim::new(entity_id, cmd_send, senses_recv);

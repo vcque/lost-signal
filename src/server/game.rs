@@ -110,13 +110,11 @@ fn gather_infos(world: &World, commands: &[CommandMessage]) -> Vec<SensesMessage
 }
 
 fn gather_info(world: &World, cmd: &CommandMessage) -> Option<SensesMessage> {
-    let address = cmd.address?;
     let entity_id = cmd.entity_id;
     let entity = world.find_entity(entity_id);
     let senses = sense::gather(&cmd.senses, entity, world);
 
     Some(SensesMessage {
-        address,
         entity_id: entity_id,
         senses,
     })

@@ -14,6 +14,8 @@ serde = "1.0.228"
 serde_json = "1.0.145"
 serde_derive = "1.0.228"
 clippy = "0.0.302"
+tungstenite = "0.28.0"
+anyhow = "1.0.100"
 
 [lints.clippy]
 all = "warn"

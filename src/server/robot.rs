@@ -13,32 +13,20 @@ const ROBOT_ID: EntityId = 1; // Fixed entity ID for the robot
 
 pub struct Robot {
     states: Arc<States>,
-    // TOOD: might need to check the world state to know which tick to use
-    current_tick: u64,
-    spawned: bool,
 }
 
 impl Robot {
     pub fn new(states: &Arc<States>) -> Self {
         Self {
             states: states.clone(),
-            current_tick: 0,
-            spawned: false,
         }
     }
 
     pub fn run(&mut self) {
+        self.spawn_robot();
+
         loop {
-            if !self.spawned {
-                self.spawn_robot();
-                self.spawned = true;
-            } else if self.current_tick % 2 == 0 {
-                // Move every other tick
-                self.move_randomly();
-            }
-
-            self.current_tick = self.current_tick.wrapping_add(1);
-
+            self.move_randomly();
             // Sleep to match game tick duration
             sleep(Duration::from_millis(300));
         }
@@ -47,10 +35,9 @@ impl Robot {
     fn spawn_robot(&self) {
         let spawn_command = CommandMessage {
             entity_id: ROBOT_ID,
-            tick: self.current_tick,
+            tick: None,
             action: Action::Spawn,
             senses: Senses::default(),
-            address: None,
         };
 
         self.states.commands.send(spawn_command).unwrap();
@@ -73,10 +60,9 @@ impl Robot {
 
         let move_command = CommandMessage {
             entity_id: ROBOT_ID,
-            tick: self.current_tick,
+            tick: None,
             action: Action::Move(random_direction),
             senses: Senses::default(),
-            address: None,
         };
 
         self.states.commands.send(move_command).unwrap();

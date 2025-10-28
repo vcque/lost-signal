@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::mpsc::Sender};
+use std::sync::mpsc::Sender;
 
 use log::info;
 use lost_signal::common::{
@@ -86,8 +86,6 @@ pub fn gather(senses: &Senses, entity: Option<&Entity>, world: &World) -> SenseI
 
 #[derive(Clone, Debug)]
 pub struct SensesMessage {
-    // Should the server maintain a mapping between entities and return addresses ?
-    pub address: SocketAddr,
     pub entity_id: EntityId,
     pub senses: SenseInfo,
 }

@@ -1,18 +1,19 @@
 use std::sync::{Arc, Mutex, mpsc};
 
 use crate::{
-    command::CommandMessage, game::Game, sense::SensesMessage, server::Server, states::States,
-    tui::GameTui, world::load_world,
+    command::CommandMessage, game::Game, sense::SensesMessage, states::States, tui::GameTui,
+    udp_server::Server, world::load_world,
 };
 
 mod command;
 mod game;
 mod robot;
 mod sense;
-mod server;
 mod states;
 mod tui;
+mod udp_server;
 mod world;
+mod ws_server;
 
 fn main() {
     tui_logger::init_logger(log::LevelFilter::Trace).unwrap();

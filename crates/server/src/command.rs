@@ -1,6 +1,6 @@
 use std::sync::mpsc::Sender;
 
-use lost_signal::common::network::UdpCommandPacket;
+use losig_core::network::UdpCommandPacket;
 
 pub type CommandMessage = UdpCommandPacket;
 

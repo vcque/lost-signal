@@ -1,17 +1,16 @@
 use std::time::Duration;
 
-use lost_signal::common::{
-    action::Action,
+use losig_core::{
     sense::{SenseInfo, Senses, TerrainSense, WorldSense},
-    types::{Direction, Offset, Tile},
+    types::{Action, Direction, Offset, Tile},
 };
 use ratatui::{
-    Terminal,
     crossterm::event::{self, Event, KeyCode, KeyEvent},
     layout::{Constraint, Layout, Rect},
     prelude::Backend,
     style::{Color, Style},
     widgets::{Block, List, ListItem, ListState, Widget},
+    Terminal,
 };
 
 use crate::{game::GameSim, world::WorldView};

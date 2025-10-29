@@ -1,6 +1,6 @@
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
-use crate::common::types::{EntityId, Tile};
+use crate::types::{EntityId, Tile};
 
 /// Describe information that an entity want retrieved for a given turn
 #[derive(Default, Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]

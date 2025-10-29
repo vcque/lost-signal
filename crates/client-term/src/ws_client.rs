@@ -5,14 +5,11 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use log::error;
-use lost_signal::common::network::UdpSensesPacket;
+use losig_core::network::UdpSensesPacket;
 use serde::{Deserialize, Serialize};
-use tungstenite::{
-    Bytes, ClientHandshake, HandshakeError, Message, WebSocket,
-    http::Request,
-};
+use tungstenite::{http::Request, Bytes, ClientHandshake, HandshakeError, Message, WebSocket};
 
 use crate::{CommandMessage, SenseMessage};
 

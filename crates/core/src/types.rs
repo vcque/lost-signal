@@ -3,9 +3,19 @@ use std::{
     str::FromStr,
 };
 
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 pub const MAP_SIZE: usize = 256;
+
+/**
+* Lists all possible commands that can be sent by a player to the game.
+* A command is an input that (often) leads to a modification of the game state.
+*/
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub enum Action {
+    Spawn,
+    Move(Direction),
+}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Direction {

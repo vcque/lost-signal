@@ -1,14 +1,14 @@
 use std::{
     collections::HashMap,
     net::{SocketAddr, TcpListener, TcpStream},
-    sync::{Arc, mpsc::Receiver},
+    sync::{mpsc::Receiver, Arc},
     thread::{sleep, spawn},
     time::Duration,
 };
 
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use log::{debug, error, info, warn};
-use lost_signal::common::{
+use losig_core::{
     network::{UdpCommandPacket, UdpSensesPacket},
     types::EntityId,
 };

@@ -1,4 +1,4 @@
-use lost_signal::common::{
+use losig_core::{
     sense::{SenseInfo, TerrainInfo, WorldInfo},
     types::{Offset, Position, Tile},
 };

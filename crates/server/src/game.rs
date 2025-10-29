@@ -1,13 +1,10 @@
 use std::{
-    sync::{Arc, mpsc::Receiver},
+    sync::{mpsc::Receiver, Arc},
     thread::spawn,
 };
 
 use log::*;
-use lost_signal::common::{
-    action::Action,
-    types::{Entity, Tile},
-};
+use losig_core::types::{Action, Entity, Tile};
 
 use crate::{
     command::CommandMessage,

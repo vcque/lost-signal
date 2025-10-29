@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::Result;
 use log::error;
-use lost_signal::common::network::UdpSensesPacket;
+use losig_core::network::UdpSensesPacket;
 use serde::{Deserialize, Serialize};
 
 use crate::{CommandMessage, SenseMessage};

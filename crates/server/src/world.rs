@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use lost_signal::common::types::{Entity, EntityId, MAP_SIZE, Position, Tile};
+use losig_core::types::{Entity, EntityId, Position, Tile, MAP_SIZE};
 
 #[derive(Debug, Clone)]
 pub struct World {
@@ -63,7 +63,7 @@ impl FromStr for Tiles {
 }
 
 pub fn load_world() -> World {
-    let world_str = include_str!("../../map.txt");
+    let world_str = include_str!("../../../map.txt");
     let Ok(tiles) = Tiles::from_str(world_str) else {
         panic!()
     };

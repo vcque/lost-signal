@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::{mpsc, Arc, Mutex};
 
 use crate::{
     command::CommandMessage, game::Game, sense::SensesMessage, states::States, tui::GameTui,

@@ -1,9 +1,8 @@
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
-use crate::common::{
-    action::Action,
+use crate::{
     sense::{SenseInfo, Senses},
-    types::EntityId,
+    types::{Action, EntityId},
 };
 
 #[derive(Debug, Serialize, Deserialize)]

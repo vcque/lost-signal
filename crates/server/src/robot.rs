@@ -1,9 +1,9 @@
 #![allow(clippy::all)]
 #![allow(dead_code)]
 
-use lost_signal::common::types::EntityId;
-use lost_signal::common::{action::Action, sense::Senses, types::Direction};
-use rand::{Rng, rng};
+use losig_core::types::{Action, EntityId};
+use losig_core::{sense::Senses, types::Direction};
+use rand::{rng, Rng};
 use std::time::Duration;
 use std::{sync::Arc, thread::sleep};
 

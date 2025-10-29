@@ -1,14 +1,17 @@
 use std::{
     sync::{
-        Arc, Mutex,
         mpsc::{Receiver, Sender},
+        Arc, Mutex,
     },
     thread::spawn,
 };
 
-use lost_signal::common::{action::Action, sense::Senses, types::EntityId};
+use losig_core::{
+    sense::Senses,
+    types::{Action, EntityId},
+};
 
-use crate::{CommandMessage, SenseMessage, world::WorldView};
+use crate::{world::WorldView, CommandMessage, SenseMessage};
 
 pub struct GameSim {
     entity_id: EntityId,

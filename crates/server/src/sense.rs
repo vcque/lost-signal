@@ -1,9 +1,9 @@
 use std::sync::mpsc::Sender;
 
 use log::info;
-use lost_signal::common::{
+use losig_core::{
     sense::{SenseInfo, Senses, TerrainInfo, TerrainSense, WorldInfo, WorldSense},
-    types::{Entity, EntityId, MAP_SIZE, Position, Tile},
+    types::{Entity, EntityId, Position, Tile, MAP_SIZE},
 };
 
 use crate::world::World;

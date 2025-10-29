@@ -1,7 +1,7 @@
 #![allow(clippy::all)]
 
-use lost_signal::common::network::{UdpCommandPacket, UdpSensesPacket};
-use lost_signal::common::types::EntityId;
+use losig_core::network::{UdpCommandPacket, UdpSensesPacket};
+use losig_core::types::EntityId;
 
 use std::sync::mpsc::channel;
 

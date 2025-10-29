@@ -1,17 +1,15 @@
 #![allow(clippy::all)]
 
+use losig_client::game::GameSim;
+use losig_client::tui::GameTui;
 use losig_core::network::{UdpCommandPacket, UdpSensesPacket};
 use losig_core::types::EntityId;
 
 use std::sync::mpsc::channel;
 
-use crate::game::GameSim;
-use crate::tui::Tui;
-
-mod game;
+mod crossterm_adapter;
 mod tui;
 mod udp_client;
-mod world;
 mod ws_client;
 
 pub type SenseMessage = UdpSensesPacket;
@@ -44,7 +42,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut game = GameSim::new(entity_id, cmd_send, senses_recv);
     game.run();
 
-    let tui = Tui::new(game);
-    tui.run();
+    let app = GameTui::new(game);
+
+    let adapter = crossterm_adapter::CrosstermAdapter::new(app);
+    adapter.run();
+
+    println!("Doesn't work?");
     Ok(())
 }

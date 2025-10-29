@@ -1,17 +1,21 @@
 use std::{
     sync::{
-        mpsc::{Receiver, Sender},
         Arc, Mutex,
+        mpsc::{Receiver, Sender},
     },
     thread::spawn,
 };
 
 use losig_core::{
+    network::{UdpCommandPacket, UdpSensesPacket},
     sense::Senses,
     types::{Action, EntityId},
 };
 
-use crate::{world::WorldView, CommandMessage, SenseMessage};
+use crate::world::WorldView;
+
+pub type CommandMessage = UdpCommandPacket;
+pub type SenseMessage = UdpSensesPacket;
 
 pub struct GameSim {
     entity_id: EntityId,

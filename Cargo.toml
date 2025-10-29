@@ -6,7 +6,7 @@ members = ["crates/server", "crates/client", "crates/client-term", "crates/clien
 name = "lost-signal"
 version = "0.1.0"
 license = "MIT"
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/vcque/lost-signal"
 
 [workspace.dependencies]
@@ -23,7 +23,7 @@ tungstenite = "0.28"
 
 # Terminal UI dependencies
 crossterm = "0.29"
-ratatui = "0.29"
+ratatui = { version = "0.29", default-features = false }
 tui-logger = "0.17"
 
 # WASM dependencies

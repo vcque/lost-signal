@@ -89,7 +89,7 @@ fn connect() -> Result<Ws> {
                 handshake = mid; // Continue handshake
                 std::thread::sleep(Duration::from_millis(100));
             }
-            Err(HandshakeError::Failure(e)) => return bail!(e),
+            Err(HandshakeError::Failure(e)) => bail!(e),
         }
     }
 }

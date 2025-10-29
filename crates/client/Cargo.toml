@@ -6,7 +6,9 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+anyhow.workspace = true
 losig-core = { path = "../core" }
+ratatui.workspace = true
 
 [lints]
 workspace = true

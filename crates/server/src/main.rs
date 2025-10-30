@@ -1,4 +1,4 @@
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 
 use crate::{
     command::CommandMessage, game::Game, sense::SensesMessage, states::States, tui::GameTui,
@@ -16,8 +16,8 @@ mod world;
 mod ws_server;
 
 fn main() {
-    tui_logger::init_logger(log::LevelFilter::Trace).unwrap();
-    tui_logger::set_default_level(log::LevelFilter::Trace);
+    tui_logger::init_logger(log::LevelFilter::Debug).unwrap();
+    tui_logger::set_default_level(log::LevelFilter::Debug);
 
     let (sense_sender, sense_receiver) = mpsc::channel::<SensesMessage>();
     let (cmd_sender, cmd_receiver) = mpsc::channel::<CommandMessage>();
@@ -33,16 +33,6 @@ fn main() {
     // ackground
     let game = Game::new(states.clone(), cmd_receiver);
     game.run();
-
-    // Start robot in background
-    /*
-    {
-        let queue = queue.clone();
-        spawn(|| {
-            Robot::new(queue).run();
-        });
-    }
-    */
 
     // Run server
     let server = WsServer::new(states.clone(), sense_receiver);

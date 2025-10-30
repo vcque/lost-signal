@@ -12,7 +12,8 @@ color-eyre = "0.6.5"
 console_error_panic_hook.workspace = true
 js-sys.workspace = true
 losig-core = { path = "../core" }
-ratatui = { version = "0.29", default-features = false }
+losig-client = { path = "../client" }
+ratatui.workspace = true
 ratzilla = "0.2.0"
 serde.workspace = true
 wasm-bindgen.workspace = true
@@ -20,11 +21,11 @@ web-sys = { workspace = true, features = [
   "BinaryType",
   "Blob",
   "ErrorEvent",
-  "FileReader",
   "MessageEvent",
-  "ProgressEvent",
   "WebSocket",
 ] }
+console_log = "1.0.0"
+log.workspace = true
 
 [lints]
 workspace = true

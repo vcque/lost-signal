@@ -6,6 +6,8 @@ use losig_core::network::{UdpCommandPacket, UdpSensesPacket};
 use losig_core::types::EntityId;
 
 use std::sync::mpsc::channel;
+use std::sync::{Arc, Mutex};
+use std::thread::spawn;
 
 mod crossterm_adapter;
 mod tui;
@@ -16,8 +18,8 @@ pub type SenseMessage = UdpSensesPacket;
 pub type CommandMessage = UdpCommandPacket;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tui_logger::init_logger(log::LevelFilter::Trace).unwrap();
-    tui_logger::set_default_level(log::LevelFilter::Trace);
+    tui_logger::init_logger(log::LevelFilter::Debug).unwrap();
+    tui_logger::set_default_level(log::LevelFilter::Debug);
 
     let args: Vec<String> = std::env::args().collect();
 
@@ -31,22 +33,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .parse()
         .map_err(|_| "Entity ID must be a valid number")?;
 
-    println!("Starting client with entity ID: {}", entity_id);
+    let (senses_tx, senses_rx) = channel::<SenseMessage>();
+    let (cmd_tx, cmd_rx) = channel::<CommandMessage>();
 
-    let (senses_send, senses_recv) = channel::<SenseMessage>();
-    let (cmd_send, cmd_recv) = channel::<CommandMessage>();
-
-    let client = ws_client::WsClient::new(cmd_recv, senses_send);
+    let client = ws_client::WsClient::new(cmd_rx, senses_tx);
     client.run();
 
-    let mut game = GameSim::new(entity_id, cmd_send, senses_recv);
-    game.run();
+    let mut game = GameSim::new(entity_id);
+    game.set_callback(Box::new(move |msg| {
+        cmd_tx.send(msg).unwrap();
+    }));
 
+    let game = Arc::new(Mutex::new(game));
+    {
+        let game = game.clone();
+        spawn(move || {
+            loop {
+                let sense = senses_rx.recv().unwrap();
+                game.lock().unwrap().update(sense.senses);
+            }
+        });
+    }
     let app = GameTui::new(game);
 
     let adapter = crossterm_adapter::CrosstermAdapter::new(app);
     adapter.run();
 
-    println!("Doesn't work?");
     Ok(())
 }

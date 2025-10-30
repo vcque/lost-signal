@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::types::{EntityId, Tile};
 
 /// Describe information that an entity want retrieved for a given turn
-#[derive(Default, Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Default, Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub struct Senses {
     /// Retrieve info about the general world
     pub world: Option<WorldSense>,
@@ -22,10 +22,10 @@ pub struct WorldInfo {
     pub winner: Option<EntityId>,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub struct WorldSense {}
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub struct TerrainSense {
     pub radius: usize,
 }

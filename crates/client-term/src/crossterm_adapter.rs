@@ -6,15 +6,23 @@ use losig_client::tui_adapter::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MediaKeyCode,
     ModifierKeyCode, MouseButton, MouseEvent, MouseEventKind, TuiApp,
 };
-use ratatui::{Terminal, prelude::CrosstermBackend};
+use ratatui::{
+    Terminal,
+    prelude::CrosstermBackend,
+    widgets::{Block, Widget},
+};
 
 pub struct CrosstermAdapter<T: TuiApp> {
     app: T,
+    show_logs: bool,
 }
 
 impl<T: TuiApp> CrosstermAdapter<T> {
     pub fn new(app: T) -> CrosstermAdapter<T> {
-        CrosstermAdapter { app }
+        CrosstermAdapter {
+            app,
+            show_logs: false,
+        }
     }
 
     pub fn run(self) {
@@ -26,7 +34,19 @@ impl<T: TuiApp> CrosstermAdapter<T> {
 
     pub fn do_run(mut self, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
         loop {
-            terminal.draw(|f| self.app.render(f))?;
+            terminal.draw(|f| {
+                self.app.render(f);
+
+                if self.show_logs {
+                    let logger_widget = tui_logger::TuiLoggerWidget::default().block(
+                        Block::default()
+                            .title("Game Logs")
+                            .borders(ratatui::widgets::Borders::ALL),
+                    );
+                    logger_widget.render(f.area(), f.buffer_mut());
+                }
+            })?;
+
             if ct::poll(Duration::from_millis(50))? {
                 let event = ct::read()?;
 
@@ -37,9 +57,16 @@ impl<T: TuiApp> CrosstermAdapter<T> {
                     {
                         break;
                     }
+                    if key.code == ct::KeyCode::Char('²') {
+                        self.show_logs = !self.show_logs;
+                    }
                 }
 
                 self.app.handle_events(convert_event(event));
+
+                if self.app.should_exit() {
+                    break;
+                }
             }
         }
         Ok(())

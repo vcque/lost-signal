@@ -1,7 +1,9 @@
+#![allow(dead_code)]
+
 use std::{
     collections::HashMap,
     net::{SocketAddr, UdpSocket},
-    sync::{mpsc::Receiver, Arc},
+    sync::{Arc, mpsc::Receiver},
     thread::{sleep, spawn},
     time::Duration,
 };

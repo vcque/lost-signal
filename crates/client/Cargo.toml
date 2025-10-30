@@ -9,6 +9,7 @@ repository.workspace = true
 anyhow.workspace = true
 losig-core = { path = "../core" }
 ratatui.workspace = true
+log.workspace = true
 
 [lints]
 workspace = true

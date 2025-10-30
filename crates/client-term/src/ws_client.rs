@@ -5,11 +5,11 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{bail, Result};
-use log::error;
+use anyhow::{Result, bail};
+use log::{debug, error};
 use losig_core::network::UdpSensesPacket;
 use serde::{Deserialize, Serialize};
-use tungstenite::{http::Request, Bytes, ClientHandshake, HandshakeError, Message, WebSocket};
+use tungstenite::{Bytes, ClientHandshake, HandshakeError, Message, WebSocket, http::Request};
 
 use crate::{CommandMessage, SenseMessage};
 
@@ -48,6 +48,7 @@ impl WsClient {
             };
 
             if let Ok(sense) = handle_read::<UdpSensesPacket>(socket) {
+                debug!("sending senses to channel");
                 let _ = senses.send(sense);
             }
 

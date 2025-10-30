@@ -146,4 +146,5 @@ pub enum MouseButton {
 pub trait TuiApp {
     fn render(&mut self, f: &mut Frame);
     fn handle_events(&mut self, event: Event);
+    fn should_exit(&self) -> bool;
 }

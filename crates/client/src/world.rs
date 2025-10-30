@@ -1,9 +1,10 @@
+use log::{debug, info};
 use losig_core::{
     sense::{SenseInfo, TerrainInfo, WorldInfo},
     types::{Offset, Position, Tile},
 };
 
-const VIEW_SIZE: usize = 512;
+const VIEW_SIZE: usize = 128;
 
 #[derive(Debug, Clone)]
 pub struct WorldView {
@@ -39,7 +40,8 @@ impl WorldView {
         self.tiles[pos.x + VIEW_SIZE * pos.y]
     }
 
-    pub fn apply(&mut self, info: SenseInfo) {
+    pub fn update(&mut self, info: SenseInfo) {
+        debug!("update: {info:?}");
         if let Some(ref terrain) = info.terrain {
             self.apply_terrain(terrain);
         }
@@ -63,6 +65,7 @@ impl WorldView {
             for y in 0..(2 * radius + 1) {
                 let tile = terrain.tiles[x + (2 * radius + 1) * y];
                 if !matches!(tile, Tile::Unknown) {
+                    info!("applying tile");
                     let x_view = center - radius + x;
                     let y_view = center - radius + y;
                     self.tiles[x_view + VIEW_SIZE * y_view] = tile;

@@ -1,6 +1,7 @@
+use std::sync::{Arc, Mutex};
 
 use losig_core::{
-    sense::{SenseInfo, Senses, TerrainSense, WorldSense},
+    sense::{Senses, TerrainSense, WorldSense},
     types::{Action, Direction, Offset, Tile},
 };
 use ratatui::{
@@ -22,19 +23,14 @@ pub struct GameTui {
 }
 
 struct TuiState {
-    game: GameSim,
+    game: Arc<Mutex<GameSim>>,
     exit: bool,
-    show_logs: bool,
 }
 
 impl GameTui {
-    pub fn new(game: GameSim) -> Self {
+    pub fn new(game: Arc<Mutex<GameSim>>) -> Self {
         Self {
-            state: TuiState {
-                game,
-                exit: false,
-                show_logs: true,
-            },
+            state: TuiState { game, exit: false },
             page: Box::new(MenuPage::default()),
         }
     }
@@ -51,6 +47,10 @@ impl TuiApp for GameTui {
         if let TuiNav::Goto(p) = nav {
             self.page = p;
         }
+    }
+
+    fn should_exit(&self) -> bool {
+        return self.state.exit;
     }
 }
 
@@ -114,7 +114,7 @@ impl Page for MenuPage {
         &mut self,
         area: ratatui::prelude::Rect,
         buf: &mut ratatui::prelude::Buffer,
-        state: &TuiState,
+        _state: &TuiState,
     ) {
         let menu_items: Vec<ListItem> = MENU_OPTIONS
             .iter()
@@ -140,7 +140,11 @@ impl Page for MenuPage {
                 if let Some(selection) = self.list_state.selected().map(|i| MENU_OPTIONS[i]) {
                     match selection {
                         MenuOption::Start => {
-                            state.game.act(Action::Spawn, Senses::default());
+                            state
+                                .game
+                                .lock()
+                                .unwrap()
+                                .act(Action::Spawn, Senses::default());
                             return TuiNav::from(GamePage::default());
                         }
                         MenuOption::Continue => {
@@ -196,43 +200,30 @@ impl Page for GamePage {
         buf: &mut ratatui::prelude::Buffer,
         state: &TuiState,
     ) {
-        let [world_a, log_a, senses_a] = Self::layout(area);
-
-        let world = state.game.world();
-
-        let world_widget = WorldViewWidget {
-            world: world.clone(),
-        };
-        let senses_widget = SensesWidget {
-            selection: 0,
-            senses: self.senses.clone(),
-            info: world.last_info.clone(),
-        };
-
+        let [world_a, _log_a, _senses_a] = Self::layout(area);
+        let game = state.game.lock().unwrap();
+        let world = game.world();
+        let world_widget = WorldViewWidget { world: &world };
         world_widget.render(world_a, buf);
-        senses_widget.render(senses_a, buf);
     }
     fn handle_events(&mut self, event: Event, tui: &mut TuiState) -> TuiNav {
         let Event::Key(key) = event else {
             return TuiNav::None;
         };
 
+        let mut game = tui.game.lock().unwrap();
         match key.code {
             KeyCode::Up => {
-                tui.game
-                    .act(Action::Move(Direction::Up), self.senses.clone());
+                game.act(Action::Move(Direction::Up), self.senses.clone());
             }
             KeyCode::Down => {
-                tui.game
-                    .act(Action::Move(Direction::Down), self.senses.clone());
+                game.act(Action::Move(Direction::Down), self.senses.clone());
             }
             KeyCode::Left => {
-                tui.game
-                    .act(Action::Move(Direction::Left), self.senses.clone());
+                game.act(Action::Move(Direction::Left), self.senses.clone());
             }
             KeyCode::Right => {
-                tui.game
-                    .act(Action::Move(Direction::Right), self.senses.clone());
+                game.act(Action::Move(Direction::Right), self.senses.clone());
             }
             _ => {}
         }
@@ -242,11 +233,11 @@ impl Page for GamePage {
 }
 
 /// Rendering of the map
-struct WorldViewWidget {
-    world: WorldView,
+struct WorldViewWidget<'a> {
+    world: &'a WorldView,
 }
 
-impl Widget for WorldViewWidget {
+impl<'a> Widget for WorldViewWidget<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         let w = self.world;
         let center_x = area.width as isize / 2;
@@ -284,21 +275,5 @@ fn to_char(tile: Tile) -> char {
         Tile::Wall => '#',
         Tile::Unknown => ' ',
         Tile::Empty => '.',
-    }
-}
-
-/// Rendering of the used senses
-#[derive(Debug)]
-struct SensesWidget {
-    senses: Senses,
-    info: SenseInfo,
-    selection: usize,
-}
-
-impl Widget for SensesWidget {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-    where
-        Self: Sized,
-    {
     }
 }

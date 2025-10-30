@@ -1,13 +1,14 @@
 use std::{
     collections::HashMap,
     net::{SocketAddr, TcpListener, TcpStream},
-    sync::{mpsc::Receiver, Arc},
+    os::unix::io,
+    sync::{Arc, mpsc::Receiver},
     thread::{sleep, spawn},
     time::Duration,
 };
 
-use anyhow::{bail, Result};
-use log::{debug, error, info, warn};
+use anyhow::{Result, bail};
+use log::{error, info, warn};
 use losig_core::{
     network::{UdpCommandPacket, UdpSensesPacket},
     types::EntityId,
@@ -55,14 +56,15 @@ impl WsServer {
                     ws_by_addr.insert(addr, stream);
                 }
                 Err(e) => {
-                    warn!("Could not establish connection: {:?}", e);
+                    if !is_would_block(&e) {
+                        warn!("Could not establish connection: {:?}", e);
+                    }
                 }
             }
             if let Ok((stream, addr)) = handle_incoming(&server) {
                 ws_by_addr.insert(addr, stream);
             }
 
-            debug!("Reading ws");
             for (addr, stream) in ws_by_addr.iter_mut() {
                 match handle_read(stream) {
                     Ok(cmd) => {
@@ -70,12 +72,13 @@ impl WsServer {
                         states.commands.send(cmd)?;
                     }
                     Err(e) => {
-                        warn!("{e}");
+                        if !is_would_block(&e) {
+                            warn!("Couldn't read: {e}");
+                        }
                     }
                 }
             }
 
-            debug!("Reading channels");
             for sense in senses.try_iter() {
                 let entity_id = sense.entity_id;
                 let ws = addr_by_entity_id
@@ -101,6 +104,7 @@ fn handle_incoming(server: &TcpListener) -> Result<(Ws, SocketAddr)> {
     let (stream, addr) = server.accept()?;
     let mut stream = tungstenite::accept(stream)?;
     stream.get_mut().set_nonblocking(true)?;
+    info!("Incoming connection from {addr}");
     Ok((stream, addr))
 }
 
@@ -119,4 +123,13 @@ fn handle_write(ws: &mut Ws, msg: UdpSensesPacket) -> Result<()> {
     let msg = Bytes::from_owner(msg);
     ws.send(Message::Binary(msg))?;
     Ok(())
+}
+
+fn is_would_block(error: &anyhow::Error) -> bool {
+    error.chain().any(|cause| {
+        cause
+            .downcast_ref::<std::io::Error>()
+            .map(|e| e.kind() == std::io::ErrorKind::WouldBlock)
+            .unwrap_or(false)
+    })
 }

@@ -1,0 +1,6 @@
+[watch]
+watch = [".."]
+
+[[proxy]]
+backend = "ws://127.0.0.1:9001/ws"
+ws = true

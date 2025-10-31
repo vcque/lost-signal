@@ -6,7 +6,7 @@ use losig_core::{
 };
 use ratatui::{
     Frame,
-    layout::{Constraint, Layout, Rect},
+    layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Style},
     widgets::{List, ListItem, ListState, Widget},
 };
@@ -121,11 +121,17 @@ impl Page for MenuPage {
             .map(|option| ListItem::new(option.to_string()))
             .collect();
 
+        let center = center(
+            area,
+            Constraint::Percentage(50),
+            Constraint::Length(menu_items.len() as u16),
+        );
+
         let menu_list = List::new(menu_items)
             .style(Style::default().fg(Color::Gray))
             .highlight_symbol("> ");
 
-        ratatui::widgets::StatefulWidget::render(menu_list, area, buf, &mut self.list_state);
+        ratatui::widgets::StatefulWidget::render(menu_list, center, buf, &mut self.list_state);
     }
 
     fn handle_events(&mut self, event: Event, state: &mut TuiState) -> TuiNav {
@@ -276,4 +282,12 @@ fn to_char(tile: Tile) -> char {
         Tile::Unknown => ' ',
         Tile::Empty => '.',
     }
+}
+
+fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(Flex::Center)
+        .areas(area);
+    let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+    area
 }

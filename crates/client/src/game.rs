@@ -39,7 +39,11 @@ impl GameSim {
         // Handle each action
         debug!("{action:?}, {senses:?}");
         if let Action::Move(dir) = action {
-            self.world.shift(-dir.offset());
+            let new_pos = self.world.viewer + dir.offset();
+            let tile = self.world.tile_at(new_pos);
+            if tile.can_travel() {
+                self.world.viewer = new_pos;
+            }
         }
 
         let msg = CommandMessage {

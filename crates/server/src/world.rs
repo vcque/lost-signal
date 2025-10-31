@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use losig_core::types::{Entity, EntityId, Position, Tile, MAP_SIZE};
+use losig_core::types::{Entity, EntityId, MAP_SIZE, Position, Tile};
 
 #[derive(Debug, Clone)]
 pub struct World {
@@ -20,7 +20,7 @@ impl World {
             .enumerate()
             .filter_map(|(i, t)| {
                 if *t == Tile::Spawn {
-                    Some(Position::from(i))
+                    Some(Position::from_index(i, MAP_SIZE))
                 } else {
                     None
                 }
@@ -68,7 +68,9 @@ pub fn load_world() -> World {
         panic!()
     };
 
-    let orb_pos = world_str.find("¤").map(Position::from);
+    let orb_pos = world_str
+        .find("¤")
+        .map(|i| Position::from_index(i, MAP_SIZE));
 
     World {
         tick: 0,

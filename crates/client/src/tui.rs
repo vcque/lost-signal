@@ -252,7 +252,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
         for x in 0..area.width {
             for y in 0..area.height {
                 // Should take the tiles in batch ?
-                let tile = w.tile_from_center(Offset {
+                let tile = w.tile_from_viewer(Offset {
                     x: x as isize - center_x,
                     y: y as isize - center_y,
                 });

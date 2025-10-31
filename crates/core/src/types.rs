@@ -83,20 +83,40 @@ impl Position {
         self + dir.offset()
     }
 
-    pub fn from(index: usize) -> Position {
+    pub fn from_index(index: usize, width: usize) -> Position {
         Position {
-            x: index % MAP_SIZE,
-            y: index / MAP_SIZE,
+            x: index % width,
+            y: index / width,
         }
+    }
+
+    pub fn as_index(&self, width: usize) -> usize {
+        self.x + width * self.y
+    }
+
+    pub fn is_oob(&self, size: usize, offset: Offset) -> bool {
+        let ix = self.x as isize + offset.x;
+        let iy = self.y as isize + offset.y;
+        ix < 0 || iy < 0 || ix >= size as isize || iy >= size as isize
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[repr(u8)]
 pub enum Tile {
     Wall,
     Empty,
     Spawn,
     Unknown,
+}
+
+impl Tile {
+    pub fn can_travel(&self) -> bool {
+        match self {
+            Self::Wall | Self::Unknown => false,
+            _ => true,
+        }
+    }
 }
 
 impl FromStr for Tile {

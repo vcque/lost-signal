@@ -1,16 +1,16 @@
-use log::{debug, info};
 use losig_core::{
     sense::{SenseInfo, TerrainInfo, WorldInfo},
     types::{Offset, Position, Tile},
 };
 
-const VIEW_SIZE: usize = 128;
+const VIEW_SIZE: usize = 256;
 
 #[derive(Debug, Clone)]
 pub struct WorldView {
     pub tick: u64,
     pub tiles: [Tile; VIEW_SIZE * VIEW_SIZE],
     pub last_info: SenseInfo,
+    pub viewer: Position,
 }
 
 impl WorldView {
@@ -19,17 +19,20 @@ impl WorldView {
             tiles: [Tile::Unknown; VIEW_SIZE * VIEW_SIZE],
             tick: 0,
             last_info: SenseInfo::default(),
+            viewer: Position {
+                x: VIEW_SIZE / 2,
+                y: VIEW_SIZE / 2,
+            },
         }
     }
 
-    pub fn tile_from_center(&self, offset: Offset) -> Tile {
-        let center = Position {
-            x: VIEW_SIZE / 2,
-            y: VIEW_SIZE / 2,
-        };
-
-        let pos = center + offset;
-        self.tile_at(pos)
+    pub fn tile_from_viewer(&self, offset: Offset) -> Tile {
+        if self.viewer.is_oob(VIEW_SIZE, offset) {
+            Tile::Unknown
+        } else {
+            let pos = self.viewer + offset;
+            self.tile_at(pos)
+        }
     }
 
     pub fn tile_at(&self, pos: Position) -> Tile {
@@ -41,7 +44,6 @@ impl WorldView {
     }
 
     pub fn update(&mut self, info: SenseInfo) {
-        debug!("update: {info:?}");
         if let Some(ref terrain) = info.terrain {
             self.apply_terrain(terrain);
         }
@@ -58,17 +60,22 @@ impl WorldView {
 
     /// Add new info from the server
     pub fn apply_terrain(&mut self, terrain: &TerrainInfo) {
-        // view is always centered
-        let center = VIEW_SIZE / 2;
-        let radius = terrain.radius;
-        for x in 0..(2 * radius + 1) {
-            for y in 0..(2 * radius + 1) {
-                let tile = terrain.tiles[x + (2 * radius + 1) * y];
+        let center = Position {
+            x: terrain.radius,
+            y: terrain.radius,
+        };
+
+        let iradius = terrain.radius as isize;
+        let terrain_size = 2 * terrain.radius + 1;
+
+        for x in (-iradius)..(iradius + 1) {
+            for y in (-iradius)..(iradius + 1) {
+                let offset = Offset { x, y };
+                let info_pos = center + offset;
+                let tile = terrain.tiles[info_pos.as_index(terrain_size)];
                 if !matches!(tile, Tile::Unknown) {
-                    info!("applying tile");
-                    let x_view = center - radius + x;
-                    let y_view = center - radius + y;
-                    self.tiles[x_view + VIEW_SIZE * y_view] = tile;
+                    let world_pos = self.viewer + offset;
+                    self.tiles[world_pos.as_index(VIEW_SIZE)] = tile;
                 }
             }
         }

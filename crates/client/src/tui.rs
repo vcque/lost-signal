@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use losig_core::{
     sense::{Sense, SenseInfo, Senses, TerrainSense, WorldSense},
-    types::{Action, Direction, Offset, Tile},
+    types::{Action, Direction, EntityId, Offset, Tile},
 };
 use ratatui::{
     Frame,
@@ -20,11 +20,6 @@ use crate::{
 pub struct GameTui {
     state: TuiState,
     page: Box<dyn Page>,
-}
-
-struct TuiState {
-    game: Arc<Mutex<GameSim>>,
-    exit: bool,
 }
 
 impl GameTui {
@@ -52,6 +47,11 @@ impl TuiApp for GameTui {
     fn should_exit(&self) -> bool {
         return self.state.exit;
     }
+}
+
+struct TuiState {
+    game: Arc<Mutex<GameSim>>,
+    exit: bool,
 }
 
 enum TuiNav {
@@ -235,14 +235,32 @@ impl Page for GamePage {
 
         let senses_wigdet = Block::default().title("Senses").wrap(senses_widget);
         senses_wigdet.render(_senses_a, buf);
+
+        if let Some(entity_id) = world.last_info.world.as_ref().and_then(|w| w.winner) {
+            YouWinWidget {
+                winner: entity_id,
+                me: game.entity_id,
+            }
+            .render(area, buf);
+        }
     }
+
     fn handle_events(&mut self, event: Event, tui: &mut TuiState) -> TuiNav {
         let Event::Key(key) = event else {
             return TuiNav::None;
         };
 
         let mut game = tui.game.lock().unwrap();
-
+        if game
+            .world()
+            .last_info
+            .world
+            .as_ref()
+            .and_then(|w| w.winner)
+            .is_some()
+        {
+            return TuiNav::None;
+        }
         if key.modifiers.control {
             match key.code {
                 KeyCode::Up => {
@@ -441,5 +459,59 @@ impl<'a> BlockWrap<'a> for Block<'a> {
             widget,
             block: self,
         }
+    }
+}
+
+struct YouWinWidget {
+    me: EntityId,
+    winner: EntityId,
+}
+
+impl Widget for YouWinWidget {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
+    where
+        Self: Sized,
+    {
+        let message = if self.me == self.winner {
+            "YOU WIN!"
+        } else {
+            "YOU LOSE."
+        };
+
+        let popup_width = 30;
+        let popup_height = 7;
+
+        let popup_area = center(
+            area,
+            Constraint::Length(popup_width),
+            Constraint::Length(popup_height),
+        );
+
+        // Clear the popup area with a background
+        for x in popup_area.x..popup_area.x + popup_area.width {
+            for y in popup_area.y..popup_area.y + popup_area.height {
+                buf.set_string(x, y, " ", Style::default().bg(Color::Black));
+            }
+        }
+
+        let block = Block::default()
+            .title("Game Over")
+            .borders(Borders::ALL)
+            .style(Style::default().bg(Color::Black).fg(Color::White));
+
+        let inner = block.inner(popup_area);
+        block.render(popup_area, buf);
+
+        // Center the message in the popup
+        let text_y = inner.y + inner.height / 2;
+        let text_x = inner.x + (inner.width.saturating_sub(message.len() as u16)) / 2;
+
+        let text_style = if self.me == self.winner {
+            Style::default().fg(Color::Green).bold()
+        } else {
+            Style::default().fg(Color::Red).bold()
+        };
+
+        buf.set_string(text_x, text_y, message, text_style);
     }
 }

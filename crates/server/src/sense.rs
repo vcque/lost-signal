@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 use log::info;
 use losig_core::{
     sense::{SenseInfo, Senses, TerrainInfo, TerrainSense, WorldInfo, WorldSense},
-    types::{Entity, EntityId, Position, Tile, MAP_SIZE},
+    types::{Entity, EntityId, MAP_SIZE, Position, Tile},
 };
 
 use crate::world::World;
@@ -27,7 +27,7 @@ impl Sense for WorldSense {
     fn gather_opt(&self, _: Option<&Entity>, world: &World) -> Option<Self::Output> {
         Some(WorldInfo {
             tick: world.tick,
-            winner: None,
+            winner: world.winner,
         })
     }
 }

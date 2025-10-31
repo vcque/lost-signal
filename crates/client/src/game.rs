@@ -13,7 +13,7 @@ pub type SenseMessage = UdpSensesPacket;
 type CallbackFn = Box<dyn Fn(CommandMessage) + Send>;
 
 pub struct GameSim {
-    entity_id: EntityId,
+    pub entity_id: EntityId,
     world: WorldView,
     on_act: CallbackFn,
 }

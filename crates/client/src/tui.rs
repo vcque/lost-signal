@@ -1,14 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 use losig_core::{
-    sense::{Senses, TerrainSense, WorldSense},
+    sense::{Sense, SenseInfo, Senses, TerrainSense, WorldSense},
     types::{Action, Direction, Offset, Tile},
 };
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, Layout, Rect},
-    style::{Color, Style},
-    widgets::{List, ListItem, ListState, Widget},
+    style::{Color, Style, Stylize},
+    widgets::{Block, Borders, List, ListItem, ListState, Widget},
 };
 
 use crate::{
@@ -173,6 +173,7 @@ impl Page for MenuPage {
 #[derive(Debug)]
 struct GamePage {
     senses: Senses,
+    sense_selection: usize,
 }
 
 impl Default for GamePage {
@@ -182,6 +183,7 @@ impl Default for GamePage {
                 world: Some(WorldSense {}),
                 terrain: Some(TerrainSense { radius: 5 }),
             },
+            sense_selection: 0,
         }
     }
 }
@@ -197,6 +199,13 @@ impl GamePage {
 
         [world, log, senses]
     }
+
+    fn selected_sense_mut(&mut self) -> &mut dyn Sense {
+        match self.sense_selection {
+            0 => &mut self.senses.world as &mut dyn Sense,
+            _ => &mut self.senses.terrain as &mut dyn Sense,
+        }
+    }
 }
 
 impl Page for GamePage {
@@ -210,7 +219,22 @@ impl Page for GamePage {
         let game = state.game.lock().unwrap();
         let world = game.world();
         let world_widget = WorldViewWidget { world: &world };
+
+        let world_widget = Block::default()
+            .borders(Borders::ALL)
+            .title("World")
+            .wrap(world_widget);
+
         world_widget.render(world_a, buf);
+
+        let senses_widget = SensesWidget {
+            senses: self.senses,
+            info: world.last_info.clone(),
+            selection: self.sense_selection,
+        };
+
+        let senses_wigdet = Block::default().title("Senses").wrap(senses_widget);
+        senses_wigdet.render(_senses_a, buf);
     }
     fn handle_events(&mut self, event: Event, tui: &mut TuiState) -> TuiNav {
         let Event::Key(key) = event else {
@@ -218,21 +242,43 @@ impl Page for GamePage {
         };
 
         let mut game = tui.game.lock().unwrap();
-        let action = match key.code {
-            KeyCode::Up | KeyCode::Char('8') => Some(Action::Move(Direction::Up)),
-            KeyCode::Down | KeyCode::Char('2') => Some(Action::Move(Direction::Down)),
-            KeyCode::Left | KeyCode::Char('4') => Some(Action::Move(Direction::Left)),
-            KeyCode::Right | KeyCode::Char('6') => Some(Action::Move(Direction::Right)),
-            KeyCode::Char('7') => Some(Action::Move(Direction::UpLeft)),
-            KeyCode::Char('9') => Some(Action::Move(Direction::UpRight)),
-            KeyCode::Char('1') => Some(Action::Move(Direction::DownLeft)),
-            KeyCode::Char('3') => Some(Action::Move(Direction::DownRight)),
-            KeyCode::Char('5') => Some(Action::Wait),
-            _ => None,
-        };
 
-        if let Some(action) = action {
-            game.act(action, self.senses.clone());
+        if key.modifiers.control {
+            match key.code {
+                KeyCode::Up => {
+                    if self.sense_selection > 0 {
+                        self.sense_selection -= 1;
+                    }
+                }
+                KeyCode::Down => {
+                    if self.sense_selection < 2 {
+                        self.sense_selection += 1;
+                    }
+                }
+                KeyCode::Right => {
+                    self.selected_sense_mut().incr();
+                }
+                KeyCode::Left => {
+                    self.selected_sense_mut().decr();
+                }
+                _ => {}
+            }
+        } else {
+            let action = match key.code {
+                KeyCode::Up | KeyCode::Char('8') => Some(Action::Move(Direction::Up)),
+                KeyCode::Down | KeyCode::Char('2') => Some(Action::Move(Direction::Down)),
+                KeyCode::Left | KeyCode::Char('4') => Some(Action::Move(Direction::Left)),
+                KeyCode::Right | KeyCode::Char('6') => Some(Action::Move(Direction::Right)),
+                KeyCode::Char('7') => Some(Action::Move(Direction::UpLeft)),
+                KeyCode::Char('9') => Some(Action::Move(Direction::UpRight)),
+                KeyCode::Char('1') => Some(Action::Move(Direction::DownLeft)),
+                KeyCode::Char('3') => Some(Action::Move(Direction::DownRight)),
+                KeyCode::Char('5') => Some(Action::Wait),
+                _ => None,
+            };
+            if let Some(action) = action {
+                game.act(action, self.senses.clone());
+            }
         }
 
         TuiNav::None
@@ -276,6 +322,80 @@ impl<'a> Widget for WorldViewWidget<'a> {
     }
 }
 
+struct SensesWidget {
+    senses: Senses,
+    info: SenseInfo,
+    selection: usize,
+}
+
+impl Widget for SensesWidget {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
+    where
+        Self: Sized,
+    {
+        let label = "World";
+        let active = self.senses.world.is_some();
+        let status = self
+            .info
+            .world
+            .map(|w| format!("turn {}", w.tick))
+            .unwrap_or("()".to_owned());
+
+        let indicator = if active { "(+)" } else { "(-)" };
+        let first_line = format!(
+            "{}{}{}",
+            label,
+            ".".repeat(area.width as usize - label.len() - indicator.len()),
+            indicator
+        );
+
+        let second_line = format!("{:>width$}", status, width = area.width as usize);
+
+        let style = if self.selection == 0 {
+            Style::default().bold().fg(Color::LightGreen)
+        } else {
+            Style::default()
+        };
+        buf.set_string(area.x, area.y, &first_line, style);
+        buf.set_string(area.x, area.y + 1, &second_line, Style::default());
+
+        let label = "Terrain";
+        let active = self.senses.terrain.is_some();
+        let status = self
+            .info
+            .terrain
+            .map(|t| format!("{} tiles", t.tiles.len()))
+            .unwrap_or("-".to_owned());
+
+        let indicator = match self.senses.terrain {
+            Some(t) => format!("({})", t.radius),
+            None => "(-)".to_owned(),
+        };
+
+        let first_line = format!(
+            "{}{}{}",
+            label,
+            ".".repeat(area.width as usize - label.len() - indicator.len()),
+            indicator
+        );
+
+        let second_line = format!("{:>width$}", status, width = area.width as usize);
+        let style = if self.selection == 1 {
+            Style::default().bold().fg(Color::LightGreen)
+        } else {
+            Style::default()
+        };
+        buf.set_string(area.x, area.y + 2, &first_line, style);
+        buf.set_string(area.x, area.y + 3, &second_line, Style::default());
+    }
+}
+
+/*
+*
+* Utils section
+*
+*/
+
 fn to_char(tile: Tile) -> char {
     match tile {
         Tile::Spawn => 'S',
@@ -291,4 +411,35 @@ fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
         .areas(area);
     let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
     area
+}
+
+trait BlockWrap<'a> {
+    fn wrap<T: Widget>(self, widget: T) -> WBlock<'a, T>;
+}
+
+struct WBlock<'a, T> {
+    widget: T,
+    block: Block<'a>,
+}
+
+impl<'a, T: Widget> Widget for WBlock<'a, T> {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
+    where
+        Self: Sized,
+    {
+        let Self { widget, block } = self;
+
+        let inner = block.inner(area);
+        widget.render(inner, buf);
+        block.render(area, buf);
+    }
+}
+
+impl<'a> BlockWrap<'a> for Block<'a> {
+    fn wrap<T: Widget>(self, widget: T) -> WBlock<'a, T> {
+        WBlock {
+            widget,
+            block: self,
+        }
+    }
 }

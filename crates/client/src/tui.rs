@@ -218,20 +218,21 @@ impl Page for GamePage {
         };
 
         let mut game = tui.game.lock().unwrap();
-        match key.code {
-            KeyCode::Up => {
-                game.act(Action::Move(Direction::Up), self.senses.clone());
-            }
-            KeyCode::Down => {
-                game.act(Action::Move(Direction::Down), self.senses.clone());
-            }
-            KeyCode::Left => {
-                game.act(Action::Move(Direction::Left), self.senses.clone());
-            }
-            KeyCode::Right => {
-                game.act(Action::Move(Direction::Right), self.senses.clone());
-            }
-            _ => {}
+        let action = match key.code {
+            KeyCode::Up | KeyCode::Char('8') => Some(Action::Move(Direction::Up)),
+            KeyCode::Down | KeyCode::Char('2') => Some(Action::Move(Direction::Down)),
+            KeyCode::Left | KeyCode::Char('4') => Some(Action::Move(Direction::Left)),
+            KeyCode::Right | KeyCode::Char('6') => Some(Action::Move(Direction::Right)),
+            KeyCode::Char('7') => Some(Action::Move(Direction::UpLeft)),
+            KeyCode::Char('9') => Some(Action::Move(Direction::UpRight)),
+            KeyCode::Char('1') => Some(Action::Move(Direction::DownLeft)),
+            KeyCode::Char('3') => Some(Action::Move(Direction::DownRight)),
+            KeyCode::Char('5') => Some(Action::Wait),
+            _ => None,
+        };
+
+        if let Some(action) = action {
+            game.act(action, self.senses.clone());
         }
 
         TuiNav::None

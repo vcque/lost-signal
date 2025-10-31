@@ -1,5 +1,5 @@
 use std::{
-    sync::{mpsc::Receiver, Arc},
+    sync::{Arc, mpsc::Receiver},
     thread::spawn,
 };
 
@@ -89,11 +89,17 @@ pub fn enact_tick(world: &mut World, commands: &[CommandMessage]) {
                     world.winner = Some(ent.id);
                 }
             }
-            (_, ent) => {
+            (Action::Spawn, Some(ent)) => {
                 warn!(
                     "Cannot execute the following: ({:?} -> {:?}) {:?}",
                     entity_id, ent, cmd
                 );
+            }
+            (Action::Wait, Some(_)) => {
+                // NOOP
+            }
+            (action, None) => {
+                warn!("Couldn't find entity {entity_id} for action {action:?}");
             }
         }
     }

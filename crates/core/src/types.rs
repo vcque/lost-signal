@@ -15,6 +15,7 @@ pub const MAP_SIZE: usize = 256;
 pub enum Action {
     Spawn,
     Move(Direction),
+    Wait,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]

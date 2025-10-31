@@ -73,7 +73,7 @@ impl Direction {
             Direction::Right => (1, 0),
             Direction::DownRight => (1, 1),
             Direction::Down => (0, 1),
-            Direction::DownLeft => (-1, 0),
+            Direction::DownLeft => (-1, 1),
         };
         Offset { x, y }
     }

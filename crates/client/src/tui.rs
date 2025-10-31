@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use losig_core::{
-    sense::{Sense, SenseInfo, Senses, TerrainSense, WorldSense},
+    sense::{SenseInfo, Senses, TerrainSense, WorldSense},
     types::{Action, Direction, EntityId, Offset, Tile},
 };
 use ratatui::{
@@ -13,6 +13,7 @@ use ratatui::{
 
 use crate::{
     game::GameSim,
+    sense::Sense,
     tui_adapter::{Event, KeyCode, TuiApp},
     world::WorldView,
 };

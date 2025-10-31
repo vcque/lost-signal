@@ -50,10 +50,11 @@ impl<T: TuiApp> CrosstermAdapter<T> {
             if ct::poll(Duration::from_millis(50))? {
                 let event = ct::read()?;
 
-                // Check for Ctrl+C to exit
+                // Check for Ctrl+C or ESC to exit
                 if let ct::Event::Key(key) = &event {
-                    if key.code == ct::KeyCode::Char('c')
-                        && key.modifiers.contains(ct::KeyModifiers::CONTROL)
+                    if (key.code == ct::KeyCode::Char('c')
+                        && key.modifiers.contains(ct::KeyModifiers::CONTROL))
+                        || key.code == ct::KeyCode::Esc
                     {
                         break;
                     }

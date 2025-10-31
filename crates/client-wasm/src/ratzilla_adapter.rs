@@ -5,10 +5,11 @@ use std::{
 };
 
 use ratatui::Terminal;
-use ratzilla::{DomBackend, WebRenderer, event as rz};
+use ratzilla::{CanvasBackend, WebRenderer, event as rz};
 
 use losig_client::tui_adapter::{
-    Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, TuiApp,
+    Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent,
+    MouseEventKind, TuiApp,
 };
 
 pub struct RatzillaAdapter<T> {
@@ -21,12 +22,13 @@ impl<T: TuiApp + 'static> RatzillaAdapter<T> {
     }
 
     pub fn run(self) -> io::Result<()> {
-        let backend = DomBackend::new()?;
+        let backend = CanvasBackend::new()?;
         let terminal = Terminal::new(backend)?;
 
         let app = Rc::new(RefCell::new(self.app));
 
         let event_app = Rc::clone(&app);
+
         terminal.on_key_event(move |key_event| {
             let adapter_event = Event::Key(convert_key_event(key_event));
             event_app.borrow_mut().handle_events(adapter_event);

@@ -182,7 +182,8 @@ impl Default for GamePage {
         GamePage {
             senses: Senses {
                 world: Some(WorldSense {}),
-                terrain: Some(TerrainSense { radius: 5 }),
+                terrain: Some(TerrainSense { radius: 1 }),
+                ..Default::default()
             },
             sense_selection: 0,
         }
@@ -204,7 +205,9 @@ impl GamePage {
     fn selected_sense_mut(&mut self) -> &mut dyn Sense {
         match self.sense_selection {
             0 => &mut self.senses.world as &mut dyn Sense,
-            _ => &mut self.senses.terrain as &mut dyn Sense,
+            1 => &mut self.senses.selfs as &mut dyn Sense,
+            2 => &mut self.senses.terrain as &mut dyn Sense,
+            _ => &mut self.senses.proximity as &mut dyn Sense,
         }
     }
 }
@@ -270,7 +273,7 @@ impl Page for GamePage {
                     }
                 }
                 KeyCode::Down => {
-                    if self.sense_selection < 2 {
+                    if self.sense_selection < 3 {
                         self.sense_selection += 1;
                     }
                 }
@@ -341,6 +344,52 @@ impl<'a> Widget for WorldViewWidget<'a> {
     }
 }
 
+struct SenseWidget<'a> {
+    label: &'a str,
+    indicator: &'a str,
+    status: &'a str,
+    selected: bool,
+    active: bool,
+}
+
+impl<'a> Widget for SenseWidget<'a> {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
+    where
+        Self: Sized,
+    {
+        let Self {
+            label,
+            indicator,
+            status,
+            active,
+            selected,
+        } = self;
+        let first_line = format!(
+            "{}{}{}",
+            label,
+            ".".repeat(area.width as usize - label.len() - indicator.len()),
+            indicator
+        );
+
+        let second_line = format!("{:>width$}", status, width = area.width as usize);
+
+        let selected_style = Style::default().green();
+        let active_style = Style::default();
+        let inactive_style = Style::default().gray();
+
+        let first_line_style = match (selected, active) {
+            (true, _) => selected_style,
+            (_, true) => active_style,
+            _ => inactive_style,
+        };
+
+        let second_line_style = if active { active_style } else { inactive_style };
+
+        buf.set_string(area.x, area.y, &first_line, first_line_style);
+        buf.set_string(area.x, area.y + 1, &second_line, second_line_style);
+    }
+}
+
 struct SensesWidget {
     senses: Senses,
     info: SenseInfo,
@@ -352,60 +401,88 @@ impl Widget for SensesWidget {
     where
         Self: Sized,
     {
-        let label = "World";
-        let active = self.senses.world.is_some();
+        let rows = Layout::vertical([Constraint::Length(2); 4]).split(area);
+
+        let sense = self.senses.world;
         let status = self
             .info
             .world
             .map(|w| format!("turn {}", w.tick))
             .unwrap_or("()".to_owned());
+        let indicator = if sense.is_some() { "(+)" } else { "(-)" };
 
-        let indicator = if active { "(+)" } else { "(-)" };
-        let first_line = format!(
-            "{}{}{}",
-            label,
-            ".".repeat(area.width as usize - label.len() - indicator.len()),
-            indicator
-        );
+        SenseWidget {
+            label: "World",
+            indicator,
+            status: &status,
+            selected: self.selection == 0,
+            active: sense.is_some(),
+        }
+        .render(rows[0], buf);
 
-        let second_line = format!("{:>width$}", status, width = area.width as usize);
+        let sense = self.senses.selfs;
+        let status = self
+            .info
+            .selfs
+            .map(|w| if w.broken { "Broken" } else { "Intact" })
+            .unwrap_or("()");
+        let indicator = if sense.is_some() { "(+)" } else { "(-)" };
 
-        let style = if self.selection == 0 {
-            Style::default().bold().fg(Color::LightGreen)
-        } else {
-            Style::default()
-        };
-        buf.set_string(area.x, area.y, &first_line, style);
-        buf.set_string(area.x, area.y + 1, &second_line, Style::default());
+        SenseWidget {
+            label: "Self",
+            indicator,
+            status: status,
+            selected: self.selection == 1,
+            active: sense.is_some(),
+        }
+        .render(rows[1], buf);
 
-        let label = "Terrain";
-        let active = self.senses.terrain.is_some();
+        let sense = self.senses.terrain;
         let status = self
             .info
             .terrain
             .map(|t| format!("{} tiles", t.tiles.len()))
             .unwrap_or("-".to_owned());
-
-        let indicator = match self.senses.terrain {
+        let indicator = match sense {
             Some(t) => format!("({})", t.radius),
             None => "(-)".to_owned(),
         };
 
-        let first_line = format!(
-            "{}{}{}",
-            label,
-            ".".repeat(area.width as usize - label.len() - indicator.len()),
-            indicator
-        );
+        SenseWidget {
+            label: "Terrain",
+            indicator: &indicator,
+            status: &status,
+            selected: self.selection == 2,
+            active: sense.is_some(),
+        }
+        .render(rows[2], buf);
 
-        let second_line = format!("{:>width$}", status, width = area.width as usize);
-        let style = if self.selection == 1 {
-            Style::default().bold().fg(Color::LightGreen)
-        } else {
-            Style::default()
+        let sense = self.senses.proximity;
+        let status = self
+            .info
+            .proximity
+            .map(|prox| {
+                if prox.count > 0 {
+                    "Something's nearby"
+                } else {
+                    "Nothing"
+                }
+            })
+            .unwrap_or("-");
+
+        let indicator = match sense {
+            Some(s) => format!("({})", s.radius),
+            None => "(-)".to_owned(),
         };
-        buf.set_string(area.x, area.y + 2, &first_line, style);
-        buf.set_string(area.x, area.y + 3, &second_line, Style::default());
+
+        SenseWidget {
+            label: "Proximity",
+            indicator: &indicator,
+            status: &status,
+            selected: self.selection == 3,
+            active: sense.is_some(),
+        }
+        .render(rows[3], buf);
     }
 }
 
@@ -423,6 +500,10 @@ fn to_char(tile: Tile) -> char {
         Tile::Empty => '.',
     }
 }
+
+trait MyTrait {}
+
+fn perform_action<T: MyTrait>(performer: T) {}
 
 fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
     let [area] = Layout::horizontal([horizontal])

@@ -8,12 +8,16 @@ pub struct Senses {
     /// Retrieve general info about the world
     pub world: Option<WorldSense>,
     pub terrain: Option<TerrainSense>,
+    pub selfs: Option<SelfSense>,
+    pub proximity: Option<ProximitySense>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SenseInfo {
     pub world: Option<WorldInfo>,
     pub terrain: Option<TerrainInfo>,
+    pub selfs: Option<SelfInfo>,
+    pub proximity: Option<ProximityInfo>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]

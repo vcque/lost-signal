@@ -109,6 +109,8 @@ pub fn gather(senses: &Senses, entity: Option<&Entity>, world: &World) -> SenseI
     SenseInfo {
         world: senses.world.gather_opt(entity, world).flatten(),
         terrain: senses.terrain.gather_opt(entity, world).flatten(),
+        selfs: senses.selfs.gather_opt(entity, world).flatten(),
+        proximity: senses.proximity.gather_opt(entity, world).flatten(),
     }
 }
 

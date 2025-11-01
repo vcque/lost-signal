@@ -1,4 +1,4 @@
-use losig_core::sense::{TerrainSense, WorldSense};
+use losig_core::sense::{ProximitySense, SelfSense, TerrainSense, WorldSense};
 
 /// Represents one of the senses of an entity
 pub trait Sense {
@@ -31,6 +31,31 @@ impl Sense for Option<TerrainSense> {
         }
     }
 }
+
+impl Sense for Option<ProximitySense> {
+    fn incr(&mut self) {
+        match self {
+            Some(w) => w.radius += 1,
+            None => {
+                self.replace(ProximitySense { radius: 1 });
+            }
+        }
+    }
+
+    fn decr(&mut self) {
+        match self {
+            Some(w) => {
+                if w.radius == 1 {
+                    self.take();
+                } else {
+                    w.radius -= 1
+                }
+            }
+            None => {}
+        }
+    }
+}
+
 impl Sense for Option<WorldSense> {
     fn decr(&mut self) {
         self.take();
@@ -38,5 +63,15 @@ impl Sense for Option<WorldSense> {
 
     fn incr(&mut self) {
         self.replace(WorldSense {});
+    }
+}
+
+impl Sense for Option<SelfSense> {
+    fn decr(&mut self) {
+        self.take();
+    }
+
+    fn incr(&mut self) {
+        self.replace(SelfSense {});
     }
 }

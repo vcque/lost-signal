@@ -229,7 +229,7 @@ impl Page for GamePage {
         world_widget.render(world_a, buf);
 
         let senses_widget = SensesWidget {
-            senses: self.senses,
+            senses: self.senses.clone(),
             info: world.last_info.clone(),
             selection: self.sense_selection,
         };

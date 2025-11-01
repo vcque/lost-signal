@@ -36,23 +36,6 @@ pub struct Offset {
     pub y: isize,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct Position {
-    pub x: usize,
-    pub y: usize,
-}
-
-impl Add<Offset> for Position {
-    type Output = Position;
-
-    fn add(self, offset: Offset) -> Self::Output {
-        Position {
-            x: (self.x as isize).saturating_add(offset.x).max(0) as usize,
-            y: (self.y as isize).saturating_add(offset.y).max(0) as usize,
-        }
-    }
-}
-
 impl Neg for Offset {
     type Output = Offset;
 
@@ -63,20 +46,10 @@ impl Neg for Offset {
     }
 }
 
-impl Direction {
-    pub fn offset(&self) -> Offset {
-        let (x, y) = match self {
-            Direction::Up => (0, -1),
-            Direction::UpRight => (1, -1),
-            Direction::UpLeft => (-1, -1),
-            Direction::Left => (-1, 0),
-            Direction::Right => (1, 0),
-            Direction::DownRight => (1, 1),
-            Direction::Down => (0, 1),
-            Direction::DownLeft => (-1, 1),
-        };
-        Offset { x, y }
-    }
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct Position {
+    pub x: usize,
+    pub y: usize,
 }
 
 impl Position {
@@ -99,6 +72,46 @@ impl Position {
         let ix = self.x as isize + offset.x;
         let iy = self.y as isize + offset.y;
         ix < 0 || iy < 0 || ix >= size as isize || iy >= size as isize
+    }
+
+    /// Chebyshev distance
+    pub fn dist(&self, other: &Self) -> usize {
+        let self_dims = [self.x, self.y];
+        let other_dims = [other.x, other.y];
+
+        self_dims
+            .into_iter()
+            .zip(other_dims.into_iter())
+            .map(|(a, b)| a.abs_diff(b))
+            .max()
+            .unwrap()
+    }
+}
+
+impl Add<Offset> for Position {
+    type Output = Position;
+
+    fn add(self, offset: Offset) -> Self::Output {
+        Position {
+            x: (self.x as isize).saturating_add(offset.x).max(0) as usize,
+            y: (self.y as isize).saturating_add(offset.y).max(0) as usize,
+        }
+    }
+}
+
+impl Direction {
+    pub fn offset(&self) -> Offset {
+        let (x, y) = match self {
+            Direction::Up => (0, -1),
+            Direction::UpRight => (1, -1),
+            Direction::UpLeft => (-1, -1),
+            Direction::Left => (-1, 0),
+            Direction::Right => (1, 0),
+            Direction::DownRight => (1, 1),
+            Direction::Down => (0, 1),
+            Direction::DownLeft => (-1, 1),
+        };
+        Offset { x, y }
     }
 }
 
@@ -136,8 +149,14 @@ impl FromStr for Tile {
 
 pub type EntityId = u32;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Entity {
     pub id: EntityId,
+    pub position: Position,
+    pub broken: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct Foe {
     pub position: Position,
 }

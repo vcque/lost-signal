@@ -4,7 +4,7 @@ use std::{
 };
 
 use log::*;
-use losig_core::types::{Action, Entity, Tile};
+use losig_core::types::{Action, Entity, EntityId, Tile};
 
 use crate::{
     command::CommandMessage,
@@ -52,55 +52,81 @@ impl Game {
 pub fn enact_tick(world: &mut World, commands: &[CommandMessage]) {
     world.tick = world.tick.wrapping_add(1);
     for cmd in commands {
-        let entity_id = cmd.entity_id;
-        let entity = world.entities.get_mut(&entity_id);
-
-        match (cmd.action, entity) {
-            (Action::Spawn, None) => {
-                let spawn_position = world.find_free_spawns();
-                let selected_spawn = spawn_position[entity_id as usize % spawn_position.len()];
-
-                info!("Entity {} spawned at {:?}", entity_id, selected_spawn);
-
-                world.entities.insert(
-                    cmd.entity_id,
-                    Entity {
-                        id: cmd.entity_id,
-                        position: selected_spawn,
-                    },
-                );
-            }
-            (Action::Move(dir), Some(ent)) => {
-                let next_pos = ent.position.move_once(dir);
-
-                let tile = world.tiles.at(next_pos);
-                if !matches!(tile, Tile::Wall) {
-                    info!(
-                        "Entity {} moved from {:?} to {:?}",
-                        entity_id, ent.position, next_pos
-                    );
-                    ent.position = next_pos;
+        let entity = world.entities.remove(&cmd.entity_id);
+        match entity {
+            Some(mut entity) => {
+                if !entity.broken {
+                    enact_command(world, cmd, &mut entity);
                 }
-
-                if Some(ent.position) == world.orb {
-                    // WIN !
-                    info!("The game was won by {}!", ent.id);
-                    world.orb = None;
-                    world.winner = Some(ent.id);
+                world.entities.insert(entity.id, entity); // Put it back!
+            }
+            None => {
+                if matches!(cmd.action, Action::Spawn) {
+                    spawn_entity(world, cmd.entity_id);
                 }
             }
-            (Action::Spawn, Some(ent)) => {
-                warn!(
-                    "Cannot execute the following: ({:?} -> {:?}) {:?}",
-                    entity_id, ent, cmd
+        }
+    }
+
+    enact_foes(world);
+}
+
+fn spawn_entity(world: &mut World, entity_id: EntityId) {
+    let spawn_position = world.find_free_spawns();
+    let selected_spawn = spawn_position[entity_id as usize % spawn_position.len()];
+    info!("Entity {} spawned at {:?}", entity_id, selected_spawn);
+    world.entities.insert(
+        entity_id,
+        Entity {
+            id: entity_id,
+            position: selected_spawn,
+            broken: false,
+        },
+    );
+}
+
+fn enact_foes(world: &mut World) {
+    // Foes are static for now
+    for foe in world.foes.iter() {
+        for entity in world.entities.values_mut() {
+            if foe.position == entity.position {
+                entity.broken = true;
+            }
+        }
+    }
+}
+
+fn enact_command(world: &mut World, cmd: &CommandMessage, entity: &mut Entity) {
+    let entity_id = cmd.entity_id;
+
+    match cmd.action {
+        Action::Move(dir) => {
+            let next_pos = entity.position.move_once(dir);
+
+            let tile = world.tiles.at(next_pos);
+            if !matches!(tile, Tile::Wall) {
+                info!(
+                    "Entity {} moved from {:?} to {:?}",
+                    entity_id, entity.position, next_pos
                 );
+                entity.position = next_pos;
             }
-            (Action::Wait, Some(_)) => {
-                // NOOP
+
+            if Some(entity.position) == world.orb {
+                // WIN !
+                info!("The game was won by {}!", entity.id);
+                world.orb = None;
+                world.winner = Some(entity.id);
             }
-            (action, None) => {
-                warn!("Couldn't find entity {entity_id} for action {action:?}");
-            }
+        }
+        Action::Spawn => {
+            warn!(
+                "Cannot execute the following: ({:?} -> {:?}) {:?}",
+                entity_id, entity, cmd
+            );
+        }
+        Action::Wait => {
+            // NOOP
         }
     }
 }

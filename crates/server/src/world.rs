@@ -1,13 +1,14 @@
 use std::{collections::HashMap, str::FromStr};
 
-use losig_core::types::{Entity, EntityId, MAP_SIZE, Position, Tile};
+use losig_core::types::{Entity, EntityId, Foe, MAP_SIZE, Position, Tile};
 
 #[derive(Debug, Clone)]
 pub struct World {
     pub tick: u64,
     pub tiles: Tiles,
     pub entities: HashMap<EntityId, Entity>,
-    /// retrieve the source, win the game.
+    pub foes: Vec<Foe>,
+    /// retrieve the orb win the game.
     pub orb: Option<Position>,
     pub winner: Option<EntityId>,
 }
@@ -77,6 +78,7 @@ pub fn load_world() -> World {
         tiles,
         orb: orb_pos,
         entities: HashMap::new(),
+        foes: vec![],
         winner: None,
     }
 }

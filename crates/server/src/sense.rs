@@ -2,7 +2,10 @@ use std::sync::mpsc::Sender;
 
 use log::info;
 use losig_core::{
-    sense::{SenseInfo, Senses, TerrainInfo, TerrainSense, WorldInfo, WorldSense},
+    sense::{
+        ProximityInfo, ProximitySense, SelfInfo, SelfSense, SenseInfo, Senses, TerrainInfo,
+        TerrainSense, WorldInfo, WorldSense,
+    },
     types::{Entity, EntityId, MAP_SIZE, Position, Tile},
 };
 
@@ -62,6 +65,31 @@ impl Sense for TerrainSense {
             radius: self.radius,
             tiles: results,
         }
+    }
+}
+
+impl Sense for SelfSense {
+    type Output = SelfInfo;
+    fn gather(&self, entity: &Entity, _world: &World) -> Self::Output {
+        SelfInfo {
+            broken: entity.broken,
+        }
+    }
+}
+
+impl Sense for ProximitySense {
+    type Output = ProximityInfo;
+    fn gather(&self, entity: &Entity, world: &World) -> Self::Output {
+        let radius = self.radius;
+        let pos = entity.position;
+        let mut count = 0;
+
+        for foe in world.foes.iter() {
+            if pos.dist(&foe.position) <= radius {
+                count += 1;
+            }
+        }
+        ProximityInfo { radius, count }
     }
 }
 

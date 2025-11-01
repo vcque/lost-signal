@@ -27,7 +27,7 @@ impl WorldView {
     }
 
     pub fn tile_from_viewer(&self, offset: Offset) -> Tile {
-        if self.viewer.is_oob(VIEW_SIZE, offset) {
+        if self.viewer.is_oob(VIEW_SIZE, VIEW_SIZE, offset) {
             Tile::Unknown
         } else {
             let pos = self.viewer + offset;

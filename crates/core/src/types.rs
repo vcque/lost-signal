@@ -1,5 +1,5 @@
 use std::{
-    ops::{Add, Neg},
+    ops::{Add, Neg, Sub},
     str::FromStr,
 };
 
@@ -36,6 +36,24 @@ pub struct Offset {
     pub y: isize,
 }
 
+impl Add<Offset> for Offset {
+    type Output = Self;
+    fn add(mut self, rhs: Offset) -> Self::Output {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self
+    }
+}
+
+impl Sub<Offset> for Offset {
+    type Output = Self;
+    fn sub(mut self, rhs: Offset) -> Self::Output {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self
+    }
+}
+
 impl Neg for Offset {
     type Output = Offset;
 
@@ -68,10 +86,17 @@ impl Position {
         self.x + width * self.y
     }
 
-    pub fn is_oob(&self, size: usize, offset: Offset) -> bool {
+    pub fn as_offset(&self) -> Offset {
+        Offset {
+            x: self.x as isize,
+            y: self.y as isize,
+        }
+    }
+
+    pub fn is_oob(&self, width: usize, height: usize, offset: Offset) -> bool {
         let ix = self.x as isize + offset.x;
         let iy = self.y as isize + offset.y;
-        ix < 0 || iy < 0 || ix >= size as isize || iy >= size as isize
+        ix < 0 || iy < 0 || ix >= width as isize || iy >= height as isize
     }
 
     /// Chebyshev distance

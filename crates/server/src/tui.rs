@@ -7,12 +7,15 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use losig_core::types::{Position, Tile};
+use log::debug;
+use losig_core::types::{MAP_SIZE, Offset, Position, Tile};
 use ratatui::{
     Frame, Terminal,
     backend::CrosstermBackend,
+    buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    widgets::{Block, Borders, Paragraph},
+    style::{Style, Stylize},
+    widgets::{Block, Borders, Paragraph, Widget},
 };
 
 use crate::{states::States, world::World};
@@ -77,7 +80,7 @@ impl GameTui {
             .split(chunks[0]);
 
         // Game view
-        self.render_game_view(f, left_chunks[0]);
+        self.render_game_view(left_chunks[0], f.buffer_mut());
 
         // Status bar
         let status = Paragraph::new("Press 'q' to quit")
@@ -93,65 +96,93 @@ impl GameTui {
         f.render_widget(logger_widget, chunks[1]);
     }
 
-    fn render_game_view(&self, f: &mut Frame, area: Rect) {
+    fn render_game_view(&self, area: Rect, buf: &mut Buffer) {
         let world = self.states.world.lock().unwrap();
+        let game_title = format!("Game View - Turn {}", world.tick);
+        let borders = Block::default().borders(Borders::all()).title(game_title);
 
-        // Calculate view center
-        let center = self.get_view_center(&world);
+        let inner = borders.inner(area);
+        borders.render(area, buf);
+        let area = inner;
 
-        // Calculate visible area
-        let view_width = area.width as usize;
-        let view_height = area.height as usize;
-        let map_size = 256; // MAP_SIZE constant
+        let viewer = self.get_view_center(&world);
+        let area_offset = Offset {
+            x: (area.width / 2) as isize,
+            y: (area.height / 2) as isize,
+        };
 
-        let start_x = center.x.saturating_sub(view_width / 2);
-        let start_y = center.y.saturating_sub(view_height / 2);
+        let offset = viewer.as_offset() - area_offset;
 
-        // Render the view
-        let mut lines = Vec::new();
+        for x in 0..area.width as usize {
+            for y in 0..area.height as usize {
+                let pos = Position { x, y };
 
-        for y in 0..view_height {
-            let mut line = String::new();
-            for x in 0..view_width {
-                let world_x = start_x + x;
-                let world_y = start_y + y;
-
-                if world_x >= map_size || world_y >= map_size {
-                    line.push(' ');
+                if pos.is_oob(MAP_SIZE, MAP_SIZE, offset) {
                     continue;
                 }
 
-                let pos = Position {
-                    x: world_x,
-                    y: world_y,
+                let tile_pos = pos + offset;
+                let tile = world.tiles.at(tile_pos);
+                let char = match tile {
+                    Tile::Spawn => 'S',
+                    Tile::Unknown => ' ',
+                    Tile::Empty => '.',
+                    Tile::Wall => '#',
                 };
 
-                // Check if there's an entity at this position
-                if let Some(_entity) = world.entities.values().find(|e| e.position == pos) {
-                    line.push('@');
-                } else if Some(pos) == world.orb {
-                    line.push('¤');
-                } else {
-                    // Render tile
-                    let tile = world.tiles.at(pos);
-                    let char = match tile {
-                        Tile::Wall => '#',
-                        Tile::Empty => '.',
-                        Tile::Spawn => 'S',
-                        Tile::Unknown => ' ',
-                    };
-                    line.push(char);
-                }
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    char.to_string(),
+                    Style::default(),
+                );
             }
-            lines.push(line);
         }
 
-        let content = lines.join("\n");
-        let game_title = format!("Game View - Turn {}", world.tick);
-        let game_view =
-            Paragraph::new(content).block(Block::default().borders(Borders::ALL).title(game_title));
+        // Convert from world ref to view ref
+        let offset = -offset;
+        for entity in world.entities.values() {
+            let position = entity.position;
 
-        f.render_widget(game_view, area);
+            // Needs to check also x
+            if !position.is_oob(area.width as usize, area.height as usize, offset) {
+                let Position { x, y } = position + offset;
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    "@",
+                    Style::default().green(),
+                );
+            }
+        }
+
+        if let Some(position) = world.orb {
+            // Needs to check also x
+            if !position.is_oob(area.width as usize, area.height as usize, offset) {
+                let Position { x, y } = position + offset;
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    "¤",
+                    Style::default().yellow(),
+                );
+            }
+        }
+
+        for foe in world.foes.iter() {
+            let position = foe.position;
+
+            // Needs to check also x
+            if !position.is_oob(area.width as usize, area.height as usize, offset) {
+                let Position { x, y } = position + offset;
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    "µ",
+                    Style::default().red(),
+                );
+            }
+        }
     }
 
     fn get_view_center(&self, world: &World) -> Position {

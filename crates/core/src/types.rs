@@ -164,10 +164,9 @@ impl FromStr for Tile {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "#" => Ok(Tile::Wall),
-            "¤" | "." => Ok(Tile::Empty),
             "S" => Ok(Tile::Spawn),
             " " => Ok(Tile::Unknown),
-            _ => Err(format!("Unknown tile character: '{}'", s)),
+            _ => Ok(Tile::Empty), // Any special tile is an empty tile with an entity/foe/anything on it
         }
     }
 }

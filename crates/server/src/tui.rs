@@ -7,7 +7,6 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use log::debug;
 use losig_core::types::{MAP_SIZE, Offset, Position, Tile};
 use ratatui::{
     Frame, Terminal,

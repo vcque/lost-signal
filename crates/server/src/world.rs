@@ -48,15 +48,13 @@ impl Tiles {
 impl FromStr for Tiles {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut buf = [Tile::Empty; 256 * 256];
+        let mut buf = [Tile::Unknown; 256 * 256];
 
-        for (i, ch) in s.chars().filter(|c| !c.is_whitespace()).enumerate() {
-            if i >= 256 * 256 {
-                return Err("Map data exceeds maximum size".to_string());
+        for (y, row) in s.split("\n").enumerate() {
+            for (x, ch) in row.chars().enumerate() {
+                let tile = Tile::from_str(&ch.to_string())?;
+                buf[x + y * MAP_SIZE] = tile;
             }
-            let tile = Tile::from_str(&ch.to_string())?;
-
-            buf[i] = tile;
         }
 
         Ok(Tiles { buf })
@@ -64,23 +62,51 @@ impl FromStr for Tiles {
 }
 
 pub fn load_world() -> World {
-    let world_str = include_str!("../../../map.txt");
+    let world_str = include_str!("../../../maps/simple.txt");
     let Ok(tiles) = Tiles::from_str(world_str) else {
         panic!()
     };
 
-    let orb_pos = world_str
-        .find("¤")
-        .map(|i| Position::from_index(i, MAP_SIZE));
+    let sp_tiles = find_special_tiles(world_str);
+
+    let orb_pos = sp_tiles
+        .iter()
+        .filter(|(_, ch)| *ch == '¤')
+        .map(|(p, _)| p)
+        .next()
+        .cloned();
+
+    let foes: Vec<Foe> = sp_tiles
+        .iter()
+        .filter(|(_, ch)| *ch == 'µ')
+        .map(|(p, _)| Foe { position: *p })
+        .collect();
 
     World {
         tick: 0,
         tiles,
         orb: orb_pos,
         entities: HashMap::new(),
-        foes: vec![],
+        foes: foes,
         winner: None,
     }
+}
+
+pub fn find_special_tiles(world: &str) -> Vec<(Position, char)> {
+    let mut results = vec![];
+    for (y, row) in world.split("\n").enumerate() {
+        for (x, ch) in row.chars().enumerate() {
+            match ch {
+                ' ' | '.' | 'S' => {}
+                ch => {
+                    let position = Position { x, y };
+                    results.push((position, ch));
+                }
+            }
+        }
+    }
+
+    results
 }
 
 #[cfg(test)]

@@ -1,0 +1,3 @@
+[alias]
+server = "run --bin losig-server"
+client = "run --bin losig-term 1"

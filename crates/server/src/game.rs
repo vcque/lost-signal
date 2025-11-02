@@ -122,6 +122,11 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
                 avatar.position = next_pos;
             }
 
+            // Spawn tiles recharge signal
+            if matches!(tile, Tile::Spawn) {
+                avatar.signal = 100;
+            }
+
             if Some(avatar.position) == world.orb {
                 // WIN !
                 info!("The game was won by {}!", avatar.id);

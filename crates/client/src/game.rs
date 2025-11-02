@@ -2,7 +2,7 @@ use log::debug;
 use losig_core::{
     network::{UdpCommandPacket, UdpSensesPacket},
     sense::{SenseInfo, Senses},
-    types::{Action, AvatarId},
+    types::{Action, AvatarId, Tile},
 };
 
 use crate::world::WorldView;
@@ -45,6 +45,9 @@ impl GameSim {
             let tile = self.world.tile_at(new_pos);
             if tile.can_travel() {
                 self.world.viewer = new_pos;
+            }
+            if matches!(tile, Tile::Spawn) {
+                self.world.signal = 100;
             }
         }
 

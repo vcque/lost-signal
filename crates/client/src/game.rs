@@ -21,7 +21,7 @@ pub struct GameSim {
 impl GameSim {
     pub fn new(avatar_id: AvatarId) -> GameSim {
         GameSim {
-            world: WorldView::new(),
+            world: WorldView::new(avatar_id),
             on_act: Box::new(|_| {}),
             avatar_id,
         }
@@ -38,7 +38,9 @@ impl GameSim {
     pub fn act(&mut self, action: Action, senses: Senses) {
         // Handle each action
         debug!("{action:?}, {senses:?}");
-        if let Action::Move(dir) = action {
+        if let Action::Move(dir) = action
+            && !self.world.broken
+        {
             let new_pos = self.world.viewer + dir.offset();
             let tile = self.world.tile_at(new_pos);
             if tile.can_travel() {

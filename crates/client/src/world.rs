@@ -1,21 +1,25 @@
 use losig_core::{
     sense::{SenseInfo, TerrainInfo, WorldInfo},
-    types::{Offset, Position, Tile},
+    types::{AvatarId, Offset, Position, Tile},
 };
 
 const VIEW_SIZE: usize = 256;
 
 #[derive(Debug, Clone)]
 pub struct WorldView {
+    pub id: AvatarId,
     pub tick: u64,
     pub tiles: [Tile; VIEW_SIZE * VIEW_SIZE],
     pub last_info: SenseInfo,
     pub viewer: Position,
+    pub winner: Option<AvatarId>,
+    pub broken: bool,
 }
 
 impl WorldView {
-    pub fn new() -> WorldView {
+    pub fn new(id: AvatarId) -> WorldView {
         WorldView {
+            id,
             tiles: [Tile::Unknown; VIEW_SIZE * VIEW_SIZE],
             tick: 0,
             last_info: SenseInfo::default(),
@@ -23,6 +27,8 @@ impl WorldView {
                 x: VIEW_SIZE / 2,
                 y: VIEW_SIZE / 2,
             },
+            broken: false,
+            winner: None,
         }
     }
 
@@ -50,12 +56,21 @@ impl WorldView {
         if let Some(ref world) = info.world {
             self.apply_world(world);
         }
+        if let Some(ref selfs) = info.selfs {
+            self.broken = selfs.broken;
+        }
+        if let Some(ref orb) = info.orb {
+            if orb.owned {
+                self.winner = Some(self.id);
+            }
+        }
 
         self.last_info = info;
     }
 
     pub fn apply_world(&mut self, world: &WorldInfo) {
         self.tick = world.tick;
+        self.winner = world.winner;
     }
 
     /// Add new info from the server

@@ -1,4 +1,4 @@
-use std::{ptr::addr_eq, sync::mpsc::Sender};
+use std::sync::mpsc::Sender;
 
 use log::info;
 use losig_core::{

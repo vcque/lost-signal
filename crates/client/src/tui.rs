@@ -241,7 +241,7 @@ impl Page for GamePage {
         let senses_wigdet = Block::default().title("Senses").wrap(senses_widget);
         senses_wigdet.render(_senses_a, buf);
 
-        if let Some(avatar_id) = world.last_info.world.as_ref().and_then(|w| w.winner) {
+        if let Some(avatar_id) = world.winner {
             YouWinWidget {
                 winner: avatar_id,
                 me: game.avatar_id,
@@ -336,11 +336,16 @@ impl<'a> Widget for WorldViewWidget<'a> {
             }
         }
 
+        let mut style = Style::default();
+        if self.world.broken {
+            style = style.red();
+        }
+
         buf.set_string(
             area.x + center_x as u16,
             area.y + center_y as u16,
             "@",
-            Style::default(),
+            style,
         );
     }
 }

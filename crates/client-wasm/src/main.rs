@@ -3,9 +3,14 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use anyhow::Result;
 use log::Level;
 use losig_client::{game::GameSim, tui::GameTui};
-use losig_core::network::{UdpCommandPacket, UdpSensesPacket};
+use losig_core::{
+    network::{UdpCommandPacket, UdpSensesPacket},
+    types::AvatarId,
+};
+use web_sys::{UrlSearchParams, window};
 
 use crate::{ratzilla_adapter::RatzillaAdapter, ws::WsServer};
 
@@ -18,7 +23,9 @@ pub type CommandMessage = UdpCommandPacket;
 fn main() -> io::Result<()> {
     console_log::init_with_level(Level::Debug).unwrap();
 
-    let game = GameSim::new(1);
+    let id = get_avatar_Id().unwrap_or(1);
+
+    let game = GameSim::new(id);
     let game = Arc::new(Mutex::new(game));
 
     let mut server = WsServer::new();
@@ -46,4 +53,13 @@ fn main() -> io::Result<()> {
     let adapter = RatzillaAdapter::new(tui);
     adapter.run()?;
     Ok(())
+}
+
+fn get_avatar_Id() -> Option<AvatarId> {
+    let window = window()?;
+    let location = window.location();
+    let params = location.search().ok()?;
+    let params = UrlSearchParams::new_with_str(&params).ok()?;
+
+    params.get("id").and_then(|s| s.parse::<AvatarId>().ok())
 }

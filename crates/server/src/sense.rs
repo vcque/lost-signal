@@ -48,9 +48,6 @@ impl ServerSense for TerrainSense {
                         x: x as usize,
                         y: y as usize,
                     });
-                    if matches!(tile, Tile::Spawn) {
-                        info!("Found an S!");
-                    }
                     results.push(tile);
                 }
             }

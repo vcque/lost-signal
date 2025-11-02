@@ -3,14 +3,14 @@ use losig_core::sense::{
 };
 
 /// Represents one of the senses of an avatar
-pub trait Sense {
+pub trait ClientSense {
     /// Make it stronger
     fn incr(&mut self);
     /// Make it weaker
     fn decr(&mut self);
 }
 
-impl Sense for Option<TerrainSense> {
+impl ClientSense for Option<TerrainSense> {
     fn incr(&mut self) {
         match self {
             Some(w) => w.radius += 1,
@@ -34,7 +34,7 @@ impl Sense for Option<TerrainSense> {
     }
 }
 
-impl Sense for Option<ProximitySense> {
+impl ClientSense for Option<ProximitySense> {
     fn incr(&mut self) {
         match self {
             Some(w) => w.radius += 1,
@@ -58,7 +58,7 @@ impl Sense for Option<ProximitySense> {
     }
 }
 
-impl Sense for Option<WorldSense> {
+impl ClientSense for Option<WorldSense> {
     fn decr(&mut self) {
         self.take();
     }
@@ -68,7 +68,7 @@ impl Sense for Option<WorldSense> {
     }
 }
 
-impl Sense for Option<SelfSense> {
+impl ClientSense for Option<SelfSense> {
     fn decr(&mut self) {
         self.take();
     }
@@ -78,7 +78,7 @@ impl Sense for Option<SelfSense> {
     }
 }
 
-impl Sense for Option<OrbSense> {
+impl ClientSense for Option<OrbSense> {
     fn incr(&mut self) {
         let level = match self {
             Some(w) => match w.level {

@@ -13,7 +13,7 @@ use ratatui::{
 
 use crate::{
     game::GameSim,
-    sense::Sense,
+    sense::ClientSense,
     tui_adapter::{Event, KeyCode, TuiApp},
     world::WorldView,
 };
@@ -202,13 +202,13 @@ impl GamePage {
         [world, log, senses]
     }
 
-    fn selected_sense_mut(&mut self) -> &mut dyn Sense {
+    fn selected_sense_mut(&mut self) -> &mut dyn ClientSense {
         match self.sense_selection {
-            0 => &mut self.senses.world as &mut dyn Sense,
-            1 => &mut self.senses.selfs as &mut dyn Sense,
-            2 => &mut self.senses.terrain as &mut dyn Sense,
-            3 => &mut self.senses.proximity as &mut dyn Sense,
-            _ => &mut self.senses.orb as &mut dyn Sense,
+            0 => &mut self.senses.world,
+            1 => &mut self.senses.selfs,
+            2 => &mut self.senses.terrain,
+            3 => &mut self.senses.proximity,
+            _ => &mut self.senses.orb,
         }
     }
 }
@@ -241,7 +241,10 @@ impl Page for GamePage {
             selection: self.sense_selection,
         };
 
-        let senses_wigdet = Block::default().title("Senses").wrap(senses_widget);
+        let cost = self.senses.signal_cost();
+        let senses_wigdet = Block::default()
+            .title(format!("Senses - cost: {}", cost))
+            .wrap(senses_widget);
         senses_wigdet.render(_senses_a, buf);
 
         if let Some(avatar_id) = world.winner {

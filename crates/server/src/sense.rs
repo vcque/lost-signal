@@ -3,31 +3,28 @@ use std::sync::mpsc::Sender;
 use log::info;
 use losig_core::{
     sense::{
-        OrbInfo, OrbSense, ProximityInfo, ProximitySense, SelfInfo, SelfSense, SenseInfo, Senses,
-        TerrainInfo, TerrainSense, WorldInfo, WorldSense,
+        OrbInfo, OrbSense, ProximityInfo, ProximitySense, SelfInfo, SelfSense, Sense, SenseInfo,
+        Senses, TerrainInfo, TerrainSense, WorldInfo, WorldSense,
     },
     types::{Avatar, AvatarId, MAP_SIZE, Position, Tile},
 };
 
 use crate::world::World;
 
-trait Sense {
-    type Output;
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output;
+trait ServerSense: Sense {
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info;
 
-    fn gather_opt(&self, avatar: Option<&Avatar>, world: &World) -> Option<Self::Output> {
+    fn gather_opt(&self, avatar: Option<&Avatar>, world: &World) -> Option<Self::Info> {
         avatar.map(|e| self.gather(e, world))
     }
 }
 
-impl Sense for WorldSense {
-    type Output = WorldInfo;
-
-    fn gather(&self, _: &Avatar, world: &World) -> Self::Output {
+impl ServerSense for WorldSense {
+    fn gather(&self, _: &Avatar, world: &World) -> Self::Info {
         self.gather_opt(None, world).unwrap()
     }
 
-    fn gather_opt(&self, _: Option<&Avatar>, world: &World) -> Option<Self::Output> {
+    fn gather_opt(&self, _: Option<&Avatar>, world: &World) -> Option<Self::Info> {
         Some(WorldInfo {
             tick: world.tick,
             winner: world.winner,
@@ -35,10 +32,8 @@ impl Sense for WorldSense {
     }
 }
 
-impl Sense for TerrainSense {
-    type Output = TerrainInfo;
-
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output {
+impl ServerSense for TerrainSense {
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
         let center_x = avatar.position.x as isize;
         let center_y = avatar.position.y as isize;
         let radius = self.radius as isize;
@@ -68,9 +63,8 @@ impl Sense for TerrainSense {
     }
 }
 
-impl Sense for SelfSense {
-    type Output = SelfInfo;
-    fn gather(&self, avatar: &Avatar, _world: &World) -> Self::Output {
+impl ServerSense for SelfSense {
+    fn gather(&self, avatar: &Avatar, _world: &World) -> Self::Info {
         SelfInfo {
             broken: avatar.broken,
             signal: avatar.signal,
@@ -78,9 +72,8 @@ impl Sense for SelfSense {
     }
 }
 
-impl Sense for ProximitySense {
-    type Output = ProximityInfo;
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output {
+impl ServerSense for ProximitySense {
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
         let radius = self.radius;
         let pos = avatar.position;
         let mut count = 0;
@@ -94,9 +87,8 @@ impl Sense for ProximitySense {
     }
 }
 
-impl Sense for OrbSense {
-    type Output = OrbInfo;
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output {
+impl ServerSense for OrbSense {
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
         let detected = world
             .orb
             .map(|pos| pos.dist(&avatar.position))
@@ -110,14 +102,12 @@ impl Sense for OrbSense {
     }
 }
 
-impl<T: Sense> Sense for Option<T> {
-    type Output = Option<T::Output>;
-
-    fn gather_opt(&self, avatar: Option<&Avatar>, world: &World) -> Option<Self::Output> {
+impl<T: ServerSense> ServerSense for Option<T> {
+    fn gather_opt(&self, avatar: Option<&Avatar>, world: &World) -> Option<Self::Info> {
         self.as_ref().map(|s| s.gather_opt(avatar, world))
     }
 
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output {
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
         self.as_ref().map(|s| s.gather(avatar, world))
     }
 }

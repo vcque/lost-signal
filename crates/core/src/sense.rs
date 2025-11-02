@@ -13,6 +13,23 @@ pub struct Senses {
     pub orb: Option<OrbSense>,
 }
 
+impl Senses {
+    pub fn signal_cost(&self) -> usize {
+        let mut cost = 0;
+        cost += self.world.signal_cost();
+        cost += self.terrain.signal_cost();
+        cost += self.selfs.signal_cost();
+        cost += self.proximity.signal_cost();
+        cost += self.orb.signal_cost();
+        cost
+    }
+}
+
+pub trait Sense {
+    type Info;
+    fn signal_cost(&self) -> usize;
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SenseInfo {
     pub world: Option<WorldInfo>,
@@ -46,6 +63,13 @@ impl SenseLevel {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub struct WorldSense {}
 
+impl Sense for WorldSense {
+    type Info = WorldInfo;
+    fn signal_cost(&self) -> usize {
+        1
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct WorldInfo {
     pub tick: u64,
@@ -57,6 +81,14 @@ pub struct TerrainSense {
     pub radius: usize,
 }
 
+impl Sense for TerrainSense {
+    type Info = TerrainInfo;
+    fn signal_cost(&self) -> usize {
+        let cost = self.radius + 1;
+        1 + cost * cost / 10
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TerrainInfo {
     pub radius: usize,
@@ -65,6 +97,13 @@ pub struct TerrainInfo {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub struct SelfSense {}
+
+impl Sense for SelfSense {
+    type Info = SelfInfo;
+    fn signal_cost(&self) -> usize {
+        1
+    }
+}
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct SelfInfo {
@@ -75,6 +114,14 @@ pub struct SelfInfo {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub struct ProximitySense {
     pub radius: usize,
+}
+
+impl Sense for ProximitySense {
+    type Info = ProximityInfo;
+    fn signal_cost(&self) -> usize {
+        let cost = self.radius + 1;
+        1 + cost * cost / 10
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
@@ -88,8 +135,31 @@ pub struct OrbSense {
     pub level: SenseLevel,
 }
 
+impl Sense for OrbSense {
+    type Info = OrbInfo;
+    fn signal_cost(&self) -> usize {
+        match self.level {
+            SenseLevel::Minimum => 1,
+            SenseLevel::Low => 2,
+            SenseLevel::Medium => 3,
+            SenseLevel::High => 4,
+            SenseLevel::Maximum => 5,
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct OrbInfo {
     pub detected: bool,
     pub owned: bool,
+}
+
+impl<T: Sense> Sense for Option<T> {
+    type Info = Option<T::Info>;
+    fn signal_cost(&self) -> usize {
+        match self {
+            Some(s) => s.signal_cost(),
+            None => 0,
+        }
+    }
 }

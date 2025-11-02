@@ -30,7 +30,7 @@ impl WorldView {
             },
             broken: false,
             winner: None,
-            signal: 0,
+            signal: 100,
         }
     }
 

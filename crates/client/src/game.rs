@@ -48,6 +48,11 @@ impl GameSim {
             }
         }
 
+        let cost = senses.signal_cost();
+        if self.world.signal >= cost {
+            self.world.signal -= cost;
+        }
+
         let msg = CommandMessage {
             avatar_id: self.avatar_id,
             tick: None,

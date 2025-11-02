@@ -3,7 +3,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use anyhow::Result;
 use log::Level;
 use losig_client::{game::GameSim, tui::GameTui};
 use losig_core::{
@@ -23,7 +22,7 @@ pub type CommandMessage = UdpCommandPacket;
 fn main() -> io::Result<()> {
     console_log::init_with_level(Level::Debug).unwrap();
 
-    let id = get_avatar_Id().unwrap_or(1);
+    let id = get_avatar_id().unwrap_or(1);
 
     let game = GameSim::new(id);
     let game = Arc::new(Mutex::new(game));
@@ -55,7 +54,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_avatar_Id() -> Option<AvatarId> {
+fn get_avatar_id() -> Option<AvatarId> {
     let window = window()?;
     let location = window.location();
     let params = location.search().ok()?;

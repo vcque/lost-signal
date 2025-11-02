@@ -1,10 +1,10 @@
-use std::sync::mpsc::Sender;
+use std::{ptr::addr_eq, sync::mpsc::Sender};
 
 use log::info;
 use losig_core::{
     sense::{
-        ProximityInfo, ProximitySense, SelfInfo, SelfSense, SenseInfo, Senses, TerrainInfo,
-        TerrainSense, WorldInfo, WorldSense,
+        OrbInfo, OrbSense, ProximityInfo, ProximitySense, SelfInfo, SelfSense, SenseInfo, Senses,
+        TerrainInfo, TerrainSense, WorldInfo, WorldSense,
     },
     types::{Avatar, AvatarId, MAP_SIZE, Position, Tile},
 };
@@ -93,6 +93,22 @@ impl Sense for ProximitySense {
     }
 }
 
+impl Sense for OrbSense {
+    type Output = OrbInfo;
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output {
+        let detected = world
+            .orb
+            .map(|pos| pos.dist(&avatar.position))
+            .map(|d| d <= self.level.range())
+            .unwrap_or(false);
+
+        OrbInfo {
+            owned: world.winner == Some(avatar.id),
+            detected,
+        }
+    }
+}
+
 impl<T: Sense> Sense for Option<T> {
     type Output = Option<T::Output>;
 
@@ -111,6 +127,7 @@ pub fn gather(senses: &Senses, avatar: Option<&Avatar>, world: &World) -> SenseI
         terrain: senses.terrain.gather_opt(avatar, world).flatten(),
         selfs: senses.selfs.gather_opt(avatar, world).flatten(),
         proximity: senses.proximity.gather_opt(avatar, world).flatten(),
+        orb: senses.orb.gather_opt(avatar, world).flatten(),
     }
 }
 

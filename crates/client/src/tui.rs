@@ -207,7 +207,8 @@ impl GamePage {
             0 => &mut self.senses.world as &mut dyn Sense,
             1 => &mut self.senses.selfs as &mut dyn Sense,
             2 => &mut self.senses.terrain as &mut dyn Sense,
-            _ => &mut self.senses.proximity as &mut dyn Sense,
+            3 => &mut self.senses.proximity as &mut dyn Sense,
+            _ => &mut self.senses.orb as &mut dyn Sense,
         }
     }
 }
@@ -273,7 +274,7 @@ impl Page for GamePage {
                     }
                 }
                 KeyCode::Down => {
-                    if self.sense_selection < 3 {
+                    if self.sense_selection < 4 {
                         self.sense_selection += 1;
                     }
                 }
@@ -401,7 +402,7 @@ impl Widget for SensesWidget {
     where
         Self: Sized,
     {
-        let rows = Layout::vertical([Constraint::Length(2); 4]).split(area);
+        let rows = Layout::vertical([Constraint::Length(2); 5]).split(area);
 
         let sense = self.senses.world;
         let status = self
@@ -483,6 +484,41 @@ impl Widget for SensesWidget {
             active: sense.is_some(),
         }
         .render(rows[3], buf);
+
+        let sense = self.senses.orb;
+        let status = self
+            .info
+            .orb
+            .map(|orb| {
+                if orb.owned {
+                    "I have it!"
+                } else if orb.detected {
+                    "I can feel it"
+                } else {
+                    "Nothing"
+                }
+            })
+            .unwrap_or("-");
+
+        let indicator = match sense {
+            Some(s) => match s.level {
+                losig_core::sense::SenseLevel::Minimum => "(+)",
+                losig_core::sense::SenseLevel::Low => "(++)",
+                losig_core::sense::SenseLevel::Medium => "(+++)",
+                losig_core::sense::SenseLevel::High => "(++++)",
+                losig_core::sense::SenseLevel::Maximum => "(+++++)",
+            },
+            None => "(-)",
+        };
+
+        SenseWidget {
+            label: "Goal",
+            indicator: &indicator,
+            status: &status,
+            selected: self.selection == 4,
+            active: sense.is_some(),
+        }
+        .render(rows[4], buf);
     }
 }
 
@@ -500,10 +536,6 @@ fn to_char(tile: Tile) -> char {
         Tile::Empty => '.',
     }
 }
-
-trait MyTrait {}
-
-fn perform_action<T: MyTrait>(performer: T) {}
 
 fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
     let [area] = Layout::horizontal([horizontal])

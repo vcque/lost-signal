@@ -10,6 +10,7 @@ pub struct Senses {
     pub terrain: Option<TerrainSense>,
     pub selfs: Option<SelfSense>,
     pub proximity: Option<ProximitySense>,
+    pub orb: Option<OrbSense>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
@@ -18,6 +19,28 @@ pub struct SenseInfo {
     pub terrain: Option<TerrainInfo>,
     pub selfs: Option<SelfInfo>,
     pub proximity: Option<ProximityInfo>,
+    pub orb: Option<OrbInfo>,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy, PartialOrd, Ord)]
+pub enum SenseLevel {
+    Minimum,
+    Low,
+    Medium,
+    High,
+    Maximum,
+}
+
+impl SenseLevel {
+    pub fn range(&self) -> usize {
+        match self {
+            Self::Minimum => 3,
+            Self::Low => 6,
+            Self::Medium => 9,
+            Self::High => 12,
+            Self::Maximum => 15,
+        }
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
@@ -57,4 +80,15 @@ pub struct ProximitySense {
 pub struct ProximityInfo {
     pub radius: usize,
     pub count: usize,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
+pub struct OrbSense {
+    pub level: SenseLevel,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub struct OrbInfo {
+    pub detected: bool,
+    pub owned: bool,
 }

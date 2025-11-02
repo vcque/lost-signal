@@ -1,4 +1,6 @@
-use losig_core::sense::{ProximitySense, SelfSense, TerrainSense, WorldSense};
+use losig_core::sense::{
+    OrbSense, ProximitySense, SelfSense, SenseLevel, TerrainSense, WorldSense,
+};
 
 /// Represents one of the senses of an avatar
 pub trait Sense {
@@ -73,5 +75,40 @@ impl Sense for Option<SelfSense> {
 
     fn incr(&mut self) {
         self.replace(SelfSense {});
+    }
+}
+
+impl Sense for Option<OrbSense> {
+    fn incr(&mut self) {
+        let level = match self {
+            Some(w) => match w.level {
+                SenseLevel::Minimum => SenseLevel::Low,
+                SenseLevel::Low => SenseLevel::Medium,
+                SenseLevel::Medium => SenseLevel::High,
+                SenseLevel::High => SenseLevel::Maximum,
+                SenseLevel::Maximum => SenseLevel::Maximum,
+            },
+            None => SenseLevel::Minimum,
+        };
+
+        self.replace(OrbSense { level });
+    }
+
+    fn decr(&mut self) {
+        let level = match self {
+            Some(w) => match w.level {
+                SenseLevel::Minimum => {
+                    self.take();
+                    return;
+                }
+                SenseLevel::Low => SenseLevel::Minimum,
+                SenseLevel::Medium => SenseLevel::Low,
+                SenseLevel::High => SenseLevel::Medium,
+                SenseLevel::Maximum => SenseLevel::High,
+            },
+            None => return,
+        };
+
+        self.replace(OrbSense { level });
     }
 }

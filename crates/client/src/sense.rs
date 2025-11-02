@@ -1,6 +1,6 @@
 use losig_core::sense::{ProximitySense, SelfSense, TerrainSense, WorldSense};
 
-/// Represents one of the senses of an entity
+/// Represents one of the senses of an avatar
 pub trait Sense {
     /// Make it stronger
     fn incr(&mut self);

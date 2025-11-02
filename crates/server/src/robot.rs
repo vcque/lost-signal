@@ -1,15 +1,15 @@
 #![allow(clippy::all)]
 #![allow(dead_code)]
 
-use losig_core::types::{Action, EntityId};
+use losig_core::types::{Action, AvatarId};
 use losig_core::{sense::Senses, types::Direction};
-use rand::{rng, Rng};
+use rand::{Rng, rng};
 use std::time::Duration;
 use std::{sync::Arc, thread::sleep};
 
 use crate::{command::CommandMessage, states::States};
 
-const ROBOT_ID: EntityId = 1; // Fixed entity ID for the robot
+const ROBOT_ID: AvatarId = 1; // Fixed avatar ID for the robot
 
 pub struct Robot {
     states: Arc<States>,
@@ -34,7 +34,7 @@ impl Robot {
 
     fn spawn_robot(&self) {
         let spawn_command = CommandMessage {
-            entity_id: ROBOT_ID,
+            avatar_id: ROBOT_ID,
             tick: None,
             action: Action::Spawn,
             senses: Senses::default(),
@@ -59,7 +59,7 @@ impl Robot {
         let random_direction = directions[rng.random_range(0..directions.len())];
 
         let move_command = CommandMessage {
-            entity_id: ROBOT_ID,
+            avatar_id: ROBOT_ID,
             tick: None,
             action: Action::Move(random_direction),
             senses: Senses::default(),

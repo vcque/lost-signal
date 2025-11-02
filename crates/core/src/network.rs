@@ -2,22 +2,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     sense::{SenseInfo, Senses},
-    types::{Action, EntityId},
+    types::{Action, AvatarId},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UdpCommandPacket {
-    pub entity_id: EntityId,
+    pub avatar_id: AvatarId,
     /// If None, means it must use the latest tick
     pub tick: Option<u64>,
-    /// Action the entity takes this tick
+    /// Action the avatar takes this tick
     pub action: Action,
-    /// Info then entity wants to gather this tick
+    /// Info then avatar wants to gather this tick
     pub senses: Senses,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct UdpSensesPacket {
-    pub entity_id: EntityId,
+    pub avatar_id: AvatarId,
     pub senses: SenseInfo,
 }

@@ -1,16 +1,16 @@
 use std::{collections::HashMap, str::FromStr};
 
-use losig_core::types::{Entity, EntityId, Foe, MAP_SIZE, Position, Tile};
+use losig_core::types::{Avatar, AvatarId, Foe, MAP_SIZE, Position, Tile};
 
 #[derive(Debug, Clone)]
 pub struct World {
     pub tick: u64,
     pub tiles: Tiles,
-    pub entities: HashMap<EntityId, Entity>,
+    pub avatars: HashMap<AvatarId, Avatar>,
     pub foes: Vec<Foe>,
     /// retrieve the orb win the game.
     pub orb: Option<Position>,
-    pub winner: Option<EntityId>,
+    pub winner: Option<AvatarId>,
 }
 
 impl World {
@@ -29,8 +29,8 @@ impl World {
             .collect()
     }
 
-    pub fn find_entity(&self, id: EntityId) -> Option<&Entity> {
-        self.entities.get(&id)
+    pub fn find_avatar(&self, id: AvatarId) -> Option<&Avatar> {
+        self.avatars.get(&id)
     }
 }
 
@@ -86,7 +86,7 @@ pub fn load_world() -> World {
         tick: 0,
         tiles,
         orb: orb_pos,
-        entities: HashMap::new(),
+        avatars: HashMap::new(),
         foes: foes,
         winner: None,
     }

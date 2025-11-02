@@ -140,8 +140,8 @@ impl GameTui {
 
         // Convert from world ref to view ref
         let offset = -offset;
-        for entity in world.entities.values() {
-            let position = entity.position;
+        for avatar in world.avatars.values() {
+            let position = avatar.position;
 
             // Needs to check also x
             if !position.is_oob(area.width as usize, area.height as usize, offset) {
@@ -185,9 +185,9 @@ impl GameTui {
     }
 
     fn get_view_center(&self, world: &World) -> Position {
-        // Center on first entity if exists, otherwise center of map
-        if let Some(entity) = world.entities.values().next() {
-            entity.position
+        // Center on first avatar if exists, otherwise center of map
+        if let Some(avatar) = world.avatars.values().next() {
+            avatar.position
         } else {
             Position {
                 x: 256 / 2, // MAP_SIZE / 2

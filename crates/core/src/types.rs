@@ -166,16 +166,16 @@ impl FromStr for Tile {
             "#" => Ok(Tile::Wall),
             "S" => Ok(Tile::Spawn),
             " " => Ok(Tile::Unknown),
-            _ => Ok(Tile::Empty), // Any special tile is an empty tile with an entity/foe/anything on it
+            _ => Ok(Tile::Empty), // Any special tile is an empty tile with an avatar/foe/anything on it
         }
     }
 }
 
-pub type EntityId = u32;
+pub type AvatarId = u32;
 
 #[derive(Debug, Clone)]
-pub struct Entity {
-    pub id: EntityId,
+pub struct Avatar {
+    pub id: AvatarId,
     pub position: Position,
     pub broken: bool,
 }

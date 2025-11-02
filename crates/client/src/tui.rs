@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use losig_core::{
     sense::{SenseInfo, Senses, TerrainSense, WorldSense},
-    types::{Action, Direction, EntityId, Offset, Tile},
+    types::{Action, AvatarId, Direction, Offset, Tile},
 };
 use ratatui::{
     Frame,
@@ -240,10 +240,10 @@ impl Page for GamePage {
         let senses_wigdet = Block::default().title("Senses").wrap(senses_widget);
         senses_wigdet.render(_senses_a, buf);
 
-        if let Some(entity_id) = world.last_info.world.as_ref().and_then(|w| w.winner) {
+        if let Some(avatar_id) = world.last_info.world.as_ref().and_then(|w| w.winner) {
             YouWinWidget {
-                winner: entity_id,
-                me: game.entity_id,
+                winner: avatar_id,
+                me: game.avatar_id,
             }
             .render(area, buf);
         }
@@ -545,8 +545,8 @@ impl<'a> BlockWrap<'a> for Block<'a> {
 }
 
 struct YouWinWidget {
-    me: EntityId,
-    winner: EntityId,
+    me: AvatarId,
+    winner: AvatarId,
 }
 
 impl Widget for YouWinWidget {

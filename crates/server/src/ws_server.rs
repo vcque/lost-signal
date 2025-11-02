@@ -10,7 +10,7 @@ use anyhow::{Result, bail};
 use log::{error, info, warn};
 use losig_core::{
     network::{UdpCommandPacket, UdpSensesPacket},
-    types::EntityId,
+    types::AvatarId,
 };
 use tungstenite::{Bytes, Message, WebSocket};
 
@@ -45,7 +45,7 @@ impl WsServer {
         server.set_nonblocking(true)?;
 
         let mut ws_by_addr = HashMap::<SocketAddr, Ws>::new();
-        let mut addr_by_entity_id = HashMap::<EntityId, SocketAddr>::new();
+        let mut addr_by_avatar_id = HashMap::<AvatarId, SocketAddr>::new();
 
         info!("Launching server on 127.0.0.1:9001");
 
@@ -67,7 +67,7 @@ impl WsServer {
             for (addr, stream) in ws_by_addr.iter_mut() {
                 match handle_read(stream) {
                     Ok(cmd) => {
-                        addr_by_entity_id.insert(cmd.entity_id, *addr);
+                        addr_by_avatar_id.insert(cmd.avatar_id, *addr);
                         states.commands.send(cmd)?;
                     }
                     Err(e) => {
@@ -79,14 +79,14 @@ impl WsServer {
             }
 
             for sense in senses.try_iter() {
-                let entity_id = sense.entity_id;
-                let ws = addr_by_entity_id
-                    .get(&entity_id)
+                let avatar_id = sense.avatar_id;
+                let ws = addr_by_avatar_id
+                    .get(&avatar_id)
                     .and_then(|addr| ws_by_addr.get_mut(addr));
 
                 if let Some(ws) = ws {
                     let msg = UdpSensesPacket {
-                        entity_id: entity_id,
+                        avatar_id: avatar_id,
                         senses: sense.senses,
                     };
                     let _ = handle_write(ws, msg);

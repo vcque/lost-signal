@@ -2,7 +2,7 @@ use log::debug;
 use losig_core::{
     network::{UdpCommandPacket, UdpSensesPacket},
     sense::{SenseInfo, Senses},
-    types::{Action, EntityId},
+    types::{Action, AvatarId},
 };
 
 use crate::world::WorldView;
@@ -13,17 +13,17 @@ pub type SenseMessage = UdpSensesPacket;
 type CallbackFn = Box<dyn Fn(CommandMessage) + Send>;
 
 pub struct GameSim {
-    pub entity_id: EntityId,
+    pub avatar_id: AvatarId,
     world: WorldView,
     on_act: CallbackFn,
 }
 
 impl GameSim {
-    pub fn new(entity_id: EntityId) -> GameSim {
+    pub fn new(avatar_id: AvatarId) -> GameSim {
         GameSim {
             world: WorldView::new(),
             on_act: Box::new(|_| {}),
-            entity_id,
+            avatar_id,
         }
     }
 
@@ -47,7 +47,7 @@ impl GameSim {
         }
 
         let msg = CommandMessage {
-            entity_id: self.entity_id,
+            avatar_id: self.avatar_id,
             tick: None,
             action,
             senses,

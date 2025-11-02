@@ -4,7 +4,7 @@ use std::{
 };
 
 use log::*;
-use losig_core::types::{Action, Entity, EntityId, Tile};
+use losig_core::types::{Action, Avatar, AvatarId, Tile};
 
 use crate::{
     command::CommandMessage,
@@ -52,17 +52,17 @@ impl Game {
 pub fn enact_tick(world: &mut World, commands: &[CommandMessage]) {
     world.tick = world.tick.wrapping_add(1);
     for cmd in commands {
-        let entity = world.entities.remove(&cmd.entity_id);
-        match entity {
-            Some(mut entity) => {
-                if !entity.broken {
-                    enact_command(world, cmd, &mut entity);
+        let avatar = world.avatars.remove(&cmd.avatar_id);
+        match avatar {
+            Some(mut avatar) => {
+                if !avatar.broken {
+                    enact_command(world, cmd, &mut avatar);
                 }
-                world.entities.insert(entity.id, entity); // Put it back!
+                world.avatars.insert(avatar.id, avatar); // Put it back!
             }
             None => {
                 if matches!(cmd.action, Action::Spawn) {
-                    spawn_entity(world, cmd.entity_id);
+                    spawn_avatar(world, cmd.avatar_id);
                 }
             }
         }
@@ -71,14 +71,14 @@ pub fn enact_tick(world: &mut World, commands: &[CommandMessage]) {
     enact_foes(world);
 }
 
-fn spawn_entity(world: &mut World, entity_id: EntityId) {
+fn spawn_avatar(world: &mut World, avatar_id: AvatarId) {
     let spawn_position = world.find_free_spawns();
-    let selected_spawn = spawn_position[entity_id as usize % spawn_position.len()];
-    info!("Entity {} spawned at {:?}", entity_id, selected_spawn);
-    world.entities.insert(
-        entity_id,
-        Entity {
-            id: entity_id,
+    let selected_spawn = spawn_position[avatar_id as usize % spawn_position.len()];
+    info!("Avatar {} spawned at {:?}", avatar_id, selected_spawn);
+    world.avatars.insert(
+        avatar_id,
+        Avatar {
+            id: avatar_id,
             position: selected_spawn,
             broken: false,
         },
@@ -88,41 +88,41 @@ fn spawn_entity(world: &mut World, entity_id: EntityId) {
 fn enact_foes(world: &mut World) {
     // Foes are static for now
     for foe in world.foes.iter() {
-        for entity in world.entities.values_mut() {
-            if foe.position == entity.position {
-                entity.broken = true;
+        for avatar in world.avatars.values_mut() {
+            if foe.position == avatar.position {
+                avatar.broken = true;
             }
         }
     }
 }
 
-fn enact_command(world: &mut World, cmd: &CommandMessage, entity: &mut Entity) {
-    let entity_id = cmd.entity_id;
+fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
+    let avatar_id = cmd.avatar_id;
 
     match cmd.action {
         Action::Move(dir) => {
-            let next_pos = entity.position.move_once(dir);
+            let next_pos = avatar.position.move_once(dir);
 
             let tile = world.tiles.at(next_pos);
             if !matches!(tile, Tile::Wall) {
                 info!(
-                    "Entity {} moved from {:?} to {:?}",
-                    entity_id, entity.position, next_pos
+                    "Avatar {} moved from {:?} to {:?}",
+                    avatar_id, avatar.position, next_pos
                 );
-                entity.position = next_pos;
+                avatar.position = next_pos;
             }
 
-            if Some(entity.position) == world.orb {
+            if Some(avatar.position) == world.orb {
                 // WIN !
-                info!("The game was won by {}!", entity.id);
+                info!("The game was won by {}!", avatar.id);
                 world.orb = None;
-                world.winner = Some(entity.id);
+                world.winner = Some(avatar.id);
             }
         }
         Action::Spawn => {
             warn!(
                 "Cannot execute the following: ({:?} -> {:?}) {:?}",
-                entity_id, entity, cmd
+                avatar_id, avatar, cmd
             );
         }
         Action::Wait => {
@@ -139,12 +139,12 @@ fn gather_infos(world: &World, commands: &[CommandMessage]) -> Vec<SensesMessage
 }
 
 fn gather_info(world: &World, cmd: &CommandMessage) -> Option<SensesMessage> {
-    let entity_id = cmd.entity_id;
-    let entity = world.find_entity(entity_id);
-    let senses = sense::gather(&cmd.senses, entity, world);
+    let avatar_id = cmd.avatar_id;
+    let avatar = world.find_avatar(avatar_id);
+    let senses = sense::gather(&cmd.senses, avatar, world);
 
     Some(SensesMessage {
-        entity_id: entity_id,
+        avatar_id: avatar_id,
         senses,
     })
 }

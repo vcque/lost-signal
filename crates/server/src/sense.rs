@@ -6,28 +6,28 @@ use losig_core::{
         ProximityInfo, ProximitySense, SelfInfo, SelfSense, SenseInfo, Senses, TerrainInfo,
         TerrainSense, WorldInfo, WorldSense,
     },
-    types::{Entity, EntityId, MAP_SIZE, Position, Tile},
+    types::{Avatar, AvatarId, MAP_SIZE, Position, Tile},
 };
 
 use crate::world::World;
 
 trait Sense {
     type Output;
-    fn gather(&self, entity: &Entity, world: &World) -> Self::Output;
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output;
 
-    fn gather_opt(&self, entity: Option<&Entity>, world: &World) -> Option<Self::Output> {
-        entity.map(|e| self.gather(e, world))
+    fn gather_opt(&self, avatar: Option<&Avatar>, world: &World) -> Option<Self::Output> {
+        avatar.map(|e| self.gather(e, world))
     }
 }
 
 impl Sense for WorldSense {
     type Output = WorldInfo;
 
-    fn gather(&self, _: &Entity, world: &World) -> Self::Output {
+    fn gather(&self, _: &Avatar, world: &World) -> Self::Output {
         self.gather_opt(None, world).unwrap()
     }
 
-    fn gather_opt(&self, _: Option<&Entity>, world: &World) -> Option<Self::Output> {
+    fn gather_opt(&self, _: Option<&Avatar>, world: &World) -> Option<Self::Output> {
         Some(WorldInfo {
             tick: world.tick,
             winner: world.winner,
@@ -38,9 +38,9 @@ impl Sense for WorldSense {
 impl Sense for TerrainSense {
     type Output = TerrainInfo;
 
-    fn gather(&self, entity: &Entity, world: &World) -> Self::Output {
-        let center_x = entity.position.x as isize;
-        let center_y = entity.position.y as isize;
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output {
+        let center_x = avatar.position.x as isize;
+        let center_y = avatar.position.y as isize;
         let radius = self.radius as isize;
 
         let mut results = vec![];
@@ -70,18 +70,18 @@ impl Sense for TerrainSense {
 
 impl Sense for SelfSense {
     type Output = SelfInfo;
-    fn gather(&self, entity: &Entity, _world: &World) -> Self::Output {
+    fn gather(&self, avatar: &Avatar, _world: &World) -> Self::Output {
         SelfInfo {
-            broken: entity.broken,
+            broken: avatar.broken,
         }
     }
 }
 
 impl Sense for ProximitySense {
     type Output = ProximityInfo;
-    fn gather(&self, entity: &Entity, world: &World) -> Self::Output {
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output {
         let radius = self.radius;
-        let pos = entity.position;
+        let pos = avatar.position;
         let mut count = 0;
 
         for foe in world.foes.iter() {
@@ -96,27 +96,27 @@ impl Sense for ProximitySense {
 impl<T: Sense> Sense for Option<T> {
     type Output = Option<T::Output>;
 
-    fn gather_opt(&self, entity: Option<&Entity>, world: &World) -> Option<Self::Output> {
-        self.as_ref().map(|s| s.gather_opt(entity, world))
+    fn gather_opt(&self, avatar: Option<&Avatar>, world: &World) -> Option<Self::Output> {
+        self.as_ref().map(|s| s.gather_opt(avatar, world))
     }
 
-    fn gather(&self, entity: &Entity, world: &World) -> Self::Output {
-        self.as_ref().map(|s| s.gather(entity, world))
+    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Output {
+        self.as_ref().map(|s| s.gather(avatar, world))
     }
 }
 
-pub fn gather(senses: &Senses, entity: Option<&Entity>, world: &World) -> SenseInfo {
+pub fn gather(senses: &Senses, avatar: Option<&Avatar>, world: &World) -> SenseInfo {
     SenseInfo {
-        world: senses.world.gather_opt(entity, world).flatten(),
-        terrain: senses.terrain.gather_opt(entity, world).flatten(),
-        selfs: senses.selfs.gather_opt(entity, world).flatten(),
-        proximity: senses.proximity.gather_opt(entity, world).flatten(),
+        world: senses.world.gather_opt(avatar, world).flatten(),
+        terrain: senses.terrain.gather_opt(avatar, world).flatten(),
+        selfs: senses.selfs.gather_opt(avatar, world).flatten(),
+        proximity: senses.proximity.gather_opt(avatar, world).flatten(),
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct SensesMessage {
-    pub entity_id: EntityId,
+    pub avatar_id: AvatarId,
     pub senses: SenseInfo,
 }
 

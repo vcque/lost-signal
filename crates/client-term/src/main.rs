@@ -3,7 +3,7 @@
 use losig_client::game::GameSim;
 use losig_client::tui::GameTui;
 use losig_core::network::{UdpCommandPacket, UdpSensesPacket};
-use losig_core::types::EntityId;
+use losig_core::types::AvatarId;
 
 use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
@@ -24,14 +24,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() != 2 {
-        eprintln!("Usage: {} <entity_id>", args[0]);
+        eprintln!("Usage: {} <avatar_id>", args[0]);
         eprintln!("Example: {} 42", args[0]);
         std::process::exit(1);
     }
 
-    let entity_id: EntityId = args[1]
+    let avatar_id: AvatarId = args[1]
         .parse()
-        .map_err(|_| "Entity ID must be a valid number")?;
+        .map_err(|_| "Avatar ID must be a valid number")?;
 
     let (senses_tx, senses_rx) = channel::<SenseMessage>();
     let (cmd_tx, cmd_rx) = channel::<CommandMessage>();
@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = ws_client::WsClient::new(cmd_rx, senses_tx);
     client.run();
 
-    let mut game = GameSim::new(entity_id);
+    let mut game = GameSim::new(avatar_id);
     game.set_callback(Box::new(move |msg| {
         cmd_tx.send(msg).unwrap();
     }));

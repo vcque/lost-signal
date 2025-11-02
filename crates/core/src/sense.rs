@@ -69,6 +69,7 @@ pub struct SelfSense {}
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct SelfInfo {
     pub broken: bool,
+    pub signal: usize,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]

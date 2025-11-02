@@ -14,6 +14,7 @@ pub struct WorldView {
     pub viewer: Position,
     pub winner: Option<AvatarId>,
     pub broken: bool,
+    pub signal: usize,
 }
 
 impl WorldView {
@@ -29,6 +30,7 @@ impl WorldView {
             },
             broken: false,
             winner: None,
+            signal: 0,
         }
     }
 
@@ -58,6 +60,7 @@ impl WorldView {
         }
         if let Some(ref selfs) = info.selfs {
             self.broken = selfs.broken;
+            self.signal = selfs.signal;
         }
         if let Some(ref orb) = info.orb {
             if orb.owned {

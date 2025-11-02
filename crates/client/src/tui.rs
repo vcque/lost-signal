@@ -227,7 +227,10 @@ impl Page for GamePage {
 
         let world_widget = Block::default()
             .borders(Borders::ALL)
-            .title("World")
+            .title(format!(
+                "World - turn {} - signal: {}/100",
+                world.tick, world.signal
+            ))
             .wrap(world_widget);
 
         world_widget.render(world_a, buf);

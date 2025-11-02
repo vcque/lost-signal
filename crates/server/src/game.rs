@@ -81,6 +81,7 @@ fn spawn_avatar(world: &mut World, avatar_id: AvatarId) {
             id: avatar_id,
             position: selected_spawn,
             broken: false,
+            signal: 100,
         },
     );
 }

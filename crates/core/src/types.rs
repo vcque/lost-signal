@@ -178,6 +178,8 @@ pub struct Avatar {
     pub id: AvatarId,
     pub position: Position,
     pub broken: bool,
+    /// Some kind of energy, it's called signal because that's the name of the game
+    pub signal: usize,
 }
 
 #[derive(Debug, Clone)]

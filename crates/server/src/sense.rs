@@ -73,6 +73,7 @@ impl Sense for SelfSense {
     fn gather(&self, avatar: &Avatar, _world: &World) -> Self::Output {
         SelfInfo {
             broken: avatar.broken,
+            signal: avatar.signal,
         }
     }
 }

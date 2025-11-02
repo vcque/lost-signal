@@ -437,7 +437,7 @@ impl Widget for SensesWidget {
             .info
             .selfs
             .map(|w| if w.broken { "Broken" } else { "Intact" })
-            .unwrap_or("()");
+            .unwrap_or("-");
         let indicator = if sense.is_some() { "(+)" } else { "(-)" };
 
         SenseWidget {

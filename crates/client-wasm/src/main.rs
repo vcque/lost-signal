@@ -7,8 +7,6 @@ use log::Level;
 use losig_client::{game::GameSim, tui::GameTui};
 use losig_core::network::{UdpCommandPacket, UdpSensesPacket};
 
-
-
 use crate::{ratzilla_adapter::RatzillaAdapter, ws::WsServer};
 
 mod ratzilla_adapter;
@@ -31,7 +29,7 @@ fn main() -> io::Result<()> {
         }));
     }
 
-    server.init().expect("Couldn't start ws server");
+    server.init();
     let server = Arc::new(Mutex::new(server));
     {
         let mut game = game.lock().unwrap();

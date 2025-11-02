@@ -26,6 +26,7 @@ web-sys = { workspace = true, features = [
 ] }
 console_log = "1.0.0"
 log.workspace = true
+gloo-timers = "0.3.0"
 
 [lints]
 workspace = true

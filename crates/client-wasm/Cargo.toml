@@ -24,7 +24,10 @@ web-sys = { workspace = true, features = [
   "MessageEvent",
   "WebSocket",
   "Url",
-  "UrlSearchParams"
+  "UrlSearchParams",
+	"Window",
+	"Crypto",
+	"History",
 ] }
 console_log = "1.0.0"
 log.workspace = true

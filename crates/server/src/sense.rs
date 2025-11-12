@@ -1,6 +1,5 @@
 use std::sync::mpsc::Sender;
 
-use log::info;
 use losig_core::{
     sense::{
         OrbInfo, OrbSense, ProximityInfo, ProximitySense, SelfInfo, SelfSense, Sense, SenseInfo,

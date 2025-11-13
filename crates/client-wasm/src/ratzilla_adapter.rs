@@ -8,8 +8,7 @@ use ratatui::Terminal;
 use ratzilla::{CanvasBackend, WebRenderer, event as rz};
 
 use losig_client::tui_adapter::{
-    Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MouseButton, MouseEvent,
-    MouseEventKind, TuiApp,
+    Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, TuiApp,
 };
 
 pub struct RatzillaAdapter<T> {
@@ -71,37 +70,6 @@ fn convert_key_code(rz_code: rz::KeyCode) -> KeyCode {
         rz::KeyCode::Char(c) => KeyCode::Char(c),
         rz::KeyCode::Esc => KeyCode::Esc,
         rz::KeyCode::Unidentified => KeyCode::Null,
-    }
-}
-pub fn convert_mouse_event(rz_mouse: rz::MouseEvent) -> MouseEvent {
-    MouseEvent {
-        kind: convert_mouse_event_kind(rz_mouse.event, rz_mouse.button),
-        column: rz_mouse.x as u16,
-        row: rz_mouse.y as u16,
-        modifiers: convert_key_modifiers(rz_mouse.shift, rz_mouse.ctrl, rz_mouse.alt),
-    }
-}
-
-fn convert_mouse_event_kind(
-    rz_kind: rz::MouseEventKind,
-    rz_button: rz::MouseButton,
-) -> MouseEventKind {
-    match rz_kind {
-        rz::MouseEventKind::Pressed => MouseEventKind::Down(convert_mouse_button(rz_button)),
-        rz::MouseEventKind::Released => MouseEventKind::Up(convert_mouse_button(rz_button)),
-        rz::MouseEventKind::Moved => MouseEventKind::Moved,
-        rz::MouseEventKind::Unidentified => MouseEventKind::Moved,
-    }
-}
-
-fn convert_mouse_button(rz_button: rz::MouseButton) -> MouseButton {
-    match rz_button {
-        rz::MouseButton::Left => MouseButton::Left,
-        rz::MouseButton::Right => MouseButton::Right,
-        rz::MouseButton::Middle => MouseButton::Middle,
-        rz::MouseButton::Forward => MouseButton::Left,
-        rz::MouseButton::Back => MouseButton::Right,
-        rz::MouseButton::Unidentified => MouseButton::Middle,
     }
 }
 

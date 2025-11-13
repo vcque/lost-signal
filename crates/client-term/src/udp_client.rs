@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::{
     net::UdpSocket,
     sync::mpsc::{Receiver, Sender},

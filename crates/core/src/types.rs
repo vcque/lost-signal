@@ -156,6 +156,13 @@ impl Tile {
             _ => true,
         }
     }
+
+    pub fn opaque(&self) -> bool {
+        match self {
+            Self::Wall | Self::Unknown => true,
+            _ => false,
+        }
+    }
 }
 
 impl FromStr for Tile {

@@ -5,10 +5,10 @@ use losig_core::{
         OrbInfo, OrbSense, ProximityInfo, ProximitySense, SelfInfo, SelfSense, Sense, SenseInfo,
         Senses, TerrainInfo, TerrainSense, WorldInfo, WorldSense,
     },
-    types::{Avatar, AvatarId, MAP_SIZE, Position, Tile},
+    types::{Avatar, AvatarId},
 };
 
-use crate::world::World;
+use crate::{fov, world::World};
 
 trait ServerSense: Sense {
     fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info;
@@ -33,28 +33,10 @@ impl ServerSense for WorldSense {
 
 impl ServerSense for TerrainSense {
     fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
-        let center_x = avatar.position.x as isize;
-        let center_y = avatar.position.y as isize;
-        let radius = self.radius as isize;
-
-        let mut results = vec![];
-        for y in (center_y - radius)..(center_y + radius + 1) {
-            for x in (center_x - radius)..(center_x + radius + 1) {
-                if x < 0 || x >= MAP_SIZE as isize || y < 0 || y >= MAP_SIZE as isize {
-                    results.push(Tile::Unknown);
-                } else {
-                    let tile = world.tiles.at(Position {
-                        x: x as usize,
-                        y: y as usize,
-                    });
-                    results.push(tile);
-                }
-            }
-        }
-
+        let tiles = fov::fov(avatar.position, self.radius, &world.tiles);
         TerrainInfo {
             radius: self.radius,
-            tiles: results,
+            tiles: tiles.buf,
         }
     }
 }

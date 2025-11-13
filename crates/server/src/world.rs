@@ -1,5 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
+use log::error;
 use losig_core::types::{Avatar, AvatarId, Foe, MAP_SIZE, Position, Tile};
 
 #[derive(Debug, Clone)]
@@ -34,21 +35,43 @@ impl World {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Tiles {
-    buf: [Tile; MAP_SIZE * MAP_SIZE],
+    pub buf: Vec<Tile>,
+    pub width: usize,
 }
 
 impl Tiles {
+    pub fn empty(width: usize, height: usize) -> Self {
+        Tiles {
+            buf: vec![Tile::Unknown; width * height],
+            width,
+        }
+    }
+
     pub fn at(&self, position: Position) -> Tile {
-        self.buf[position.x + MAP_SIZE * position.y]
+        let index = position.x + self.width * position.y;
+        if index >= self.buf.len() {
+            Tile::Unknown
+        } else {
+            self.buf[index]
+        }
+    }
+
+    pub fn set(&mut self, position: Position, tile: Tile) {
+        let index = position.x + self.width * position.y;
+        if index < self.buf.len() {
+            self.buf[index] = tile;
+        } else {
+            error!("Trying to set tiles oob: {:?}", position);
+        }
     }
 }
 
 impl FromStr for Tiles {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut buf = [Tile::Unknown; 256 * 256];
+        let mut buf = vec![Tile::Unknown; MAP_SIZE * MAP_SIZE];
 
         for (y, row) in s.split("\n").enumerate() {
             for (x, ch) in row.chars().enumerate() {
@@ -57,7 +80,10 @@ impl FromStr for Tiles {
             }
         }
 
-        Ok(Tiles { buf })
+        Ok(Tiles {
+            buf,
+            width: MAP_SIZE,
+        })
     }
 }
 

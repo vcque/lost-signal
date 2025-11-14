@@ -88,7 +88,7 @@ impl FromStr for Tiles {
 }
 
 pub fn load_world() -> World {
-    let world_str = include_str!("../../../maps/simple.txt");
+    let world_str = include_str!("../../../maps/lvl1.txt");
     let Ok(tiles) = Tiles::from_str(world_str) else {
         panic!()
     };

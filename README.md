@@ -1,3 +1,5 @@
+![CI](https://github.com/vcque/lost-signal/workflows/CI/badge.svg)
+
 Lost-Signal is a little would-be multiplayer (trad?) roguelike about perception and time.
 
 # Launching it

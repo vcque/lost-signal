@@ -303,6 +303,7 @@ impl Page for GamePage {
                 KeyCode::Char('1') => Some(Action::Move(Direction::DownLeft)),
                 KeyCode::Char('3') => Some(Action::Move(Direction::DownRight)),
                 KeyCode::Char('5') => Some(Action::Wait),
+                KeyCode::Char('r') => Some(Action::Spawn),
                 _ => None,
             };
             if let Some(action) = action {

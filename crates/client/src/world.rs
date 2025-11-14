@@ -4,6 +4,10 @@ use losig_core::{
 };
 
 const VIEW_SIZE: usize = 256;
+const START_POS: Position = Position {
+    x: VIEW_SIZE / 2,
+    y: VIEW_SIZE / 2,
+};
 
 #[derive(Debug, Clone)]
 pub struct WorldView {
@@ -24,10 +28,7 @@ impl WorldView {
             tiles: [Tile::Unknown; VIEW_SIZE * VIEW_SIZE],
             tick: 0,
             last_info: SenseInfo::default(),
-            viewer: Position {
-                x: VIEW_SIZE / 2,
-                y: VIEW_SIZE / 2,
-            },
+            viewer: START_POS,
             broken: false,
             winner: None,
             signal: 100,
@@ -120,5 +121,15 @@ impl WorldView {
         }
 
         self.tiles = new_tiles;
+    }
+
+    /// Resets the world. Mostly after a clear or a win.
+    pub fn clear(&mut self) {
+        self.tiles.fill(Tile::Unknown);
+        self.winner = None;
+        self.viewer = START_POS;
+        self.broken = false;
+        self.signal = 100;
+        self.last_info = SenseInfo::default();
     }
 }

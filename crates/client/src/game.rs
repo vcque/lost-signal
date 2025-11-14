@@ -38,17 +38,23 @@ impl GameSim {
     pub fn act(&mut self, action: Action, senses: Senses) {
         // Handle each action
         debug!("{action:?}, {senses:?}");
-        if let Action::Move(dir) = action
-            && !self.world.broken
-        {
-            let new_pos = self.world.viewer + dir.offset();
-            let tile = self.world.tile_at(new_pos);
-            if tile.can_travel() {
-                self.world.viewer = new_pos;
+        match action {
+            Action::Move(dir) => {
+                if !self.world.broken {
+                    let new_pos = self.world.viewer + dir.offset();
+                    let tile = self.world.tile_at(new_pos);
+                    if tile.can_travel() {
+                        self.world.viewer = new_pos;
+                    }
+                    if matches!(tile, Tile::Spawn) {
+                        self.world.signal = 100;
+                    }
+                }
             }
-            if matches!(tile, Tile::Spawn) {
-                self.world.signal = 100;
+            Action::Spawn => {
+                self.world.clear();
             }
+            Action::Wait => {}
         }
 
         let cost = senses.signal_cost();

@@ -6,7 +6,7 @@ use std::{
 use log::*;
 use losig_core::{
     sense::Senses,
-    types::{Action, Avatar, AvatarId, Tile},
+    types::{Action, Avatar, AvatarId, Position, Tile},
 };
 
 use crate::{
@@ -60,9 +60,7 @@ pub fn enact_tick(world: &mut World, commands: &[CommandMessage]) -> Vec<(Avatar
         let avatar = world.avatars.remove(&cmd.avatar_id);
         match avatar {
             Some(mut avatar) => {
-                if !avatar.broken {
-                    enact_command(world, cmd, &mut avatar);
-                }
+                enact_command(world, cmd, &mut avatar);
                 let cost = cmd.senses.signal_cost();
                 if avatar.signal >= cost {
                     avatar.signal -= cost;
@@ -85,18 +83,21 @@ pub fn enact_tick(world: &mut World, commands: &[CommandMessage]) -> Vec<(Avatar
 }
 
 fn spawn_avatar(world: &mut World, avatar_id: AvatarId) {
-    let spawn_position = world.find_free_spawns();
-    let selected_spawn = spawn_position[avatar_id as usize % spawn_position.len()];
-    info!("Avatar {} spawned at {:?}", avatar_id, selected_spawn);
+    info!("Avatar {} spawned.", avatar_id);
     world.avatars.insert(
         avatar_id,
         Avatar {
             id: avatar_id,
-            position: selected_spawn,
+            position: spawn_position(world, avatar_id),
             broken: false,
             signal: 100,
         },
     );
+}
+
+fn spawn_position(world: &World, avatar_id: AvatarId) -> Position {
+    let spawn_position = world.find_free_spawns();
+    spawn_position[avatar_id as usize % spawn_position.len()]
 }
 
 fn enact_foes(world: &mut World) {
@@ -111,8 +112,13 @@ fn enact_foes(world: &mut World) {
 }
 
 fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
+    if avatar.broken && !cmd.action.allow_broken() {
+        return;
+    }
+
     let avatar_id = cmd.avatar_id;
 
+    debug!("cmd received: {cmd:?}");
     match cmd.action {
         Action::Move(dir) => {
             let next_pos = avatar.position.move_once(dir);
@@ -135,10 +141,9 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
             }
         }
         Action::Spawn => {
-            warn!(
-                "Cannot execute the following: ({:?} -> {:?}) {:?}",
-                avatar_id, avatar, cmd
-            );
+            avatar.position = spawn_position(world, avatar_id);
+            avatar.signal = 100;
+            avatar.broken = false;
         }
         Action::Wait => {
             // NOOP

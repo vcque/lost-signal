@@ -18,6 +18,15 @@ pub enum Action {
     Wait,
 }
 
+impl Action {
+    pub fn allow_broken(&self) -> bool {
+        match self {
+            Action::Spawn => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Direction {
     Up,

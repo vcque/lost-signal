@@ -1,0 +1,11 @@
+#cloud-config
+packages:
+  - docker.io
+runcmd:
+  - systemctl enable docker
+  - systemctl start docker
+  - mkdir -p /mnt/block-storage/lost-signal-data
+  - docker rm -f lost-signal || true
+  - docker rm -f watchtower || true
+  - docker run -d --name lost-signal -p 8080:8080 -v /mnt/block-storage/lost-signal-data:/data ghcr.io/vcque/lost-signal:latest
+  - docker run -d --name watchtower -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower --interval 60

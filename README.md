@@ -29,17 +29,12 @@ Also:
 - Mostly cooperative
 - Perception/infowar based. Resource is used for gathering information.
 
-# Roadmap
+# Road to demo
 
-- [x] Move on from fixed game ticks to "on player action"
-- [x] Implement a winning condition
-- [x] Rework the client from IA slop to something serious
-- [x] Implement information retention for the client (keep memory of logs, seen terrain, etc...)
-- [x] Add websocket capability
-- [x] Webassembly target
-- [x] Implement foes
-- [x] Implement toggling of various senses
-- [x] Implement a resource for gathering information (and taking actions?)
-- [ ] Implement updating the world from different players
-- [ ] Implement the glimmer mechanic (consuming signal produces glimmer which attracts foes)
-- [ ] Implement the Echo action (which allows to completely see the surroundings and anchor it)
+- [ ] Dev mode: have a watcher restart either the server or client on code change
+- [ ] Maps: have at least 10 maps, rotate between them
+- [ ] Big win: to win, you must complete the 10 maps. Respawning take you back one map
+- [ ] Leaderboard: show (and persist ?) users who have won the game
+- [ ] Help: have a help section to explain the goal and controls 
+- [ ] Rice: make it somewhat less ugly
+- [ ] Desyncs: handle discrepancies when data returned from server does not match the cache (mostly terrain data)

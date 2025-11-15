@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex, mpsc};
 
 use crate::{
     command::CommandMessage, game::Game, sense::SensesMessage, states::States, tui::GameTui,
-    world::load_world, ws_server::WsServer,
+    ws_server::WsServer,
 };
 
 mod command;
@@ -11,6 +11,7 @@ mod game;
 mod robot;
 mod sense;
 mod states;
+mod tiled;
 mod tui;
 mod udp_server;
 mod world;
@@ -24,22 +25,18 @@ fn main() {
     let (cmd_sender, cmd_receiver) = mpsc::channel::<CommandMessage>();
 
     let states = States {
-        world: Mutex::new(load_world()),
+        world: Mutex::new(tiled::load_world().unwrap()),
         commands: cmd_sender,
         senses: sense_sender,
     };
     let states = Arc::new(states);
 
-    // Start game loop in b:w
-    // ackground
     let game = Game::new(states.clone(), cmd_receiver);
     game.run();
 
-    // Run server
     let server = WsServer::new(states.clone(), sense_receiver);
     server.run();
 
-    // Run TUI
     let mut tui = GameTui::new(states);
     tui.run().expect("Could not start TUI");
 }

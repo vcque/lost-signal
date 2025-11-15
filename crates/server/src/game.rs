@@ -133,10 +133,10 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
                 avatar.signal = 100;
             }
 
-            if Some(avatar.position) == world.orb {
+            if avatar.position == world.orb {
                 // WIN !
                 info!("The game was won by {}!", avatar.id);
-                world.orb = None;
+                world.move_orb();
                 world.winner = Some(avatar.id);
             }
         }

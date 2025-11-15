@@ -67,12 +67,7 @@ impl ServerSense for ProximitySense {
 
 impl ServerSense for OrbSense {
     fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
-        let detected = world
-            .orb
-            .map(|pos| pos.dist(&avatar.position))
-            .map(|d| d <= self.level.range())
-            .unwrap_or(false);
-
+        let detected = world.orb.dist(&avatar.position) <= self.level.range();
         OrbInfo {
             owned: world.winner == Some(avatar.id),
             detected,

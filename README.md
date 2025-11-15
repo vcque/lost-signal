@@ -31,10 +31,10 @@ Also:
 
 # Road to demo
 
-- [ ] Dev mode: have a watcher restart either the server or client on code change
 - [ ] Maps: have at least 10 maps, rotate between them
+- [ ] Antenna tiles: another way to restore signal without acting as spawns
 - [ ] Big win: to win, you must complete the 10 maps. Respawning take you back one map
-- [ ] Leaderboard: show (and persist ?) users who have won the game
+- [ ] Leaderboard: show (and persist ?) players who have won the game
 - [ ] Help: have a help section to explain the goal and controls 
 - [ ] Rice: make it somewhat less ugly
 - [ ] Desyncs: handle discrepancies when data returned from server does not match the cache (mostly terrain data)

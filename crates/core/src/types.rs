@@ -5,8 +5,6 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-pub const MAP_SIZE: usize = 256;
-
 /**
 * Lists all possible commands that can be sent by a player to the game.
 * A command is an input that (often) leads to a modification of the game state.

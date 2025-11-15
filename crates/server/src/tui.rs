@@ -7,7 +7,7 @@ use crossterm::{
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use losig_core::types::{MAP_SIZE, Offset, Position, Tile};
+use losig_core::types::{Offset, Position, Tile};
 use ratatui::{
     Frame, Terminal,
     backend::CrosstermBackend,
@@ -116,7 +116,7 @@ impl GameTui {
             for y in 0..area.height as usize {
                 let pos = Position { x, y };
 
-                if pos.is_oob(MAP_SIZE, MAP_SIZE, offset) {
+                if pos.is_oob(world.tiles.width, world.tiles.height, offset) {
                     continue;
                 }
 
@@ -155,17 +155,18 @@ impl GameTui {
             }
         }
 
-        if let Some(position) = world.orb {
-            // Needs to check also x
-            if !position.is_oob(area.width as usize, area.height as usize, offset) {
-                let Position { x, y } = position + offset;
-                buf.set_string(
-                    area.x + x as u16,
-                    area.y + y as u16,
-                    "¤",
-                    Style::default().yellow(),
-                );
-            }
+        // Needs to check also x
+        if world
+            .orb
+            .is_oob(area.width as usize, area.height as usize, offset)
+        {
+            let Position { x, y } = world.orb + offset;
+            buf.set_string(
+                area.x + x as u16,
+                area.y + y as u16,
+                "¤",
+                Style::default().yellow(),
+            );
         }
 
         for foe in world.foes.iter() {

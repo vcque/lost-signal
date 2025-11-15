@@ -17,6 +17,7 @@ crossterm.workspace = true
 ratatui = { version = "0.29" }
 tui-logger.workspace = true
 fraction = "0.15.3"
+tiled = "0.15.0"
 
 [lints]
 workspace = true

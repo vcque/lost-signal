@@ -80,7 +80,7 @@ impl Sense for TerrainSense {
     type Info = TerrainInfo;
     fn signal_cost(&self) -> usize {
         let cost = 2 * self.radius + 1; // Number of tiles discovered
-        cost * cost / 10
+        1 + cost * cost / 10
     }
 }
 

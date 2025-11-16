@@ -16,7 +16,7 @@ pub struct WorldView {
     pub tiles: [Tile; VIEW_SIZE * VIEW_SIZE],
     pub last_info: SenseInfo,
     pub viewer: Position,
-    pub winner: Option<AvatarId>,
+    pub winner: bool,
     pub broken: bool,
     pub signal: usize,
 }
@@ -30,7 +30,7 @@ impl WorldView {
             last_info: SenseInfo::default(),
             viewer: START_POS,
             broken: false,
-            winner: None,
+            winner: false,
             signal: 100,
         }
     }
@@ -59,6 +59,7 @@ impl WorldView {
         if let Some(ref selfs) = info.selfs {
             self.broken = selfs.broken;
             self.signal = selfs.signal;
+            self.winner = selfs.winner;
         }
 
         self.last_info = info;
@@ -113,7 +114,7 @@ impl WorldView {
     /// Resets the world. Mostly after a clear or a win.
     pub fn clear(&mut self) {
         self.tiles.fill(Tile::Unknown);
-        self.winner = None;
+        self.winner = false;
         self.viewer = START_POS;
         self.broken = false;
         self.signal = 100;

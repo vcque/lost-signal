@@ -5,7 +5,7 @@ use std::{
 
 use losig_core::{
     sense::{SenseInfo, Senses, TerrainSense},
-    types::{Action, AvatarId, Direction, Offset, Tile},
+    types::{Action, Direction, Offset, Tile},
 };
 use ratatui::{
     Frame,
@@ -248,12 +248,8 @@ impl Page for GamePage {
             .wrap(senses_widget);
         senses_wigdet.render(_senses_a, buf);
 
-        if let Some(avatar_id) = world.winner {
-            YouWinWidget {
-                winner: avatar_id,
-                me: game.avatar_id,
-            }
-            .render(area, buf);
+        if world.winner {
+            YouWinWidget {}.render(area, buf);
         }
     }
 
@@ -263,6 +259,11 @@ impl Page for GamePage {
         };
 
         let mut game = tui.game.lock().unwrap();
+        if game.world().winner {
+            // No need to play once the game is won
+            return TuiNav::None;
+        }
+
         if key.modifiers.control {
             match key.code {
                 KeyCode::Up => {
@@ -564,22 +565,14 @@ impl<'a> BlockWrap<'a> for Block<'a> {
     }
 }
 
-struct YouWinWidget {
-    me: AvatarId,
-    winner: AvatarId,
-}
+struct YouWinWidget {}
 
 impl Widget for YouWinWidget {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
     where
         Self: Sized,
     {
-        let message = if self.me == self.winner {
-            "YOU WIN!"
-        } else {
-            "YOU LOSE."
-        };
-
+        let message = "YOU WIN";
         let popup_width = 30;
         let popup_height = 7;
 
@@ -608,12 +601,7 @@ impl Widget for YouWinWidget {
         let text_y = inner.y + inner.height / 2;
         let text_x = inner.x + (inner.width.saturating_sub(message.len() as u16)) / 2;
 
-        let text_style = if self.me == self.winner {
-            Style::default().fg(Color::Green).bold()
-        } else {
-            Style::default().fg(Color::Red).bold()
-        };
-
+        let text_style = Style::default().fg(Color::Green).bold();
         buf.set_string(text_x, text_y, message, text_style);
     }
 }

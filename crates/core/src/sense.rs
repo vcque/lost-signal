@@ -36,6 +36,19 @@ pub struct SenseInfo {
     pub orb: Option<OrbInfo>,
 }
 
+impl SenseInfo {
+    pub fn win() -> Self {
+        Self {
+            selfs: Some(SelfInfo {
+                winner: true,
+                broken: false,
+                signal: 100,
+            }),
+            ..SenseInfo::default()
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy, PartialOrd, Ord)]
 pub enum SenseLevel {
     Minimum,
@@ -90,6 +103,7 @@ impl Sense for SelfSense {
 pub struct SelfInfo {
     pub broken: bool,
     pub signal: usize,
+    pub winner: bool,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]

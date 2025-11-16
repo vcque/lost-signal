@@ -5,7 +5,7 @@ use std::{
 
 use log::*;
 use losig_core::{
-    sense::Senses,
+    sense::{SenseInfo, Senses},
     types::{Action, Avatar, AvatarId, Position, Tile},
 };
 
@@ -91,6 +91,7 @@ fn spawn_avatar(world: &mut World, avatar_id: AvatarId) {
             position: spawn_position(world.stages.first().unwrap(), avatar_id),
             broken: false,
             signal: 100,
+            winner: false,
         },
     );
 }
@@ -150,9 +151,14 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
 
             if avatar.position == stage.orb {
                 stage.move_orb();
-                avatar.stage += 1; // Crashes the server when the player wins
-                if let Some(stage) = world.stages.get(avatar.stage) {
-                    avatar.position = spawn_position(stage, avatar_id);
+                if avatar.stage == world.stages.len() - 1 {
+                    // Player has won all stages
+                    avatar.winner = true;
+                } else {
+                    avatar.stage += 1; // Crashes the server when the player wins
+                    if let Some(stage) = world.stages.get(avatar.stage) {
+                        avatar.position = spawn_position(stage, avatar_id);
+                    }
                 }
             }
         }
@@ -173,8 +179,14 @@ fn gather_infos(world: &World, senses: Vec<(AvatarId, Senses)>) -> Vec<SensesMes
 fn gather_info(world: &World, senses: (AvatarId, Senses)) -> Option<SensesMessage> {
     let (avatar_id, senses) = senses;
     let avatar = world.find_avatar(avatar_id)?;
-    let stage = world.stages.get(avatar.stage)?;
+    if avatar.winner {
+        return Some(SensesMessage {
+            avatar_id,
+            senses: SenseInfo::win(),
+        });
+    }
 
+    let stage = world.stages.get(avatar.stage)?;
     let senses = sense::gather(&senses, avatar, stage);
 
     Some(SensesMessage { avatar_id, senses })

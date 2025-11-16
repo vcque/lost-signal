@@ -92,6 +92,7 @@ impl WorldView {
                 }
             }
         }
+        self.apply_pylon_effect();
     }
 
     pub fn shift(&mut self, offset: Offset) {
@@ -126,5 +127,18 @@ impl WorldView {
         self.stage = 0;
         self.signal = 100;
         self.last_info = SenseInfo::default();
+    }
+
+    fn apply_pylon_effect(&mut self) {
+        for x in -1..2 {
+            for y in -1..2 {
+                let offset = Offset { x, y };
+                let position = self.viewer + offset;
+                let tile = self.tile_at(position);
+                if matches!(tile, Tile::Pylon) {
+                    self.signal = 100;
+                }
+            }
+        }
     }
 }

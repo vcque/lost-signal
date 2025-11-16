@@ -19,6 +19,7 @@ pub struct WorldView {
     pub winner: bool,
     pub broken: bool,
     pub signal: usize,
+    pub stage: usize,
 }
 
 impl WorldView {
@@ -32,6 +33,7 @@ impl WorldView {
             broken: false,
             winner: false,
             signal: 100,
+            stage: 0,
         }
     }
 
@@ -53,15 +55,19 @@ impl WorldView {
     }
 
     pub fn update(&mut self, info: SenseInfo) {
-        if let Some(ref terrain) = info.terrain {
-            self.apply_terrain(terrain);
-        }
         if let Some(ref selfs) = info.selfs {
+            if self.stage != selfs.stage {
+                self.clear();
+                self.stage = selfs.stage;
+            }
             self.broken = selfs.broken;
             self.signal = selfs.signal;
             self.winner = selfs.winner;
         }
 
+        if let Some(ref terrain) = info.terrain {
+            self.apply_terrain(terrain);
+        }
         self.last_info = info;
     }
 
@@ -117,6 +123,7 @@ impl WorldView {
         self.winner = false;
         self.viewer = START_POS;
         self.broken = false;
+        self.stage = 0;
         self.signal = 100;
         self.last_info = SenseInfo::default();
     }

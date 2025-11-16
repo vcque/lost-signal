@@ -30,6 +30,7 @@ impl ServerSense for SelfSense {
             broken: avatar.broken,
             signal: avatar.signal,
             winner: avatar.winner,
+            stage: avatar.stage,
         }
     }
 }

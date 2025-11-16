@@ -43,6 +43,7 @@ impl SenseInfo {
                 winner: true,
                 broken: false,
                 signal: 100,
+                stage: 0,
             }),
             ..SenseInfo::default()
         }
@@ -104,6 +105,7 @@ pub struct SelfInfo {
     pub broken: bool,
     pub signal: usize,
     pub winner: bool,
+    pub stage: usize,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]

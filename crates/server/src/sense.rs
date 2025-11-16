@@ -3,37 +3,20 @@ use std::sync::mpsc::Sender;
 use losig_core::{
     sense::{
         OrbInfo, OrbSense, ProximityInfo, ProximitySense, SelfInfo, SelfSense, Sense, SenseInfo,
-        Senses, TerrainInfo, TerrainSense, WorldInfo, WorldSense,
+        Senses, TerrainInfo, TerrainSense,
     },
     types::{Avatar, AvatarId},
 };
 
-use crate::{fov, world::World};
+use crate::{fov, world::Stage};
 
 trait ServerSense: Sense {
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info;
-
-    fn gather_opt(&self, avatar: Option<&Avatar>, world: &World) -> Option<Self::Info> {
-        avatar.map(|e| self.gather(e, world))
-    }
-}
-
-impl ServerSense for WorldSense {
-    fn gather(&self, _: &Avatar, world: &World) -> Self::Info {
-        self.gather_opt(None, world).unwrap()
-    }
-
-    fn gather_opt(&self, _: Option<&Avatar>, world: &World) -> Option<Self::Info> {
-        Some(WorldInfo {
-            tick: world.tick,
-            winner: world.winner,
-        })
-    }
+    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info;
 }
 
 impl ServerSense for TerrainSense {
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
-        let tiles = fov::fov(avatar.position, self.radius, &world.tiles);
+    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
+        let tiles = fov::fov(avatar.position, self.radius, &stage.tiles);
         TerrainInfo {
             radius: self.radius,
             tiles: tiles.buf,
@@ -42,7 +25,7 @@ impl ServerSense for TerrainSense {
 }
 
 impl ServerSense for SelfSense {
-    fn gather(&self, avatar: &Avatar, _world: &World) -> Self::Info {
+    fn gather(&self, avatar: &Avatar, _stage: &Stage) -> Self::Info {
         SelfInfo {
             broken: avatar.broken,
             signal: avatar.signal,
@@ -51,12 +34,12 @@ impl ServerSense for SelfSense {
 }
 
 impl ServerSense for ProximitySense {
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
+    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
         let radius = self.radius;
         let pos = avatar.position;
         let mut count = 0;
 
-        for foe in world.foes.iter() {
+        for foe in stage.foes.iter() {
             if pos.dist(&foe.position) <= radius {
                 count += 1;
             }
@@ -66,32 +49,24 @@ impl ServerSense for ProximitySense {
 }
 
 impl ServerSense for OrbSense {
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
-        let detected = world.orb.dist(&avatar.position) <= self.level.range();
-        OrbInfo {
-            owned: world.winner == Some(avatar.id),
-            detected,
-        }
+    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
+        let detected = stage.orb.dist(&avatar.position) <= self.level.range();
+        OrbInfo { detected }
     }
 }
 
 impl<T: ServerSense> ServerSense for Option<T> {
-    fn gather_opt(&self, avatar: Option<&Avatar>, world: &World) -> Option<Self::Info> {
-        self.as_ref().map(|s| s.gather_opt(avatar, world))
-    }
-
-    fn gather(&self, avatar: &Avatar, world: &World) -> Self::Info {
-        self.as_ref().map(|s| s.gather(avatar, world))
+    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
+        self.as_ref().map(|s| s.gather(avatar, stage))
     }
 }
 
-pub fn gather(senses: &Senses, avatar: Option<&Avatar>, world: &World) -> SenseInfo {
+pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SenseInfo {
     SenseInfo {
-        world: senses.world.gather_opt(avatar, world).flatten(),
-        terrain: senses.terrain.gather_opt(avatar, world).flatten(),
-        selfs: senses.selfs.gather_opt(avatar, world).flatten(),
-        proximity: senses.proximity.gather_opt(avatar, world).flatten(),
-        orb: senses.orb.gather_opt(avatar, world).flatten(),
+        terrain: senses.terrain.gather(avatar, stage),
+        selfs: senses.selfs.gather(avatar, stage),
+        proximity: senses.proximity.gather(avatar, stage),
+        orb: senses.orb.gather(avatar, stage),
     }
 }
 

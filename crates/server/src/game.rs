@@ -13,7 +13,7 @@ use crate::{
     command::CommandMessage,
     sense::{self, SensesMessage},
     states::States,
-    world::World,
+    world::{Stage, World},
 };
 
 pub struct Game {
@@ -28,17 +28,16 @@ impl Game {
 
     pub fn run(self) {
         spawn(move || {
-            let mut world: World;
-            {
-                world = self.states.world.lock().unwrap().clone();
-            }
             loop {
                 let commands = self.recv_cmds();
-                let senses = enact_tick(&mut world, &commands);
+                let msgs: Vec<SensesMessage>;
                 {
-                    *self.states.world.lock().unwrap() = world.clone();
+                    let world = &mut *self.states.world.lock().unwrap();
+                    let senses = enact_tick(world, &commands);
+                    msgs = gather_infos(world, senses);
                 }
-                for msg in gather_infos(&mut world, senses) {
+
+                for msg in msgs {
                     self.states.senses.send(msg).unwrap();
                 }
             }
@@ -88,24 +87,27 @@ fn spawn_avatar(world: &mut World, avatar_id: AvatarId) {
         avatar_id,
         Avatar {
             id: avatar_id,
-            position: spawn_position(world, avatar_id),
+            stage: 0,
+            position: spawn_position(world.stages.first().unwrap(), avatar_id),
             broken: false,
             signal: 100,
         },
     );
 }
 
-fn spawn_position(world: &World, avatar_id: AvatarId) -> Position {
-    let spawn_position = world.find_free_spawns();
+fn spawn_position(stage: &Stage, avatar_id: AvatarId) -> Position {
+    let spawn_position = stage.find_spawns();
     spawn_position[avatar_id as usize % spawn_position.len()]
 }
 
 fn enact_foes(world: &mut World) {
     // Foes are static for now
-    for foe in world.foes.iter() {
-        for avatar in world.avatars.values_mut() {
-            if foe.position == avatar.position {
-                avatar.broken = true;
+    for (i, stage) in world.stages.iter().enumerate() {
+        for foe in stage.foes.iter() {
+            for avatar in world.avatars.values_mut() {
+                if foe.position == avatar.position && i == avatar.stage {
+                    avatar.broken = true;
+                }
             }
         }
     }
@@ -116,14 +118,27 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
         return;
     }
 
+    // Specific spawn action
+    if cmd.action == Action::Spawn {
+        avatar.stage = avatar.stage.saturating_sub(1);
+        let stage = world.stages.get(avatar.stage).unwrap();
+        avatar.position = spawn_position(stage, avatar.id);
+        avatar.signal = 100;
+        avatar.broken = false;
+        return;
+    }
+
     let avatar_id = cmd.avatar_id;
+    let Some(stage) = world.stages.get_mut(avatar.stage) else {
+        return;
+    };
 
     debug!("cmd received: {cmd:?}");
     match cmd.action {
         Action::Move(dir) => {
             let next_pos = avatar.position.move_once(dir);
 
-            let tile = world.tiles.at(next_pos);
+            let tile = stage.tiles.at(next_pos);
             if !matches!(tile, Tile::Wall) {
                 avatar.position = next_pos;
             }
@@ -133,18 +148,15 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
                 avatar.signal = 100;
             }
 
-            if avatar.position == world.orb {
-                // WIN !
-                info!("The game was won by {}!", avatar.id);
-                world.move_orb();
-                world.winner = Some(avatar.id);
+            if avatar.position == stage.orb {
+                stage.move_orb();
+                avatar.stage += 1; // Crashes the server when the player wins
+                if let Some(stage) = world.stages.get(avatar.stage) {
+                    avatar.position = spawn_position(stage, avatar_id);
+                }
             }
         }
-        Action::Spawn => {
-            avatar.position = spawn_position(world, avatar_id);
-            avatar.signal = 100;
-            avatar.broken = false;
-        }
+        Action::Spawn => {}
         Action::Wait => {
             // NOOP
         }
@@ -160,8 +172,10 @@ fn gather_infos(world: &World, senses: Vec<(AvatarId, Senses)>) -> Vec<SensesMes
 
 fn gather_info(world: &World, senses: (AvatarId, Senses)) -> Option<SensesMessage> {
     let (avatar_id, senses) = senses;
-    let avatar = world.find_avatar(avatar_id);
-    let senses = sense::gather(&senses, avatar, world);
+    let avatar = world.find_avatar(avatar_id)?;
+    let stage = world.stages.get(avatar.stage)?;
+
+    let senses = sense::gather(&senses, avatar, stage);
 
     Some(SensesMessage {
         avatar_id: avatar_id,

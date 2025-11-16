@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use losig_core::{
-    sense::{SenseInfo, Senses, TerrainSense, WorldSense},
+    sense::{SenseInfo, Senses, TerrainSense},
     types::{Action, AvatarId, Direction, Offset, Tile},
 };
 use ratatui::{
@@ -181,7 +181,6 @@ impl Default for GamePage {
     fn default() -> Self {
         GamePage {
             senses: Senses {
-                world: Some(WorldSense {}),
                 terrain: Some(TerrainSense { radius: 1 }),
                 ..Default::default()
             },
@@ -204,10 +203,9 @@ impl GamePage {
 
     fn selected_sense_mut(&mut self) -> &mut dyn ClientSense {
         match self.sense_selection {
-            0 => &mut self.senses.world,
-            1 => &mut self.senses.selfs,
-            2 => &mut self.senses.terrain,
-            3 => &mut self.senses.proximity,
+            0 => &mut self.senses.selfs,
+            1 => &mut self.senses.terrain,
+            2 => &mut self.senses.proximity,
             _ => &mut self.senses.orb,
         }
     }
@@ -262,16 +260,6 @@ impl Page for GamePage {
         };
 
         let mut game = tui.game.lock().unwrap();
-        if game
-            .world()
-            .last_info
-            .world
-            .as_ref()
-            .and_then(|w| w.winner)
-            .is_some()
-        {
-            return TuiNav::None;
-        }
         if key.modifiers.control {
             match key.code {
                 KeyCode::Up => {
@@ -414,24 +402,8 @@ impl Widget for SensesWidget {
     where
         Self: Sized,
     {
-        let rows = Layout::vertical([Constraint::Length(2); 5]).split(area);
-
-        let sense = self.senses.world;
-        let status = self
-            .info
-            .world
-            .map(|w| format!("turn {}", w.tick))
-            .unwrap_or("()".to_owned());
-        let indicator = if sense.is_some() { "(+)" } else { "(-)" };
-
-        SenseWidget {
-            label: "World",
-            indicator,
-            status: &status,
-            selected: self.selection == 0,
-            active: sense.is_some(),
-        }
-        .render(rows[0], buf);
+        let rows = Layout::vertical([Constraint::Length(2); 4]).split(area);
+        let mut row_index = 0;
 
         let sense = self.senses.selfs;
         let status = self
@@ -445,10 +417,11 @@ impl Widget for SensesWidget {
             label: "Self",
             indicator,
             status: status,
-            selected: self.selection == 1,
+            selected: self.selection == row_index,
             active: sense.is_some(),
         }
-        .render(rows[1], buf);
+        .render(rows[row_index], buf);
+        row_index += 1;
 
         let sense = self.senses.terrain;
         let status = self
@@ -465,10 +438,11 @@ impl Widget for SensesWidget {
             label: "Terrain",
             indicator: &indicator,
             status: &status,
-            selected: self.selection == 2,
+            selected: self.selection == row_index,
             active: sense.is_some(),
         }
-        .render(rows[2], buf);
+        .render(rows[row_index], buf);
+        row_index += 1;
 
         let sense = self.senses.proximity;
         let status = self
@@ -492,19 +466,18 @@ impl Widget for SensesWidget {
             label: "Proximity",
             indicator: &indicator,
             status: &status,
-            selected: self.selection == 3,
+            selected: self.selection == row_index,
             active: sense.is_some(),
         }
-        .render(rows[3], buf);
+        .render(rows[row_index], buf);
+        row_index += 1;
 
         let sense = self.senses.orb;
         let status = self
             .info
             .orb
             .map(|orb| {
-                if orb.owned {
-                    "I have it!"
-                } else if orb.detected {
+                if orb.detected {
                     "I can feel it"
                 } else {
                     "Nothing"
@@ -527,10 +500,10 @@ impl Widget for SensesWidget {
             label: "Goal",
             indicator: &indicator,
             status: &status,
-            selected: self.selection == 4,
+            selected: self.selection == row_index,
             active: sense.is_some(),
         }
-        .render(rows[4], buf);
+        .render(rows[row_index], buf);
     }
 }
 

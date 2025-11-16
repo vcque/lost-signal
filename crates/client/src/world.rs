@@ -1,5 +1,5 @@
 use losig_core::{
-    sense::{SenseInfo, TerrainInfo, WorldInfo},
+    sense::{SenseInfo, TerrainInfo},
     types::{AvatarId, Offset, Position, Tile},
 };
 
@@ -56,25 +56,12 @@ impl WorldView {
         if let Some(ref terrain) = info.terrain {
             self.apply_terrain(terrain);
         }
-        if let Some(ref world) = info.world {
-            self.apply_world(world);
-        }
         if let Some(ref selfs) = info.selfs {
             self.broken = selfs.broken;
             self.signal = selfs.signal;
         }
-        if let Some(ref orb) = info.orb {
-            if orb.owned {
-                self.winner = Some(self.id);
-            }
-        }
 
         self.last_info = info;
-    }
-
-    pub fn apply_world(&mut self, world: &WorldInfo) {
-        self.tick = world.tick;
-        self.winner = world.winner;
     }
 
     /// Add new info from the server

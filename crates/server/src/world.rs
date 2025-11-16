@@ -3,34 +3,48 @@ use std::collections::HashMap;
 use log::error;
 use losig_core::types::{Avatar, AvatarId, Foe, Position, Tile};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct World {
     pub tick: u64,
-    pub tiles: Tiles,
     pub avatars: HashMap<AvatarId, Avatar>,
-    pub foes: Vec<Foe>,
-    /// retrieve the orb win the game.
-    pub orb: Position,
-    /// TODO: fix winning mechanism
-    pub winner: Option<AvatarId>,
+    pub stages: Vec<Stage>,
 }
 
 impl World {
-    pub fn new(tiles: Tiles, foes: Vec<Foe>) -> World {
-        let mut result = World {
+    pub fn new(stages: Vec<Stage>) -> World {
+        let new = World {
             tick: 0,
-            tiles,
+            stages,
             avatars: HashMap::new(),
-            foes,
-            orb: Position { x: 0, y: 0 },
-            winner: None,
         };
 
-        result.move_orb();
-        result
+        new
+    }
+    pub fn find_avatar(&self, id: AvatarId) -> Option<&Avatar> {
+        self.avatars.get(&id)
+    }
+}
+
+#[derive(Debug)]
+pub struct Stage {
+    pub tiles: Tiles,
+    pub foes: Vec<Foe>,
+    pub orb: Position,
+}
+
+impl Stage {
+    pub fn new(tiles: Tiles, foes: Vec<Foe>) -> Self {
+        let mut new = Self {
+            tiles,
+            foes,
+            orb: Position::default(),
+        };
+
+        new.move_orb();
+        new
     }
 
-    pub fn find_free_spawns(&self) -> Vec<Position> {
+    pub fn find_spawns(&self) -> Vec<Position> {
         self.tiles
             .buf
             .iter()
@@ -45,10 +59,6 @@ impl World {
             .collect()
     }
 
-    pub fn find_avatar(&self, id: AvatarId) -> Option<&Avatar> {
-        self.avatars.get(&id)
-    }
-
     pub fn move_orb(&mut self) {
         loop {
             let x = rand::random_range(0..self.tiles.width);
@@ -58,7 +68,10 @@ impl World {
             let foe = self.foes.iter().find(|f| f.position == position);
 
             match (tile, foe) {
-                (Tile::Empty, None) => break,
+                (Tile::Empty, None) => {
+                    self.orb = position;
+                    break;
+                }
                 _ => {}
             }
         }

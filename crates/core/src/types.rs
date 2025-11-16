@@ -71,7 +71,7 @@ impl Neg for Offset {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
 pub struct Position {
     pub x: usize,
     pub y: usize,
@@ -190,6 +190,7 @@ pub type AvatarId = u32;
 #[derive(Debug, Clone)]
 pub struct Avatar {
     pub id: AvatarId,
+    pub stage: usize,
     pub position: Position,
     pub broken: bool,
     /// Some kind of energy, it's called signal because that's the name of the game

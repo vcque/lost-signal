@@ -104,7 +104,7 @@ impl GameTui {
         borders.render(area, buf);
         let area = inner;
 
-        let viewer = self.get_view_center(&world);
+        let (stage_id, viewer) = self.get_view_center(&world);
         let area_offset = Offset {
             x: (area.width / 2) as isize,
             y: (area.height / 2) as isize,
@@ -112,16 +112,18 @@ impl GameTui {
 
         let offset = viewer.as_offset() - area_offset;
 
+        let stage = world.stages.get(stage_id).unwrap();
+        let tiles = &stage.tiles;
         for x in 0..area.width as usize {
             for y in 0..area.height as usize {
                 let pos = Position { x, y };
 
-                if pos.is_oob(world.tiles.width, world.tiles.height, offset) {
+                if pos.is_oob(tiles.width, tiles.height, offset) {
                     continue;
                 }
 
                 let tile_pos = pos + offset;
-                let tile = world.tiles.at(tile_pos);
+                let tile = tiles.at(tile_pos);
                 let char = match tile {
                     Tile::Spawn => 'S',
                     Tile::Unknown => ' ',
@@ -156,11 +158,11 @@ impl GameTui {
         }
 
         // Needs to check also x
-        if world
+        if stage
             .orb
             .is_oob(area.width as usize, area.height as usize, offset)
         {
-            let Position { x, y } = world.orb + offset;
+            let Position { x, y } = stage.orb + offset;
             buf.set_string(
                 area.x + x as u16,
                 area.y + y as u16,
@@ -169,7 +171,7 @@ impl GameTui {
             );
         }
 
-        for foe in world.foes.iter() {
+        for foe in stage.foes.iter() {
             let position = foe.position;
 
             // Needs to check also x
@@ -185,15 +187,18 @@ impl GameTui {
         }
     }
 
-    fn get_view_center(&self, world: &World) -> Position {
+    fn get_view_center(&self, world: &World) -> (usize, Position) {
         // Center on first avatar if exists, otherwise center of map
         if let Some(avatar) = world.avatars.values().next() {
-            avatar.position
+            (avatar.stage, avatar.position)
         } else {
-            Position {
-                x: 256 / 2, // MAP_SIZE / 2
-                y: 256 / 2,
-            }
+            (
+                0,
+                Position {
+                    x: 256 / 2, // MAP_SIZE / 2
+                    y: 256 / 2,
+                },
+            )
         }
     }
 }

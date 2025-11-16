@@ -1,6 +1,4 @@
-use losig_core::sense::{
-    OrbSense, ProximitySense, SelfSense, SenseLevel, TerrainSense, WorldSense,
-};
+use losig_core::sense::{OrbSense, ProximitySense, SelfSense, SenseLevel, TerrainSense};
 
 /// Represents one of the senses of an avatar
 pub trait ClientSense {
@@ -55,16 +53,6 @@ impl ClientSense for Option<ProximitySense> {
             }
             None => {}
         }
-    }
-}
-
-impl ClientSense for Option<WorldSense> {
-    fn decr(&mut self) {
-        self.take();
-    }
-
-    fn incr(&mut self) {
-        self.replace(WorldSense {});
     }
 }
 

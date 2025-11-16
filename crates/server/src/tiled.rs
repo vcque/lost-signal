@@ -2,21 +2,21 @@
 
 use std::io::Cursor;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Result, anyhow};
 use log::debug;
 use losig_core::types::{Foe, Position, Tile};
 use tiled::{Layer, Loader};
 
-use crate::world::{Tiles, World};
+use crate::world::{Stage, Tiles, World};
 
 struct AssetsReader {}
 
 const TILESET: &[u8] = include_bytes!("../../../maps/tileset/editor.tsx");
 
-const LVLS: &[&[u8]] = &[
-    include_bytes!("../../../maps/lvl1.tmx"),
-    include_bytes!("../../../maps/lvl2.tmx"),
-    include_bytes!("../../../maps/lvl3.tmx"),
+const STAGES: &[(&str, &[u8])] = &[
+    ("lvl1", include_bytes!("../../../maps/lvl1.tmx")),
+    ("lvl2", include_bytes!("../../../maps/lvl2.tmx")),
+    ("lvl3", include_bytes!("../../../maps/lvl3.tmx")),
 ];
 
 const FOE_ID: u32 = 1;
@@ -32,10 +32,14 @@ impl tiled::ResourceReader for AssetsReader {
         path: &std::path::Path,
     ) -> std::result::Result<Self::Resource, Self::Error> {
         match path.to_str() {
-            Some("lvl1") => Ok(Cursor::new(LVLS[0])),
-            Some("lvl2") => Ok(Cursor::new(LVLS[1])),
-            Some("lvl3") => Ok(Cursor::new(LVLS[2])),
             Some("tileset/editor.tsx") => Ok(Cursor::new(TILESET)),
+            Some(lvl) => {
+                let bytes = STAGES
+                    .iter()
+                    .find_map(|(name, bytes)| if *name == lvl { Some(bytes) } else { None })
+                    .unwrap();
+                Ok(Cursor::new(bytes))
+            }
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 format!("Could not determine name from {path:?}"),
@@ -71,25 +75,22 @@ impl<'a> TryFrom<&tiled::TileLayer<'a>> for Tiles {
     }
 }
 
-impl TryFrom<&tiled::Map> for World {
+impl TryFrom<&tiled::Map> for Stage {
     type Error = anyhow::Error;
 
     fn try_from(value: &tiled::Map) -> Result<Self, Self::Error> {
-        println!("terrain");
         let terrain_layer = value
             .layers()
             .find(|l| l.name == "Terrain")
             .and_then(Layer::as_tile_layer)
             .ok_or(anyhow!("No terrain layer"))?;
-
-        println!("foes");
         let foes_layer = value
             .layers()
             .find(|l| l.name == "Foes")
             .and_then(Layer::as_tile_layer)
             .ok_or(anyhow!("No foes layer"))?;
 
-        Ok(World::new(
+        Ok(Stage::new(
             Tiles::try_from(&terrain_layer)?,
             get_foes(&foes_layer)?,
         ))
@@ -121,10 +122,15 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
 
 pub fn load_world() -> Result<World> {
     let mut loader = Loader::with_reader(AssetsReader {});
-    let lvl1 = loader
-        .load_tmx_map("lvl1")
-        .with_context(|| "Cannot load tmx")?;
-    World::try_from(&lvl1)
+
+    let stages = STAGES
+        .iter()
+        .map(|st| loader.load_tmx_map(st.0))
+        .filter_map(|r| r.ok())
+        .filter_map(|m| Stage::try_from(&m).ok())
+        .collect();
+
+    Ok(World::new(stages))
 }
 
 #[cfg(test)]
@@ -137,4 +143,3 @@ mod tests {
         assert!(load_world().is_ok());
     }
 }
-

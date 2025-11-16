@@ -190,8 +190,7 @@ impl GameTui {
         if let Some(avatar) = world.avatars.values().next() {
             (avatar.stage, avatar.position)
         } else {
-            let stage = world.stages.get(0).unwrap();
-
+            let stage = world.stages.first().unwrap();
             (
                 0,
                 Position {

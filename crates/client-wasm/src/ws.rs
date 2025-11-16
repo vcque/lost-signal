@@ -9,9 +9,11 @@ use losig_core::network::UdpSensesPacket;
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{BinaryType, MessageEvent, WebSocket, console};
 
+type Callback = Box<dyn Fn(SenseMessage) + Send>;
+
 #[derive(Clone)]
 pub struct WsServer {
-    on_recv: Rc<RefCell<Box<dyn Fn(SenseMessage) + Send>>>,
+    on_recv: Rc<RefCell<Callback>>,
     socket: Rc<RefCell<Option<WebSocket>>>,
     timer: Rc<RefCell<Option<Interval>>>,
 }
@@ -28,7 +30,7 @@ impl WsServer {
         }
     }
 
-    pub fn set_callback(&mut self, callback: Box<dyn Fn(SenseMessage) + Send>) {
+    pub fn set_callback(&mut self, callback: Callback) {
         *self.on_recv.borrow_mut() = callback;
     }
 

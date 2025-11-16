@@ -86,7 +86,7 @@ impl WsServer {
 
                 if let Some(ws) = ws {
                     let msg = UdpSensesPacket {
-                        avatar_id: avatar_id,
+                        avatar_id,
                         senses: sense.senses,
                     };
                     let _ = handle_write(ws, msg);

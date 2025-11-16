@@ -177,8 +177,5 @@ fn gather_info(world: &World, senses: (AvatarId, Senses)) -> Option<SensesMessag
 
     let senses = sense::gather(&senses, avatar, stage);
 
-    Some(SensesMessage {
-        avatar_id: avatar_id,
-        senses,
-    })
+    Some(SensesMessage { avatar_id, senses })
 }

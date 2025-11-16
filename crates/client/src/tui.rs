@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    fmt::Display,
+    sync::{Arc, Mutex},
+};
 
 use losig_core::{
     sense::{SenseInfo, Senses, TerrainSense},
@@ -46,7 +49,7 @@ impl TuiApp for GameTui {
     }
 
     fn should_exit(&self) -> bool {
-        return self.state.exit;
+        self.state.exit
     }
 }
 
@@ -97,14 +100,14 @@ enum MenuOption {
     Exit,
 }
 
-impl ToString for MenuOption {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for MenuOption {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string = match self {
             MenuOption::Start => "Start Game",
             MenuOption::Continue => "Continue Game",
             MenuOption::Exit => "Exit",
-        }
-        .to_owned()
+        };
+        f.write_str(string)
     }
 }
 
@@ -221,7 +224,7 @@ impl Page for GamePage {
         let [world_a, _log_a, _senses_a] = Self::layout(area);
         let game = state.game.lock().unwrap();
         let world = game.world();
-        let world_widget = WorldViewWidget { world: &world };
+        let world_widget = WorldViewWidget { world };
 
         let world_widget = Block::default()
             .borders(Borders::ALL)
@@ -416,7 +419,7 @@ impl Widget for SensesWidget {
         SenseWidget {
             label: "Self",
             indicator,
-            status: status,
+            status,
             selected: self.selection == row_index,
             active: sense.is_some(),
         }
@@ -436,8 +439,8 @@ impl Widget for SensesWidget {
 
         SenseWidget {
             label: "Terrain",
-            indicator: &indicator,
-            status: &status,
+            indicator: indicator.as_str(),
+            status: status.as_str(),
             selected: self.selection == row_index,
             active: sense.is_some(),
         }
@@ -464,8 +467,8 @@ impl Widget for SensesWidget {
 
         SenseWidget {
             label: "Proximity",
-            indicator: &indicator,
-            status: &status,
+            indicator: indicator.as_str(),
+            status,
             selected: self.selection == row_index,
             active: sense.is_some(),
         }
@@ -498,8 +501,8 @@ impl Widget for SensesWidget {
 
         SenseWidget {
             label: "Goal",
-            indicator: &indicator,
-            status: &status,
+            indicator,
+            status,
             selected: self.selection == row_index,
             active: sense.is_some(),
         }

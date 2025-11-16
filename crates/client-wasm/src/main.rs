@@ -22,7 +22,7 @@ pub type CommandMessage = UdpCommandPacket;
 fn main() -> io::Result<()> {
     console_log::init_with_level(Level::Debug).unwrap();
 
-    let id = get_avatar_id().unwrap_or_else(|| generate_avatar_id());
+    let id = get_avatar_id().unwrap_or_else(generate_avatar_id);
     update_history(id);
 
     let game = GameSim::new(id);

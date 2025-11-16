@@ -12,14 +12,13 @@ pub struct World {
 
 impl World {
     pub fn new(stages: Vec<Stage>) -> World {
-        let new = World {
+        World {
             tick: 0,
             stages,
             avatars: HashMap::new(),
-        };
-
-        new
+        }
     }
+
     pub fn find_avatar(&self, id: AvatarId) -> Option<&Avatar> {
         self.avatars.get(&id)
     }
@@ -67,12 +66,9 @@ impl Stage {
             let tile = self.tiles.at(position);
             let foe = self.foes.iter().find(|f| f.position == position);
 
-            match (tile, foe) {
-                (Tile::Empty, None) => {
-                    self.orb = position;
-                    break;
-                }
-                _ => {}
+            if let (Tile::Empty, None) = (tile, foe) {
+                self.orb = position;
+                break;
             }
         }
     }

@@ -18,10 +18,7 @@ pub enum Action {
 
 impl Action {
     pub fn allow_broken(&self) -> bool {
-        match self {
-            Action::Spawn => true,
-            _ => false,
-        }
+        matches!(self, Action::Spawn)
     }
 }
 
@@ -113,7 +110,7 @@ impl Position {
 
         self_dims
             .into_iter()
-            .zip(other_dims.into_iter())
+            .zip(other_dims)
             .map(|(a, b)| a.abs_diff(b))
             .max()
             .unwrap()
@@ -158,17 +155,11 @@ pub enum Tile {
 
 impl Tile {
     pub fn can_travel(&self) -> bool {
-        match self {
-            Self::Wall | Self::Unknown => false,
-            _ => true,
-        }
+        !matches!(self, Self::Wall | Self::Unknown)
     }
 
     pub fn opaque(&self) -> bool {
-        match self {
-            Self::Wall | Self::Unknown => true,
-            _ => false,
-        }
+        matches!(self, Self::Wall | Self::Unknown)
     }
 }
 

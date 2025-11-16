@@ -1,5 +1,3 @@
-#![allow(clippy::all)]
-
 use std::sync::Arc;
 
 use crossterm::{
@@ -57,12 +55,11 @@ impl GameTui {
         loop {
             terminal.draw(|f| self.ui(f))?;
 
-            if event::poll(std::time::Duration::from_millis(50))? {
-                if let Event::Key(key) = event::read()? {
-                    if let KeyCode::Char('q') = key.code {
-                        return Ok(());
-                    }
-                }
+            if event::poll(std::time::Duration::from_millis(50))?
+                && let Event::Key(key) = event::read()?
+                && let KeyCode::Char('q') = key.code
+            {
+                return Ok(());
             }
         }
     }

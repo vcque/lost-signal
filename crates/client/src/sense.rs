@@ -19,15 +19,12 @@ impl ClientSense for Option<TerrainSense> {
     }
 
     fn decr(&mut self) {
-        match self {
-            Some(w) => {
-                if w.radius == 1 {
-                    self.take();
-                } else {
-                    w.radius -= 1
-                }
+        if let Some(w) = self {
+            if w.radius == 1 {
+                self.take();
+            } else {
+                w.radius -= 1
             }
-            None => {}
         }
     }
 }
@@ -43,15 +40,12 @@ impl ClientSense for Option<ProximitySense> {
     }
 
     fn decr(&mut self) {
-        match self {
-            Some(w) => {
-                if w.radius == 1 {
-                    self.take();
-                } else {
-                    w.radius -= 1
-                }
+        if let Some(w) = self {
+            if w.radius == 1 {
+                self.take();
+            } else {
+                w.radius -= 1
             }
-            None => {}
         }
     }
 }

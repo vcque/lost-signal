@@ -26,7 +26,7 @@ impl Quadrant {
                 x: -offset.y,
                 y: -offset.x,
             },
-            Self::South => offset.clone(),
+            Self::South => *offset,
         }
     }
 }
@@ -56,7 +56,7 @@ impl Scanner {
         let max_col = (max_col - delta).round() as isize;
 
         (min_col..max_col + 1).map(|col| Offset {
-            x: col as isize,
+            x: col,
             y: self.depth as isize,
         })
     }
@@ -85,8 +85,7 @@ pub fn fov(viewer: Position, radius: usize, tiles: &Tiles) -> Tiles {
     ] {
         let mut scanners = vec![Scanner::new()];
 
-        while !scanners.is_empty() {
-            let scanner = scanners.pop().unwrap();
+        while let Some(scanner) = scanners.pop() {
             if scanner.depth > radius {
                 continue;
             }

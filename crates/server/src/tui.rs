@@ -140,9 +140,11 @@ impl GameTui {
         // Convert from world ref to view ref
         let offset = -offset;
         for avatar in world.avatars.values() {
+            if avatar.stage != stage_id {
+                continue;
+            }
             let position = avatar.position;
 
-            // Needs to check also x
             if !position.is_oob(area.width as usize, area.height as usize, offset) {
                 let Position { x, y } = position + offset;
                 buf.set_string(
@@ -154,8 +156,7 @@ impl GameTui {
             }
         }
 
-        // Needs to check also x
-        if stage
+        if !stage
             .orb
             .is_oob(area.width as usize, area.height as usize, offset)
         {
@@ -171,7 +172,6 @@ impl GameTui {
         for foe in stage.foes.iter() {
             let position = foe.position;
 
-            // Needs to check also x
             if !position.is_oob(area.width as usize, area.height as usize, offset) {
                 let Position { x, y } = position + offset;
                 buf.set_string(
@@ -189,11 +189,13 @@ impl GameTui {
         if let Some(avatar) = world.avatars.values().next() {
             (avatar.stage, avatar.position)
         } else {
+            let stage = world.stages.get(0).unwrap();
+
             (
                 0,
                 Position {
-                    x: 256 / 2, // MAP_SIZE / 2
-                    y: 256 / 2,
+                    x: stage.tiles.width / 2, // MAP_SIZE / 2
+                    y: stage.tiles.height / 2,
                 },
             )
         }

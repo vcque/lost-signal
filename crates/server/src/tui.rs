@@ -126,6 +126,7 @@ impl GameTui {
                     Tile::Unknown => ' ',
                     Tile::Empty => '.',
                     Tile::Wall => '#',
+                    Tile::Pylon => '|',
                 };
 
                 buf.set_string(

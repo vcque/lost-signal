@@ -326,12 +326,8 @@ impl<'a> Widget for WorldViewWidget<'a> {
                     y: y as isize - center_y,
                 });
 
-                buf.set_string(
-                    area.x + x,
-                    area.y + y,
-                    to_char(tile).to_string(),
-                    Style::default(),
-                );
+                let (ch, style) = render_tile(tile);
+                buf.set_string(area.x + x, area.y + y, ch.to_string(), *style);
             }
         }
 
@@ -517,12 +513,17 @@ impl Widget for SensesWidget {
 *
 */
 
-fn to_char(tile: Tile) -> char {
+const SPAWN_STYLE: &Style = &Style::new().fg(Color::LightYellow);
+const PYLON_STYLE: &Style = &Style::new().fg(Color::LightBlue);
+const DEFAULT_STYLE: &Style = &Style::new();
+
+fn render_tile(tile: Tile) -> (char, &'static Style) {
     match tile {
-        Tile::Spawn => 'S',
-        Tile::Wall => '#',
-        Tile::Unknown => ' ',
-        Tile::Empty => '.',
+        Tile::Spawn => ('S', SPAWN_STYLE),
+        Tile::Wall => ('#', DEFAULT_STYLE),
+        Tile::Unknown => (' ', DEFAULT_STYLE),
+        Tile::Empty => ('.', DEFAULT_STYLE),
+        Tile::Pylon => ('|', PYLON_STYLE),
     }
 }
 

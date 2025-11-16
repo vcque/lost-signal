@@ -22,6 +22,7 @@ const STAGES: &[(&str, &[u8])] = &[
 const FOE_ID: u32 = 1;
 const SPAWN_ID: u32 = 2;
 const WALL_ID: u32 = 4;
+const PYLON_ID: u32 = 5;
 
 impl tiled::ResourceReader for AssetsReader {
     type Resource = Cursor<&'static [u8]>;
@@ -66,6 +67,7 @@ impl<'a> TryFrom<&tiled::TileLayer<'a>> for Tiles {
                 let tile = match tiled_tile.id() {
                     SPAWN_ID => Tile::Spawn,
                     WALL_ID => Tile::Wall,
+                    PYLON_ID => Tile::Pylon,
                     _ => Tile::Empty,
                 };
                 result.set(Position { x, y }, tile);

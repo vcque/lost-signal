@@ -151,15 +151,16 @@ pub enum Tile {
     Empty,
     Spawn,
     Unknown,
+    Pylon,
 }
 
 impl Tile {
     pub fn can_travel(&self) -> bool {
-        !matches!(self, Self::Wall | Self::Unknown)
+        !matches!(self, Self::Wall | Self::Pylon)
     }
 
     pub fn opaque(&self) -> bool {
-        matches!(self, Self::Wall | Self::Unknown)
+        matches!(self, Self::Wall | Self::Pylon)
     }
 }
 

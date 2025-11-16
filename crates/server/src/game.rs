@@ -6,7 +6,7 @@ use std::{
 use log::*;
 use losig_core::{
     sense::{SenseInfo, Senses},
-    types::{Action, Avatar, AvatarId, Position, Tile},
+    types::{Action, Avatar, AvatarId, Offset, Position, Tile},
 };
 
 use crate::{
@@ -140,13 +140,8 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
             let next_pos = avatar.position.move_once(dir);
 
             let tile = stage.tiles.at(next_pos);
-            if !matches!(tile, Tile::Wall) {
+            if tile.can_travel() {
                 avatar.position = next_pos;
-            }
-
-            // Spawn tiles recharge signal
-            if matches!(tile, Tile::Spawn) {
-                avatar.signal = 100;
             }
 
             if avatar.position == stage.orb {
@@ -162,9 +157,23 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
                 }
             }
         }
-        Action::Spawn => {}
+        Action::Spawn => unreachable!("Spawn case has already been handled."),
         Action::Wait => {
             // NOOP
+        }
+    }
+
+    let Some(stage) = world.stages.get(avatar.stage) else {
+        return;
+    };
+    // If pylon is adjacent, recharges signal
+    for x in -1..2 {
+        for y in -1..2 {
+            let offset = Offset { x, y };
+            let tile = stage.tiles.at(avatar.position + offset);
+            if matches!(tile, Tile::Pylon) {
+                avatar.signal = 100;
+            }
         }
     }
 }

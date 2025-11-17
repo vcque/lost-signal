@@ -11,12 +11,14 @@ use ratatui::{
     Frame,
     layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Style, Stylize},
+    text::Line,
     widgets::{Block, Borders, List, ListItem, ListState, Widget},
 };
 
 use crate::{
     game::GameSim,
     sense::ClientSense,
+    theme::THEME,
     tui_adapter::{Event, KeyCode, TuiApp},
     world::WorldView,
 };
@@ -344,7 +346,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
 struct SenseWidget<'a> {
     label: &'a str,
     indicator: &'a str,
-    status: &'a str,
+    status: Option<Line<'a>>,
     selected: bool,
     active: bool,
 }
@@ -361,29 +363,30 @@ impl<'a> Widget for SenseWidget<'a> {
             active,
             selected,
         } = self;
-        let first_line = format!(
-            "{}{}{}",
-            label,
-            ".".repeat(area.width as usize - label.len() - indicator.len()),
-            indicator
-        );
 
-        let second_line = format!("{:>width$}", status, width = area.width as usize);
-
-        let selected_style = Style::default().green();
-        let active_style = Style::default();
-        let inactive_style = Style::default().gray();
+        let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
+        let [first, second] = layout.areas(area);
 
         let first_line_style = match (selected, active) {
-            (true, _) => selected_style,
-            (_, true) => active_style,
-            _ => inactive_style,
+            (true, _) => THEME.styles.selection,
+            (_, true) => THEME.styles.active,
+            _ => THEME.styles.inactive,
         };
 
-        let second_line_style = if active { active_style } else { inactive_style };
+        buf.set_string(
+            first.x,
+            first.y,
+            ".".repeat(area.width as usize),
+            first_line_style,
+        );
+        Line::from(label).style(first_line_style).render(first, buf);
+        Line::from(indicator)
+            .style(first_line_style)
+            .right_aligned()
+            .render(first, buf);
 
-        buf.set_string(area.x, area.y, &first_line, first_line_style);
-        buf.set_string(area.x, area.y + 1, &second_line, second_line_style);
+        let status = status.unwrap_or(Line::from("-").style(THEME.styles.inactive));
+        status.right_aligned().render(second, buf);
     }
 }
 
@@ -402,11 +405,14 @@ impl Widget for SensesWidget {
         let mut row_index = 0;
 
         let sense = self.senses.selfs;
-        let status = self
-            .info
-            .selfi
-            .map(|w| if w.broken { "Broken" } else { "Intact" })
-            .unwrap_or("-");
+        let status = self.info.selfi.map(|selfi| {
+            if selfi.broken {
+                Line::from("Broken").style(THEME.styles.danger)
+            } else {
+                Line::from("Intact")
+            }
+        });
+
         let indicator = if sense.is_some() { "(+)" } else { "(-)" };
 
         SenseWidget {
@@ -423,8 +429,7 @@ impl Widget for SensesWidget {
         let status = self
             .info
             .terrain
-            .map(|t| format!("{} tiles", t.tiles.len()))
-            .unwrap_or("-".to_owned());
+            .map(|t| Line::from(format!("{} tiles", t.tiles.len())));
         let indicator = match sense {
             Some(t) => format!("({})", t.radius),
             None => "(-)".to_owned(),
@@ -433,7 +438,7 @@ impl Widget for SensesWidget {
         SenseWidget {
             label: "Terrain",
             indicator: indicator.as_str(),
-            status: status.as_str(),
+            status,
             selected: self.selection == row_index,
             active: sense.is_some(),
         }
@@ -441,17 +446,11 @@ impl Widget for SensesWidget {
         row_index += 1;
 
         let sense = self.senses.danger;
-        let status = self
-            .info
-            .danger
-            .map(|prox| {
-                if prox.count > 0 {
-                    "Something's nearby"
-                } else {
-                    "Nothing"
-                }
-            })
-            .unwrap_or("-");
+        let status = self.info.danger.map(|prox| match prox.count {
+            0 => Line::from("Nothing"),
+            1 => Line::from("There's something nearby").style(THEME.styles.danger),
+            n => Line::from(format!("There's {} dangers nearby", n)).style(THEME.styles.danger),
+        });
 
         let indicator = match sense {
             Some(s) => format!("({})", s.radius),
@@ -469,17 +468,13 @@ impl Widget for SensesWidget {
         row_index += 1;
 
         let sense = self.senses.orb;
-        let status = self
-            .info
-            .orb
-            .map(|orb| {
-                if orb.detected {
-                    "I can feel it"
-                } else {
-                    "Nothing"
-                }
-            })
-            .unwrap_or("-");
+        let status = self.info.orb.map(|orb| {
+            if orb.detected {
+                Line::from("I can feel it").style(THEME.styles.signal)
+            } else {
+                Line::from("Nothing.")
+            }
+        });
 
         let indicator = match sense {
             Some(s) => match s.level {

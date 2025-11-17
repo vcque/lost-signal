@@ -1,6 +1,7 @@
+use log::warn;
 use losig_core::{
-    sense::{SenseInfo, TerrainInfo},
-    types::{AvatarId, Offset, Position, Tile},
+    sense::{SenseInfo, Senses},
+    types::{Action, AvatarId, Offset, Position, Tile},
 };
 
 const VIEW_SIZE: usize = 256;
@@ -12,36 +13,135 @@ const START_POS: Position = Position {
 #[derive(Debug, Clone)]
 pub struct WorldView {
     pub id: AvatarId,
-    pub tick: u64,
-    pub tiles: [Tile; VIEW_SIZE * VIEW_SIZE],
-    pub last_info: SenseInfo,
-    pub viewer: Position,
     pub winner: bool,
-    pub broken: bool,
-    pub signal: usize,
     pub stage: usize,
+
+    history: Vec<WorldHistory>,
+    past_state: WorldState,
+    pub current_state: WorldState,
 }
 
 impl WorldView {
-    pub fn new(id: AvatarId) -> WorldView {
-        WorldView {
+    pub fn new(id: AvatarId) -> Self {
+        Self {
             id,
-            tiles: [Tile::Unknown; VIEW_SIZE * VIEW_SIZE],
-            tick: 0,
-            last_info: SenseInfo::default(),
-            viewer: START_POS,
-            broken: false,
             winner: false,
-            signal: 100,
             stage: 0,
+            history: vec![],
+            past_state: WorldState::default(),
+            current_state: WorldState::default(),
+        }
+    }
+
+    pub fn act(&mut self, action: &Action, senses: &Senses) {
+        if matches!(action, Action::Spawn) {
+            self.clear();
+        }
+
+        let history = WorldHistory {
+            action: *action,
+            senses: senses.clone(),
+            info: None,
+        };
+        self.current_state.update(&history);
+        self.history.push(history);
+
+        // Don't maintain old history entries
+        let to_remove = self.history.len().saturating_sub(10);
+        for history in self.history.drain(0..to_remove) {
+            self.past_state.update(&history);
+        }
+    }
+
+    pub fn update(&mut self, info: SenseInfo) {
+        // TODO: Exchange turn info with server
+        let turn = self.current_state.turn;
+
+        let diff = turn.abs_diff(self.current_state.turn);
+
+        // Update global info
+        if diff == 0
+            && let Some(ref selfs) = info.selfs
+        {
+            self.winner = selfs.winner;
+            self.stage = selfs.stage;
+        }
+        match diff {
+            i if self.history.len() > i as usize => {
+                let index = self.history.len() - i as usize - 1;
+                self.history[index].info = Some(info);
+                self.rebuild_current_state();
+            }
+            _ => {
+                // Event too old, drop it.
+                warn!("Dropping info because it is too old");
+            }
+        }
+    }
+
+    /// Resets the world. Mostly after a clear or a win.
+    pub fn clear(&mut self) {
+        self.stage = 0;
+        self.history = vec![];
+        self.past_state = WorldState::new();
+        self.current_state = WorldState::new();
+    }
+
+    pub fn current_state(&self) -> &WorldState {
+        &self.current_state
+    }
+
+    pub fn last_info(&self) -> SenseInfo {
+        self.history
+            .last()
+            .and_then(|h| h.info.clone())
+            .unwrap_or_default()
+    }
+
+    fn rebuild_current_state(&mut self) {
+        // Should we take into account more recent terrain info ? It is static after all
+        let mut state = self.past_state.clone();
+        for history in self.history.iter() {
+            state.update(history);
+        }
+
+        self.current_state = state;
+    }
+}
+
+#[derive(Debug, Clone)]
+struct WorldHistory {
+    action: Action,
+    senses: Senses,
+    info: Option<SenseInfo>,
+}
+
+#[derive(Debug, Clone)]
+pub struct WorldState {
+    pub tiles: [Tile; VIEW_SIZE * VIEW_SIZE],
+    pub turn: u64,
+    pub broken: bool,
+    pub signal: usize,
+    pub position: Position,
+}
+
+impl WorldState {
+    pub fn new() -> Self {
+        Self {
+            tiles: [Tile::Unknown; VIEW_SIZE * VIEW_SIZE],
+            turn: 0,
+            broken: false,
+            signal: 100,
+            position: START_POS,
         }
     }
 
     pub fn tile_from_viewer(&self, offset: Offset) -> Tile {
-        if self.viewer.is_oob(VIEW_SIZE, VIEW_SIZE, offset) {
+        let position = self.position;
+        if position.is_oob(VIEW_SIZE, VIEW_SIZE, offset) {
             Tile::Unknown
         } else {
-            let pos = self.viewer + offset;
+            let pos = position + offset;
             self.tile_at(pos)
         }
     }
@@ -54,91 +154,85 @@ impl WorldView {
         self.tiles[pos.x + VIEW_SIZE * pos.y]
     }
 
-    pub fn update(&mut self, info: SenseInfo) {
-        if let Some(ref selfs) = info.selfs {
-            if self.stage != selfs.stage {
-                self.clear();
-                self.stage = selfs.stage;
-            }
-            self.broken = selfs.broken;
-            self.signal = selfs.signal;
-            self.winner = selfs.winner;
+    fn update(&mut self, history: &WorldHistory) {
+        self.update_action(&history.action);
+
+        if let Some(ref info) = history.info {
+            self.update_info(info);
         }
 
-        if let Some(ref terrain) = info.terrain {
-            self.apply_terrain(terrain);
-        }
-        self.last_info = info;
-    }
-
-    /// Add new info from the server
-    pub fn apply_terrain(&mut self, terrain: &TerrainInfo) {
-        let center = Position {
-            x: terrain.radius,
-            y: terrain.radius,
-        };
-
-        let iradius = terrain.radius as isize;
-        let terrain_size = 2 * terrain.radius + 1;
-
-        for x in (-iradius)..(iradius + 1) {
-            for y in (-iradius)..(iradius + 1) {
-                let offset = Offset { x, y };
-                let info_pos = center + offset;
-                let tile = terrain.tiles[info_pos.as_index(terrain_size)];
-                if !matches!(tile, Tile::Unknown) {
-                    let world_pos = self.viewer + offset;
-                    self.tiles[world_pos.as_index(VIEW_SIZE)] = tile;
-                }
-            }
-        }
         self.apply_pylon_effect();
-    }
-
-    pub fn shift(&mut self, offset: Offset) {
-        let mut new_tiles = [Tile::Unknown; VIEW_SIZE * VIEW_SIZE];
-
-        for x in 0..VIEW_SIZE {
-            for y in 0..VIEW_SIZE {
-                let new_x = x as isize - offset.x;
-                let new_y = y as isize - offset.y;
-
-                if new_x >= 0
-                    && new_x < VIEW_SIZE as isize
-                    && new_y >= 0
-                    && new_y < VIEW_SIZE as isize
-                {
-                    let old_idx = new_x as usize + VIEW_SIZE * new_y as usize;
-                    let new_idx = x + VIEW_SIZE * y;
-                    new_tiles[new_idx] = self.tiles[old_idx];
-                }
-            }
+        let cost = history.senses.signal_cost();
+        if self.signal >= cost {
+            self.signal -= cost;
         }
 
-        self.tiles = new_tiles;
+        self.turn += 1;
     }
 
-    /// Resets the world. Mostly after a clear or a win.
-    pub fn clear(&mut self) {
-        self.tiles.fill(Tile::Unknown);
-        self.winner = false;
-        self.viewer = START_POS;
-        self.broken = false;
-        self.stage = 0;
-        self.signal = 100;
-        self.last_info = SenseInfo::default();
+    fn update_action(&mut self, action: &Action) {
+        match action {
+            Action::Move(dir) => {
+                if !self.broken {
+                    let new_pos = self.position + dir.offset();
+                    let tile = self.tile_at(new_pos);
+                    if tile.can_travel() {
+                        self.position = new_pos;
+                    }
+                }
+            }
+            Action::Spawn => {
+                // Spawning actually cleans up the state
+            }
+            Action::Wait => {}
+        }
     }
 
     fn apply_pylon_effect(&mut self) {
         for x in -1..2 {
             for y in -1..2 {
                 let offset = Offset { x, y };
-                let position = self.viewer + offset;
+                let position = self.position + offset;
                 let tile = self.tile_at(position);
                 if matches!(tile, Tile::Pylon) {
                     self.signal = 100;
                 }
             }
         }
+    }
+
+    fn update_info(&mut self, info: &SenseInfo) {
+        if let Some(ref terrain) = info.terrain {
+            let center = Position {
+                x: terrain.radius,
+                y: terrain.radius,
+            };
+
+            let iradius = terrain.radius as isize;
+            let terrain_size = 2 * terrain.radius + 1;
+
+            for x in (-iradius)..(iradius + 1) {
+                for y in (-iradius)..(iradius + 1) {
+                    let offset = Offset { x, y };
+                    let info_pos = center + offset;
+                    let tile = terrain.tiles[info_pos.as_index(terrain_size)];
+                    if !matches!(tile, Tile::Unknown) {
+                        let world_pos = self.position + offset;
+                        self.tiles[world_pos.as_index(VIEW_SIZE)] = tile;
+                    }
+                }
+            }
+        }
+
+        if let Some(ref selfs) = info.selfs {
+            self.broken = selfs.broken;
+            self.signal = selfs.signal;
+        }
+    }
+}
+
+impl Default for WorldState {
+    fn default() -> Self {
+        Self::new()
     }
 }

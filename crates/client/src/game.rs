@@ -2,7 +2,7 @@ use log::debug;
 use losig_core::{
     network::{UdpCommandPacket, UdpSensesPacket},
     sense::{SenseInfo, Senses},
-    types::{Action, AvatarId, Tile},
+    types::{Action, AvatarId},
 };
 
 use crate::world::WorldView;
@@ -38,30 +38,7 @@ impl GameSim {
     pub fn act(&mut self, action: Action, senses: Senses) {
         // Handle each action
         debug!("{action:?}, {senses:?}");
-        match action {
-            Action::Move(dir) => {
-                if !self.world.broken {
-                    let new_pos = self.world.viewer + dir.offset();
-                    let tile = self.world.tile_at(new_pos);
-                    if tile.can_travel() {
-                        self.world.viewer = new_pos;
-                    }
-                    if matches!(tile, Tile::Spawn) {
-                        self.world.signal = 100;
-                    }
-                }
-            }
-            Action::Spawn => {
-                self.world.clear();
-            }
-            Action::Wait => {}
-        }
-
-        let cost = senses.signal_cost();
-        if self.world.signal >= cost {
-            self.world.signal -= cost;
-        }
-
+        self.world.act(&action, &senses);
         let msg = CommandMessage {
             avatar_id: self.avatar_id,
             tick: None,

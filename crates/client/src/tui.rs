@@ -230,7 +230,8 @@ impl Page for GamePage {
             .borders(Borders::ALL)
             .title(format!(
                 "World - turn {} - signal: {}/100",
-                world.tick, world.signal
+                world.current_state().turn,
+                world.current_state.signal
             ))
             .wrap(world_widget);
 
@@ -238,7 +239,7 @@ impl Page for GamePage {
 
         let senses_widget = SensesWidget {
             senses: self.senses.clone(),
-            info: world.last_info.clone(),
+            info: world.last_info(),
             selection: self.sense_selection,
         };
 
@@ -321,7 +322,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
         for x in 0..area.width {
             for y in 0..area.height {
                 // Should take the tiles in batch ?
-                let tile = w.tile_from_viewer(Offset {
+                let tile = w.current_state().tile_from_viewer(Offset {
                     x: x as isize - center_x,
                     y: y as isize - center_y,
                 });
@@ -332,7 +333,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
         }
 
         let mut style = Style::default();
-        if self.world.broken {
+        if self.world.current_state().broken {
             style = style.red();
         }
 

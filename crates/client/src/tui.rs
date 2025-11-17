@@ -4,7 +4,7 @@ use std::{
 };
 
 use losig_core::{
-    sense::{SenseInfo, Senses, TerrainSense},
+    sense::{SelfSense, SenseInfo, Senses, TerrainSense},
     types::{Action, Direction, Offset, Tile},
 };
 use ratatui::{
@@ -178,6 +178,7 @@ impl Default for GamePage {
     fn default() -> Self {
         GamePage {
             senses: Senses {
+                selfs: Some(SelfSense {}),
                 terrain: Some(TerrainSense { radius: 1 }),
                 ..Default::default()
             },

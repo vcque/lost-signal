@@ -73,9 +73,13 @@ impl WorldView {
                 warn!("Dropping info because it is too old");
             }
         }
+
+        if self.current_state.incoherent {
+            self.clear();
+        }
     }
 
-    /// Resets the world. Mostly after a clear or a win.
+    /// Resets the world. Mostly after a respawn or a goal reached.
     pub fn clear(&mut self) {
         self.stage = 0;
         self.history = vec![];
@@ -119,6 +123,7 @@ pub struct WorldState {
     pub broken: bool,
     pub signal: usize,
     pub position: Position,
+    pub incoherent: bool,
 }
 
 impl WorldState {
@@ -129,6 +134,7 @@ impl WorldState {
             broken: false,
             signal: 100,
             position: START_POS,
+            incoherent: false,
         }
     }
 
@@ -212,9 +218,15 @@ impl WorldState {
                     let offset = Offset { x, y };
                     let info_pos = center + offset;
                     let tile = terrain.tiles[info_pos.as_index(terrain_size)];
+
                     if !matches!(tile, Tile::Unknown) {
                         let world_pos = self.position + offset;
-                        self.tiles[world_pos.as_index(VIEW_SIZE)] = tile;
+                        let index = world_pos.as_index(VIEW_SIZE);
+                        let old_tile = self.tiles[index];
+                        if old_tile != Tile::Unknown && old_tile != tile {
+                            self.incoherent = true;
+                        }
+                        self.tiles[index] = tile;
                     }
                 }
             }

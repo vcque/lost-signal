@@ -5,7 +5,7 @@ use std::{
 };
 
 use ratatui::Terminal;
-use ratzilla::{CanvasBackend, WebRenderer, event as rz};
+use ratzilla::{WebGl2Backend, WebRenderer, event as rz};
 
 use losig_client::tui_adapter::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, TuiApp,
@@ -21,7 +21,7 @@ impl<T: TuiApp + 'static> RatzillaAdapter<T> {
     }
 
     pub fn run(self) -> io::Result<()> {
-        let backend = CanvasBackend::new()?;
+        let backend = WebGl2Backend::new()?;
         let terminal = Terminal::new(backend)?;
 
         let app = Rc::new(RefCell::new(self.app));

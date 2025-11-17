@@ -510,13 +510,14 @@ impl Widget for SensesWidget {
 */
 
 const SPAWN_STYLE: &Style = &Style::new().fg(Color::LightYellow);
-const PYLON_STYLE: &Style = &Style::new().fg(Color::LightBlue);
+const PYLON_STYLE: &Style = &Style::new().bg(Color::Gray).fg(Color::LightBlue);
+const WALL_STYLE: &Style = &Style::new().bg(Color::Gray);
 const DEFAULT_STYLE: &Style = &Style::new();
 
 fn render_tile(tile: Tile) -> (char, &'static Style) {
     match tile {
         Tile::Spawn => ('S', SPAWN_STYLE),
-        Tile::Wall => ('#', DEFAULT_STYLE),
+        Tile::Wall => (' ', WALL_STYLE),
         Tile::Unknown => (' ', DEFAULT_STYLE),
         Tile::Empty => ('.', DEFAULT_STYLE),
         Tile::Pylon => ('|', PYLON_STYLE),
@@ -598,7 +599,7 @@ impl Widget for YouWinWidget {
         let text_y = inner.y + inner.height / 2;
         let text_x = inner.x + (inner.width.saturating_sub(message.len() as u16)) / 2;
 
-        let text_style = Style::default().fg(Color::Green).bold();
+        let text_style = Style::default().fg(Color::Green);
         buf.set_string(text_x, text_y, message, text_style);
     }
 }

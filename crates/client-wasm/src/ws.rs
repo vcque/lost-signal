@@ -58,7 +58,7 @@ impl WsServer {
         let s_ref = socket_ref.clone();
         let ws = self.clone();
         let on_open = Closure::wrap(Box::new(move |e| {
-            debug!("Open");
+            debug!("Ws open");
             console::log_1(&e);
             let socket = s_ref.borrow_mut().take();
             match socket {
@@ -71,7 +71,7 @@ impl WsServer {
 
         let ws = self.clone();
         let on_close = Closure::wrap(Box::new(move |e| {
-            debug!("Close");
+            debug!("Ws close");
             console::log_1(&e);
             *ws.socket.borrow_mut() = None;
         }) as Box<dyn Fn(JsValue)>);
@@ -80,7 +80,6 @@ impl WsServer {
 
         let ws = self.clone();
         let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
-            debug!("Message received");
             let senses = convert_response(e);
             if let Some(senses) = senses {
                 (ws.on_recv.borrow())(senses);
@@ -90,7 +89,7 @@ impl WsServer {
         onmessage_callback.forget();
 
         let on_error = Closure::wrap(Box::new(move |e| {
-            debug!("Error");
+            debug!("Ws error");
             console::log_1(&e);
         }) as Box<dyn Fn(JsValue)>);
         socket.set_onerror(Some(on_error.as_ref().unchecked_ref()));

@@ -1,7 +1,4 @@
-use std::{
-    ops::{Add, Neg, Sub},
-    str::FromStr,
-};
+use std::ops::{Add, Neg, Sub};
 
 use serde::{Deserialize, Serialize};
 
@@ -161,19 +158,6 @@ impl Tile {
 
     pub fn opaque(&self) -> bool {
         matches!(self, Self::Wall | Self::Pylon)
-    }
-}
-
-impl FromStr for Tile {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "#" => Ok(Tile::Wall),
-            "S" => Ok(Tile::Spawn),
-            " " => Ok(Tile::Unknown),
-            _ => Ok(Tile::Empty), // Any special tile is an empty tile with an avatar/foe/anything on it
-        }
     }
 }
 

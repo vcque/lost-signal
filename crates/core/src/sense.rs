@@ -31,7 +31,7 @@ pub trait Sense {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SenseInfo {
     pub terrain: Option<TerrainInfo>,
-    pub selfs: Option<SelfInfo>,
+    pub selfi: Option<SelfInfo>,
     pub danger: Option<DangerInfo>,
     pub orb: Option<OrbInfo>,
 }
@@ -39,7 +39,7 @@ pub struct SenseInfo {
 impl SenseInfo {
     pub fn win() -> Self {
         Self {
-            selfs: Some(SelfInfo {
+            selfi: Some(SelfInfo {
                 winner: true,
                 broken: false,
                 signal: 100,

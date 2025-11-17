@@ -57,10 +57,10 @@ impl WorldView {
         let diff = turn.abs_diff(self.current_state.turn);
         // Update global info
         if diff == 0
-            && let Some(ref selfs) = info.selfs
+            && let Some(ref selfi) = info.selfi
         {
-            self.winner = selfs.winner;
-            self.stage = selfs.stage;
+            self.winner = selfi.winner;
+            self.stage = selfi.stage;
         }
         match diff {
             i if self.history.len() > i as usize => {
@@ -220,7 +220,7 @@ impl WorldState {
             }
         }
 
-        if let Some(ref selfs) = info.selfs {
+        if let Some(ref selfs) = info.selfi {
             self.broken = selfs.broken;
             self.signal = selfs.signal;
         }

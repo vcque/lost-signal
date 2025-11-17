@@ -403,7 +403,7 @@ impl Widget for SensesWidget {
         let sense = self.senses.selfs;
         let status = self
             .info
-            .selfs
+            .selfi
             .map(|w| if w.broken { "Broken" } else { "Intact" })
             .unwrap_or("-");
         let indicator = if sense.is_some() { "(+)" } else { "(-)" };

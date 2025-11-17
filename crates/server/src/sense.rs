@@ -66,7 +66,7 @@ impl<T: ServerSense> ServerSense for Option<T> {
 pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SenseInfo {
     SenseInfo {
         terrain: senses.terrain.gather(avatar, stage),
-        selfs: senses.selfs.gather(avatar, stage),
+        selfi: senses.selfs.gather(avatar, stage),
         danger: senses.danger.gather(avatar, stage),
         orb: senses.orb.gather(avatar, stage),
     }

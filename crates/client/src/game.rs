@@ -31,8 +31,8 @@ impl GameSim {
         self.on_act = on_act;
     }
 
-    pub fn update(&mut self, senses: SenseInfo) {
-        self.world.update(senses);
+    pub fn update(&mut self, turn: u64, senses: SenseInfo) {
+        self.world.update(turn, senses);
     }
 
     pub fn act(&mut self, action: Action, senses: Senses) {

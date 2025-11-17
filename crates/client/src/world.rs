@@ -53,12 +53,8 @@ impl WorldView {
         }
     }
 
-    pub fn update(&mut self, info: SenseInfo) {
-        // TODO: Exchange turn info with server
-        let turn = self.current_state.turn;
-
+    pub fn update(&mut self, turn: u64, info: SenseInfo) {
         let diff = turn.abs_diff(self.current_state.turn);
-
         // Update global info
         if diff == 0
             && let Some(ref selfs) = info.selfs

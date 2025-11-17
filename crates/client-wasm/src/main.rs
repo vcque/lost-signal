@@ -32,7 +32,7 @@ fn main() -> io::Result<()> {
     {
         let game = game.clone();
         server.set_callback(Box::new(move |msg| {
-            game.lock().unwrap().update(msg.senses);
+            game.lock().unwrap().update(msg.turn, msg.senses);
         }));
     }
 

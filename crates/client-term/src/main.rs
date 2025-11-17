@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         spawn(move || {
             loop {
                 let sense = senses_rx.recv().unwrap();
-                game.lock().unwrap().update(sense.senses);
+                game.lock().unwrap().update(sense.turn, sense.senses);
             }
         });
     }

@@ -8,7 +8,7 @@ pub struct Senses {
     /// Retrieve general info about the world
     pub terrain: Option<TerrainSense>,
     pub selfs: Option<SelfSense>,
-    pub proximity: Option<ProximitySense>,
+    pub danger: Option<DangerSense>,
     pub orb: Option<OrbSense>,
 }
 
@@ -17,7 +17,7 @@ impl Senses {
         let mut cost = 0;
         cost += self.terrain.signal_cost();
         cost += self.selfs.signal_cost();
-        cost += self.proximity.signal_cost();
+        cost += self.danger.signal_cost();
         cost += self.orb.signal_cost();
         cost
     }
@@ -32,7 +32,7 @@ pub trait Sense {
 pub struct SenseInfo {
     pub terrain: Option<TerrainInfo>,
     pub selfs: Option<SelfInfo>,
-    pub proximity: Option<ProximityInfo>,
+    pub danger: Option<DangerInfo>,
     pub orb: Option<OrbInfo>,
 }
 
@@ -109,12 +109,12 @@ pub struct SelfInfo {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
-pub struct ProximitySense {
+pub struct DangerSense {
     pub radius: usize,
 }
 
-impl Sense for ProximitySense {
-    type Info = ProximityInfo;
+impl Sense for DangerSense {
+    type Info = DangerInfo;
     fn signal_cost(&self) -> usize {
         let cost = self.radius + 1;
         1 + cost * cost / 10
@@ -122,7 +122,7 @@ impl Sense for ProximitySense {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
-pub struct ProximityInfo {
+pub struct DangerInfo {
     pub radius: usize,
     pub count: usize,
 }

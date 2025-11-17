@@ -202,7 +202,7 @@ impl GamePage {
         match self.sense_selection {
             0 => &mut self.senses.selfs,
             1 => &mut self.senses.terrain,
-            2 => &mut self.senses.proximity,
+            2 => &mut self.senses.danger,
             _ => &mut self.senses.orb,
         }
     }
@@ -439,10 +439,10 @@ impl Widget for SensesWidget {
         .render(rows[row_index], buf);
         row_index += 1;
 
-        let sense = self.senses.proximity;
+        let sense = self.senses.danger;
         let status = self
             .info
-            .proximity
+            .danger
             .map(|prox| {
                 if prox.count > 0 {
                     "Something's nearby"
@@ -458,7 +458,7 @@ impl Widget for SensesWidget {
         };
 
         SenseWidget {
-            label: "Proximity",
+            label: "Danger",
             indicator: indicator.as_str(),
             status,
             selected: self.selection == row_index,

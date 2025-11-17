@@ -2,8 +2,8 @@ use std::sync::mpsc::Sender;
 
 use losig_core::{
     sense::{
-        OrbInfo, OrbSense, ProximityInfo, ProximitySense, SelfInfo, SelfSense, Sense, SenseInfo,
-        Senses, TerrainInfo, TerrainSense,
+        DangerInfo, DangerSense, OrbInfo, OrbSense, SelfInfo, SelfSense, Sense, SenseInfo, Senses,
+        TerrainInfo, TerrainSense,
     },
     types::{Avatar, AvatarId},
 };
@@ -35,7 +35,7 @@ impl ServerSense for SelfSense {
     }
 }
 
-impl ServerSense for ProximitySense {
+impl ServerSense for DangerSense {
     fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
         let radius = self.radius;
         let pos = avatar.position;
@@ -46,7 +46,7 @@ impl ServerSense for ProximitySense {
                 count += 1;
             }
         }
-        ProximityInfo { radius, count }
+        DangerInfo { radius, count }
     }
 }
 
@@ -67,7 +67,7 @@ pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SenseInfo {
     SenseInfo {
         terrain: senses.terrain.gather(avatar, stage),
         selfs: senses.selfs.gather(avatar, stage),
-        proximity: senses.proximity.gather(avatar, stage),
+        danger: senses.danger.gather(avatar, stage),
         orb: senses.orb.gather(avatar, stage),
     }
 }

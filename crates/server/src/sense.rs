@@ -75,6 +75,7 @@ pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SenseInfo {
 #[derive(Clone, Debug)]
 pub struct SensesMessage {
     pub avatar_id: AvatarId,
+    pub turn: u64,
     pub senses: SenseInfo,
 }
 

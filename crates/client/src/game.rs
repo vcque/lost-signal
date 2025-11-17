@@ -41,7 +41,7 @@ impl GameSim {
         self.world.act(&action, &senses);
         let msg = CommandMessage {
             avatar_id: self.avatar_id,
-            tick: None,
+            turn: self.world.current_state().turn,
             action,
             senses,
         };

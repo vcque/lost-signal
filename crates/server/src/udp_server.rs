@@ -54,9 +54,21 @@ impl UdpServer {
             }
 
             for sense in senses.try_iter() {
-                let SensesMessage { avatar_id, senses } = sense;
+                let SensesMessage {
+                    avatar_id,
+                    senses,
+                    turn,
+                } = sense;
                 if let Some(addr) = addr_by_avatar_id.get(&sense.avatar_id) {
-                    let _ = handle_write(&socket, addr, UdpSensesPacket { avatar_id, senses });
+                    let _ = handle_write(
+                        &socket,
+                        addr,
+                        UdpSensesPacket {
+                            avatar_id,
+                            senses,
+                            turn,
+                        },
+                    );
                 }
             }
 

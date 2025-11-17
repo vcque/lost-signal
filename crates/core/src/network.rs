@@ -8,8 +8,8 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UdpCommandPacket {
     pub avatar_id: AvatarId,
-    /// If None, means it must use the latest tick
-    pub tick: Option<u64>,
+    /// The avatar's turn. Used to keep track of which response corresponds to which command
+    pub turn: u64,
     /// Action the avatar takes this tick
     pub action: Action,
     /// Info then avatar wants to gather this tick
@@ -18,6 +18,8 @@ pub struct UdpCommandPacket {
 
 #[derive(Serialize, Deserialize)]
 pub struct UdpSensesPacket {
+    /// The avatar's turn. Used to Keep track of which resposne corresponds to which command
+    pub turn: u64,
     pub avatar_id: AvatarId,
     pub senses: SenseInfo,
 }

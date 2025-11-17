@@ -8,7 +8,6 @@ use crate::{
 mod command;
 mod fov;
 mod game;
-mod robot;
 mod sense;
 mod states;
 mod tiled;

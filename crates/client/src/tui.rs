@@ -11,7 +11,7 @@ use ratatui::{
     Frame,
     layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Style, Stylize},
-    text::Line,
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState, Widget},
 };
 
@@ -223,13 +223,20 @@ impl Page for GamePage {
         let world = game.world();
         let world_widget = WorldViewWidget { world };
 
+        let world_title = Line::from(vec![
+            Span::raw(format!(
+                "World - turn {} - signal: ",
+                world.current_state().turn
+            )),
+            Span::styled(
+                format!("{}/100", world.current_state.signal),
+                THEME.styles.signal,
+            ),
+        ]);
+
         let world_widget = Block::default()
             .borders(Borders::ALL)
-            .title(format!(
-                "World - turn {} - signal: {}/100",
-                world.current_state().turn,
-                world.current_state.signal
-            ))
+            .title(world_title)
             .wrap(world_widget);
 
         world_widget.render(world_a, buf);
@@ -241,9 +248,18 @@ impl Page for GamePage {
         };
 
         let cost = self.senses.signal_cost();
-        let senses_wigdet = Block::default()
-            .title(format!("Senses - cost: {}", cost))
-            .wrap(senses_widget);
+        let cost_style = if cost > world.current_state.signal {
+            Style::default().red().bold()
+        } else {
+            Style::default()
+        };
+
+        let title = Line::from(vec![
+            Span::raw("Senses - cost: "),
+            Span::styled(cost.to_string(), cost_style),
+        ]);
+
+        let senses_wigdet = Block::default().title(title).wrap(senses_widget);
         senses_wigdet.render(_senses_a, buf);
 
         if world.winner {

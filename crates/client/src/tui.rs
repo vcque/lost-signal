@@ -97,7 +97,6 @@ impl Default for MenuPage {
 enum MenuOption {
     Start,
     Continue,
-    Exit,
 }
 
 impl Display for MenuOption {
@@ -105,13 +104,12 @@ impl Display for MenuOption {
         let string = match self {
             MenuOption::Start => "Start Game",
             MenuOption::Continue => "Continue Game",
-            MenuOption::Exit => "Exit",
         };
         f.write_str(string)
     }
 }
 
-const MENU_OPTIONS: [MenuOption; 3] = [MenuOption::Start, MenuOption::Continue, MenuOption::Exit];
+const MENU_OPTIONS: &[MenuOption] = &[MenuOption::Start, MenuOption::Continue];
 
 impl Page for MenuPage {
     fn render(
@@ -159,10 +157,6 @@ impl Page for MenuPage {
                         }
                         MenuOption::Continue => {
                             return TuiNav::from(GamePage::default());
-                        }
-                        MenuOption::Exit => {
-                            // Exit
-                            state.exit = true;
                         }
                     }
                 }

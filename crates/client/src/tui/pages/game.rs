@@ -44,16 +44,11 @@ impl Component for GamePage {
             let world = game.world();
             let world_widget = WorldViewWidget { world };
 
-            let world_title = Line::from(vec![
-                Span::raw(format!(
-                    "World - turn {} - signal: ",
-                    world.current_state().turn
-                )),
-                Span::styled(
-                    format!("{}/100", world.current_state.signal),
-                    THEME.styles.signal,
-                ),
-            ]);
+            let world_title = Line::from(Span::raw(format!(
+                "World - stage {} - turn {}",
+                world.stage,
+                world.current_state().turn
+            )));
 
             Block::default()
                 .borders(Borders::ALL)
@@ -70,17 +65,23 @@ impl Component for GamePage {
 
             let cost = state.senses.signal_cost();
             let cost_style = if cost > world.current_state.signal {
-                Style::default().red().bold()
+                Style::default().bold().bg(Color::Red)
             } else {
                 Style::default()
             };
 
-            let title = Line::from(vec![
-                Span::raw("Senses - cost: "),
-                Span::styled(cost.to_string(), cost_style),
-            ]);
+            let title = Line::from(format!(
+                "Senses - cost: {} / {}",
+                cost,
+                world.current_state().signal
+            ))
+            .alignment(ratatui::layout::Alignment::Center);
 
-            let senses_wigdet = Block::default().title(title).wrap(senses_widget);
+            let senses_wigdet = Block::default()
+                .borders(Borders::TOP)
+                .title(title)
+                .border_style(cost_style)
+                .wrap(senses_widget);
             senses_wigdet.render(_senses_a, buf);
 
             if world.winner {

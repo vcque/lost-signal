@@ -1,11 +1,11 @@
-use std::fmt::Display;
 use losig_core::{sense::Senses, types::Action};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Rect},
-    style::{Color, Style},
+    style::{Color, Style, Stylize},
     widgets::{List, ListItem},
 };
+use std::fmt::Display;
 
 use crate::{
     tui::{
@@ -86,6 +86,7 @@ impl Component for MenuPage {
 
         let menu_list = List::new(menu_items)
             .style(Style::default().fg(Color::Gray))
+            .highlight_style(Style::default().bold())
             .highlight_symbol("> ");
 
         ratatui::widgets::StatefulWidget::render(

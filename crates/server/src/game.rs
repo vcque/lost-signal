@@ -124,7 +124,6 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
 
     // Specific spawn action
     if cmd.action == Action::Spawn {
-        avatar.stage = avatar.stage.saturating_sub(1);
         let stage = world.stages.get(avatar.stage).unwrap();
         avatar.position = spawn_position(stage, avatar.id);
         avatar.signal = 100;

@@ -105,6 +105,7 @@ pub fn fov(viewer: Position, radius: usize, tiles: &Tiles) -> Tiles {
                 // 2. Start a new scanner if we go from (nothing | opaque) -> see through
                 if next_scan.is_none() && !tile.opaque() {
                     let slope = F::from(2 * offset.x - 1) / (2 * scanner.depth);
+                    let slope = slope.max(scanner.min_slope);
                     next_scan = Some(Scanner {
                         depth: scanner.depth + 1,
                         min_slope: slope,
@@ -117,6 +118,7 @@ pub fn fov(viewer: Position, radius: usize, tiles: &Tiles) -> Tiles {
                     && let Some(mut ns) = next_scan
                 {
                     let slope = F::from(2 * offset.x - 1) / (2 * scanner.depth);
+                    let slope = slope.min(scanner.max_slope);
                     ns.max_slope = slope;
                     scanners.push(ns);
                     next_scan = None;

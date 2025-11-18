@@ -39,6 +39,7 @@ impl Default for MenuState {
 pub struct GameState {
     pub senses: Senses,
     pub sense_selection: usize,
+    pub show_help: bool,
 }
 
 impl GameState {
@@ -61,6 +62,7 @@ impl Default for GameState {
                 ..Default::default()
             },
             sense_selection: 0,
+            show_help: false,
         }
     }
 }

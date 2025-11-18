@@ -12,7 +12,8 @@ use ratatui::{
 
 use crate::{
     tui::{
-        THEME, component::Component, state::TuiState, utils::center, widgets::block_wrap::BlockWrap,
+        GameState, THEME, component::Component, state::TuiState, utils::center,
+        widgets::block_wrap::BlockWrap,
     },
     tui_adapter::{Event, KeyCode},
     world::WorldView,
@@ -37,56 +38,67 @@ impl Component for GamePage {
     type State = TuiState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let [world_a, _log_a, _senses_a] = Self::layout(area);
-        let game = state.external.game.lock().unwrap();
-        let world = game.world();
-        let world_widget = WorldViewWidget { world };
+        {
+            let game = state.external.game.lock().unwrap();
+            let [world_a, _log_a, _senses_a] = Self::layout(area);
+            let world = game.world();
+            let world_widget = WorldViewWidget { world };
 
-        let world_title = Line::from(vec![
-            Span::raw(format!(
-                "World - turn {} - signal: ",
-                world.current_state().turn
-            )),
-            Span::styled(
-                format!("{}/100", world.current_state.signal),
-                THEME.styles.signal,
-            ),
-        ]);
+            let world_title = Line::from(vec![
+                Span::raw(format!(
+                    "World - turn {} - signal: ",
+                    world.current_state().turn
+                )),
+                Span::styled(
+                    format!("{}/100", world.current_state.signal),
+                    THEME.styles.signal,
+                ),
+            ]);
 
-        Block::default()
-            .borders(Borders::ALL)
-            .title(world_title)
-            .wrap(world_widget)
-            .render(world_a, buf);
+            Block::default()
+                .borders(Borders::ALL)
+                .title(world_title)
+                .wrap(world_widget)
+                .render(world_a, buf);
 
-        let state = &mut state.game;
-        let senses_widget = SensesWidget {
-            senses: state.senses.clone(),
-            info: world.last_info(),
-            selection: state.sense_selection,
-        };
+            let state = &mut state.game;
+            let senses_widget = SensesWidget {
+                senses: state.senses.clone(),
+                info: world.last_info(),
+                selection: state.sense_selection,
+            };
 
-        let cost = state.senses.signal_cost();
-        let cost_style = if cost > world.current_state.signal {
-            Style::default().red().bold()
-        } else {
-            Style::default()
-        };
+            let cost = state.senses.signal_cost();
+            let cost_style = if cost > world.current_state.signal {
+                Style::default().red().bold()
+            } else {
+                Style::default()
+            };
 
-        let title = Line::from(vec![
-            Span::raw("Senses - cost: "),
-            Span::styled(cost.to_string(), cost_style),
-        ]);
+            let title = Line::from(vec![
+                Span::raw("Senses - cost: "),
+                Span::styled(cost.to_string(), cost_style),
+            ]);
 
-        let senses_wigdet = Block::default().title(title).wrap(senses_widget);
-        senses_wigdet.render(_senses_a, buf);
+            let senses_wigdet = Block::default().title(title).wrap(senses_widget);
+            senses_wigdet.render(_senses_a, buf);
 
-        if world.winner {
-            YouWinWidget {}.render(area, buf);
+            if world.winner {
+                YouWinWidget {}.render(area, buf);
+            }
+        }
+
+        if state.game.show_help {
+            HelpWidget {}.render(area, buf, &mut state.game);
         }
     }
 
     fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
+        // If help is visible, let HelpWidget handle the event
+        if state.game.show_help {
+            return HelpWidget {}.on_event(event, &mut state.game);
+        }
+
         let Event::Key(key) = event else {
             return false;
         };
@@ -129,6 +141,10 @@ impl Component for GamePage {
                 KeyCode::Char('3') => Some(Action::Move(Direction::DownRight)),
                 KeyCode::Char('5') => Some(Action::Wait),
                 KeyCode::Char('r') => Some(Action::Spawn),
+                KeyCode::Char('h') => {
+                    state.show_help = true;
+                    return true;
+                }
                 _ => None,
             };
             if let Some(action) = action {
@@ -385,3 +401,90 @@ impl Widget for YouWinWidget {
     }
 }
 
+struct HelpWidget {}
+
+impl Component for HelpWidget {
+    type State = GameState;
+
+    fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
+        let Event::Key(key) = event else {
+            return true; // Consume all non-key events when help is visible
+        };
+
+        match key.code {
+            KeyCode::Char('h') | KeyCode::Esc => {
+                state.show_help = false;
+                true
+            }
+            _ => true, // Consume all other key events when help is visible
+        }
+    }
+
+    fn render(self, area: Rect, buf: &mut Buffer, _state: &mut Self::State) {
+        self.render_widget(area, buf);
+    }
+}
+
+impl HelpWidget {
+    fn render_widget(self, area: Rect, buf: &mut Buffer) {
+        let popup_width = 80;
+        let popup_height = 22;
+
+        let popup_area = center(
+            area,
+            Constraint::Length(popup_width),
+            Constraint::Length(popup_height),
+        );
+
+        // Clear the popup area with a background
+        for x in popup_area.x..popup_area.x + popup_area.width {
+            for y in popup_area.y..popup_area.y + popup_area.height {
+                buf.set_string(x, y, " ", Style::default().bg(Color::Black));
+            }
+        }
+
+        let block = Block::default()
+            .title("Help - Press 'h' to close")
+            .borders(Borders::ALL)
+            .style(Style::default().bg(Color::Black).fg(Color::White));
+
+        let inner = block.inner(popup_area);
+        block.render(popup_area, buf);
+
+        let header_style = Style::default().fg(Color::Yellow).bold();
+        let help_text = vec![
+            Line::from(Span::styled("CONTROLS", header_style)),
+            Line::from("Movement: Arrow Keys or Numpad (8246 + 7913)"),
+            Line::from("Wait: 5 or Space  |  Respawn: r  |  Help: h"),
+            Line::from("Sense Controls (Ctrl + Key): Up/Down=Select, Left/Right=Adjust"),
+            Line::from(""),
+            Line::from(Span::styled("SENSES", header_style)),
+            Line::from("Self: Monitor your integrity"),
+            Line::from("Terrain: See nearby tiles (radius)"),
+            Line::from("Danger: Detect threats (radius)"),
+            Line::from("Goal: Detect the orb"),
+            Line::from(""),
+            Line::from(Span::styled("SIGNAL", header_style)),
+            Line::from("Each sense costs signal points per turn"),
+            Line::from("Manage your signal budget carefully"),
+            Line::from(""),
+            Line::from(Span::styled("GOAL", header_style)),
+            Line::from("Find and reach the orb to win the game"),
+            Line::from("Use your senses to navigate the world"),
+        ];
+
+        for (i, line) in help_text.iter().enumerate() {
+            if i < inner.height as usize {
+                line.render(
+                    Rect {
+                        x: inner.x,
+                        y: inner.y + i as u16,
+                        width: inner.width,
+                        height: 1,
+                    },
+                    buf,
+                );
+            }
+        }
+    }
+}

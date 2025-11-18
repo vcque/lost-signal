@@ -312,8 +312,8 @@ impl Widget for SensesWidget {
         let sense = self.senses.danger;
         let status = self.info.danger.map(|prox| match prox.count {
             0 => Line::from("Nothing"),
-            1 => Line::from("There's something nearby").style(THEME.styles.danger),
-            n => Line::from(format!("There's {} dangers nearby", n)).style(THEME.styles.danger),
+            1 => Line::from("There is a threat nearby").style(THEME.styles.danger),
+            n => Line::from(format!("There are {} threats nearby", n)).style(THEME.styles.danger),
         });
 
         let indicator = match sense {

@@ -145,6 +145,6 @@ pub enum MouseButton {
 /// App that can be rendered cross in wasm and term
 pub trait TuiApp {
     fn render(&mut self, f: &mut Frame);
-    fn handle_events(&mut self, event: Event);
+    fn handle_events(&mut self, event: Event) -> bool;
     fn should_exit(&self) -> bool;
 }

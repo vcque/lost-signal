@@ -9,6 +9,7 @@ use losig_core::{
 };
 use ratatui::{
     Frame,
+    buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span},
@@ -25,69 +26,73 @@ use crate::{
 
 pub struct GameTui {
     state: TuiState,
-    page: Box<dyn Page>,
 }
 
 impl GameTui {
     pub fn new(game: Arc<Mutex<GameSim>>) -> Self {
         Self {
-            state: TuiState { game, exit: false },
-            page: Box::new(MenuPage::default()),
+            state: TuiState {
+                external: ExternalState { game },
+                menu: MenuState::default(),
+                game: GameState::default(),
+                page: PageSelection::Menu,
+                should_exit: false,
+            },
         }
     }
+}
+
+trait Component {
+    type State;
+    fn on_event(self, event: &Event, state: &mut Self::State) -> bool;
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State);
 }
 
 impl TuiApp for GameTui {
     fn render(&mut self, f: &mut Frame) {
-        self.page.render(f.area(), f.buffer_mut(), &self.state);
+        let area = f.area();
+        let buf = f.buffer_mut();
+        match self.state.page {
+            PageSelection::Menu => MenuPage {}.render(area, buf, &mut self.state),
+            PageSelection::Game => GamePage {}.render(area, buf, &mut self.state),
+        };
     }
 
-    fn handle_events(&mut self, event: crate::tui_adapter::Event) {
-        let nav = self.page.handle_events(event, &mut self.state);
-
-        if let TuiNav::Goto(p) = nav {
-            self.page = p;
+    fn handle_events(&mut self, event: crate::tui_adapter::Event) -> bool {
+        match self.state.page {
+            PageSelection::Menu => MenuPage {}.on_event(&event, &mut self.state),
+            PageSelection::Game => GamePage {}.on_event(&event, &mut self.state),
         }
     }
 
     fn should_exit(&self) -> bool {
-        self.state.exit
+        self.state.should_exit
     }
 }
 
 struct TuiState {
+    external: ExternalState,
+    menu: MenuState,
+    game: GameState,
+    page: PageSelection,
+    should_exit: bool,
+}
+
+struct ExternalState {
     game: Arc<Mutex<GameSim>>,
-    exit: bool,
 }
 
-enum TuiNav {
-    Goto(Box<dyn Page>),
-    None,
-}
-
-impl TuiNav {
-    fn from<T: Page + 'static>(page: T) -> TuiNav {
-        TuiNav::Goto(Box::new(page))
-    }
-}
-
-trait Page {
-    fn handle_events(&mut self, event: Event, tui: &mut TuiState) -> TuiNav;
-
-    fn render(
-        &mut self,
-        area: ratatui::prelude::Rect,
-        buf: &mut ratatui::prelude::Buffer,
-        state: &TuiState,
-    );
+enum PageSelection {
+    Menu,
+    Game,
 }
 
 #[derive(Debug)]
-struct MenuPage {
+struct MenuState {
     list_state: ListState,
 }
 
-impl Default for MenuPage {
+impl Default for MenuState {
     fn default() -> Self {
         let mut list_state = ListState::default();
         list_state.select(Some(0));
@@ -113,13 +118,45 @@ impl Display for MenuOption {
 
 const MENU_OPTIONS: &[MenuOption] = &[MenuOption::Start, MenuOption::Continue];
 
-impl Page for MenuPage {
-    fn render(
-        &mut self,
-        area: ratatui::prelude::Rect,
-        buf: &mut ratatui::prelude::Buffer,
-        _state: &TuiState,
-    ) {
+struct MenuPage {}
+
+impl Component for MenuPage {
+    type State = TuiState;
+
+    fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
+        let Event::Key(key) = event else {
+            return false;
+        };
+
+        let list_state = &mut state.menu.list_state;
+        match key.code {
+            KeyCode::Up => list_state.select_previous(),
+            KeyCode::Down => list_state.select_next(),
+            KeyCode::Enter => {
+                if let Some(selection) = list_state.selected().map(|i| MENU_OPTIONS[i]) {
+                    match selection {
+                        MenuOption::Start => {
+                            state
+                                .external
+                                .game
+                                .lock()
+                                .unwrap()
+                                .act(Action::Spawn, Senses::default());
+                        }
+                        MenuOption::Continue => {}
+                    }
+                    state.page = PageSelection::Game;
+                }
+            }
+            _ => {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let menu_items: Vec<ListItem> = MENU_OPTIONS
             .iter()
             .map(|option| ListItem::new(option.to_string()))
@@ -135,50 +172,37 @@ impl Page for MenuPage {
             .style(Style::default().fg(Color::Gray))
             .highlight_symbol("> ");
 
-        ratatui::widgets::StatefulWidget::render(menu_list, center, buf, &mut self.list_state);
-    }
-
-    fn handle_events(&mut self, event: Event, state: &mut TuiState) -> TuiNav {
-        let Event::Key(key) = event else {
-            return TuiNav::None;
-        };
-
-        match key.code {
-            KeyCode::Up => self.list_state.select_previous(),
-            KeyCode::Down => self.list_state.select_next(),
-            KeyCode::Enter => {
-                if let Some(selection) = self.list_state.selected().map(|i| MENU_OPTIONS[i]) {
-                    match selection {
-                        MenuOption::Start => {
-                            state
-                                .game
-                                .lock()
-                                .unwrap()
-                                .act(Action::Spawn, Senses::default());
-                            return TuiNav::from(GamePage::default());
-                        }
-                        MenuOption::Continue => {
-                            return TuiNav::from(GamePage::default());
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-
-        TuiNav::None
+        ratatui::widgets::StatefulWidget::render(
+            menu_list,
+            center,
+            buf,
+            &mut state.menu.list_state,
+        );
     }
 }
 
+impl MenuPage {}
+
 #[derive(Debug)]
-struct GamePage {
+struct GameState {
     senses: Senses,
     sense_selection: usize,
 }
 
-impl Default for GamePage {
+impl GameState {
+    fn selected_sense_mut(&mut self) -> &mut dyn ClientSense {
+        match self.sense_selection {
+            0 => &mut self.senses.selfs,
+            1 => &mut self.senses.terrain,
+            2 => &mut self.senses.danger,
+            _ => &mut self.senses.orb,
+        }
+    }
+}
+
+impl Default for GameState {
     fn default() -> Self {
-        GamePage {
+        GameState {
             senses: Senses {
                 selfs: Some(SelfSense {}),
                 terrain: Some(TerrainSense { radius: 1 }),
@@ -188,6 +212,8 @@ impl Default for GamePage {
         }
     }
 }
+
+struct GamePage {}
 
 impl GamePage {
     fn layout(area: Rect) -> [Rect; 3] {
@@ -200,26 +226,14 @@ impl GamePage {
 
         [world, log, senses]
     }
-
-    fn selected_sense_mut(&mut self) -> &mut dyn ClientSense {
-        match self.sense_selection {
-            0 => &mut self.senses.selfs,
-            1 => &mut self.senses.terrain,
-            2 => &mut self.senses.danger,
-            _ => &mut self.senses.orb,
-        }
-    }
 }
 
-impl Page for GamePage {
-    fn render(
-        &mut self,
-        area: ratatui::prelude::Rect,
-        buf: &mut ratatui::prelude::Buffer,
-        state: &TuiState,
-    ) {
+impl Component for GamePage {
+    type State = TuiState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let [world_a, _log_a, _senses_a] = Self::layout(area);
-        let game = state.game.lock().unwrap();
+        let game = state.external.game.lock().unwrap();
         let world = game.world();
         let world_widget = WorldViewWidget { world };
 
@@ -234,20 +248,20 @@ impl Page for GamePage {
             ),
         ]);
 
-        let world_widget = Block::default()
+        Block::default()
             .borders(Borders::ALL)
             .title(world_title)
-            .wrap(world_widget);
+            .wrap(world_widget)
+            .render(world_a, buf);
 
-        world_widget.render(world_a, buf);
-
+        let state = &mut state.game;
         let senses_widget = SensesWidget {
-            senses: self.senses.clone(),
+            senses: state.senses.clone(),
             info: world.last_info(),
-            selection: self.sense_selection,
+            selection: state.sense_selection,
         };
 
-        let cost = self.senses.signal_cost();
+        let cost = state.senses.signal_cost();
         let cost_style = if cost > world.current_state.signal {
             Style::default().red().bold()
         } else {
@@ -267,34 +281,35 @@ impl Page for GamePage {
         }
     }
 
-    fn handle_events(&mut self, event: Event, tui: &mut TuiState) -> TuiNav {
+    fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
         let Event::Key(key) = event else {
-            return TuiNav::None;
+            return false;
         };
 
-        let mut game = tui.game.lock().unwrap();
+        let mut game = state.external.game.lock().unwrap();
         if game.world().winner {
             // No need to play once the game is won
-            return TuiNav::None;
+            return false;
         }
 
+        let state = &mut state.game;
         if key.modifiers.control {
             match key.code {
                 KeyCode::Up => {
-                    if self.sense_selection > 0 {
-                        self.sense_selection -= 1;
+                    if state.sense_selection > 0 {
+                        state.sense_selection -= 1;
                     }
                 }
                 KeyCode::Down => {
-                    if self.sense_selection < 4 {
-                        self.sense_selection += 1;
+                    if state.sense_selection < 4 {
+                        state.sense_selection += 1;
                     }
                 }
                 KeyCode::Right => {
-                    self.selected_sense_mut().incr();
+                    state.selected_sense_mut().incr();
                 }
                 KeyCode::Left => {
-                    self.selected_sense_mut().decr();
+                    state.selected_sense_mut().decr();
                 }
                 _ => {}
             }
@@ -313,11 +328,11 @@ impl Page for GamePage {
                 _ => None,
             };
             if let Some(action) = action {
-                game.act(action, self.senses.clone());
+                game.act(action, state.senses.clone());
+                return true;
             }
         }
-
-        TuiNav::None
+        false
     }
 }
 

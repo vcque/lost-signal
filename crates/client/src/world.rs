@@ -15,6 +15,7 @@ pub struct WorldView {
     pub id: AvatarId,
     pub winner: bool,
     pub stage: usize,
+    pub turn: u64,
 
     history: Vec<WorldHistory>,
     past_state: WorldState,
@@ -27,6 +28,7 @@ impl WorldView {
             id,
             winner: false,
             stage: 0,
+            turn: 1,
             history: vec![],
             past_state: WorldState::default(),
             current_state: WorldState::default(),
@@ -51,10 +53,12 @@ impl WorldView {
         for history in self.history.drain(0..to_remove) {
             self.past_state.update(&history);
         }
+
+        self.turn += 1;
     }
 
     pub fn update(&mut self, turn: u64, info: SenseInfo) {
-        let diff = turn.abs_diff(self.current_state.turn);
+        let diff = turn.abs_diff(self.turn);
         // Update global info
         if diff == 0
             && let Some(ref selfi) = info.selfi
@@ -122,7 +126,6 @@ struct WorldHistory {
 #[derive(Debug, Clone)]
 pub struct WorldState {
     pub tiles: [Tile; VIEW_SIZE * VIEW_SIZE],
-    pub turn: u64,
     pub broken: bool,
     pub signal: usize,
     pub position: Position,
@@ -133,7 +136,6 @@ impl WorldState {
     pub fn new() -> Self {
         Self {
             tiles: [Tile::Unknown; VIEW_SIZE * VIEW_SIZE],
-            turn: 0,
             broken: false,
             signal: 100,
             position: START_POS,
@@ -171,8 +173,6 @@ impl WorldState {
         if self.signal >= cost {
             self.signal -= cost;
         }
-
-        self.turn += 1;
     }
 
     fn update_action(&mut self, action: &Action) {

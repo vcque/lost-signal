@@ -46,8 +46,8 @@ impl Component for GamePage {
 
             let world_title = Line::from(Span::raw(format!(
                 "World - stage {} - turn {}",
-                world.stage,
-                world.current_state().turn
+                world.stage + 1,
+                world.turn
             )));
 
             Block::default()

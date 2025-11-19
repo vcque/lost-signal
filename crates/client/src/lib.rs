@@ -1,4 +1,5 @@
 pub mod game;
+pub mod logs;
 pub mod sense;
 pub mod theme;
 pub mod tui;

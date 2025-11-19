@@ -11,6 +11,7 @@ use ratatui::{
 };
 
 use crate::{
+    logs::{ClientLog, GameLog},
     tui::{
         GameState, THEME, component::Component, state::TuiState, utils::center,
         widgets::block_wrap::BlockWrap,
@@ -40,7 +41,7 @@ impl Component for GamePage {
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         {
             let game = state.external.game.lock().unwrap();
-            let [world_a, _log_a, _senses_a] = Self::layout(area);
+            let [world_a, log_a, _senses_a] = Self::layout(area);
             let world = game.world();
             let world_widget = WorldViewWidget { world };
 
@@ -55,6 +56,15 @@ impl Component for GamePage {
                 .title(world_title)
                 .wrap(world_widget)
                 .render(world_a, buf);
+
+            let logs_widget = LogsWidget {
+                logs: world.logs.logs(),
+            };
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Game Log")
+                .wrap(logs_widget)
+                .render(log_a, buf);
 
             let state = &mut state.game;
             let senses_widget = SensesWidget {
@@ -487,5 +497,41 @@ impl HelpWidget {
                 );
             }
         }
+    }
+}
+
+struct LogsWidget<'a> {
+    logs: &'a [GameLog],
+}
+
+impl<'a> Widget for LogsWidget<'a> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let max_lines = area.height as usize;
+        let logs_to_show = self.logs.iter().rev().take(max_lines);
+
+        for (i, log) in logs_to_show.enumerate() {
+            if i >= max_lines {
+                break;
+            }
+
+            let y = area.y + i as u16;
+            let (message, message_style) = format_log(log.log);
+            let turn_text = format!("turn {}: ", log.turn);
+
+            // Render turn text with default style
+            buf.set_string(area.x, y, &turn_text, Style::default());
+
+            // Render message with styled text
+            buf.set_string(area.x + turn_text.len() as u16, y, message, message_style);
+        }
+    }
+}
+
+fn format_log(log: ClientLog) -> (&'static str, Style) {
+    match log {
+        ClientLog::Help => ("Press 'h' for help", Style::default().fg(Color::Cyan)),
+        ClientLog::NextStage => ("I am closer", Style::default().fg(Color::Green)),
+        ClientLog::Lost => ("I am lost...", Style::default().fg(Color::Red)),
+        ClientLog::Win => ("I won!", Style::default().fg(Color::Yellow).bold()),
     }
 }

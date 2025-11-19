@@ -4,6 +4,8 @@ use losig_core::{
     types::{Action, AvatarId, Offset, Position, Tile},
 };
 
+use crate::logs::{ClientLog, GameLogs};
+
 const VIEW_SIZE: usize = 256;
 const START_POS: Position = Position {
     x: VIEW_SIZE / 2,
@@ -20,10 +22,14 @@ pub struct WorldView {
     history: Vec<WorldHistory>,
     past_state: WorldState,
     pub current_state: WorldState,
+    pub logs: GameLogs,
 }
 
 impl WorldView {
     pub fn new(id: AvatarId) -> Self {
+        let mut logs = GameLogs::default();
+        logs.add(1, ClientLog::Help);
+
         Self {
             id,
             winner: false,
@@ -32,6 +38,7 @@ impl WorldView {
             history: vec![],
             past_state: WorldState::default(),
             current_state: WorldState::default(),
+            logs,
         }
     }
 
@@ -63,11 +70,18 @@ impl WorldView {
         if diff == 0
             && let Some(ref selfi) = info.selfi
         {
-            if self.stage != selfi.stage {
-                self.clear();
+            if self.winner != selfi.winner {
+                self.logs.add(turn, ClientLog::Win);
             }
             self.winner = selfi.winner;
-            self.stage = selfi.stage;
+
+            if !self.winner {
+                if self.stage != selfi.stage {
+                    self.logs.add(turn, ClientLog::NextStage);
+                    self.clear();
+                }
+                self.stage = selfi.stage;
+            }
         }
         match diff {
             i if self.history.len() > i as usize => {
@@ -83,6 +97,7 @@ impl WorldView {
 
         if self.current_state.incoherent {
             self.clear();
+            self.logs.add(turn, ClientLog::Lost);
         }
     }
 

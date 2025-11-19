@@ -1,11 +1,9 @@
-use std::sync::mpsc::Sender;
-
 use losig_core::{
     sense::{
         DangerInfo, DangerSense, OrbInfo, OrbSense, SelfInfo, SelfSense, Sense, SenseInfo, Senses,
         TerrainInfo, TerrainSense,
     },
-    types::{Avatar, AvatarId},
+    types::Avatar,
 };
 
 use crate::{fov, world::Stage};
@@ -71,12 +69,3 @@ pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SenseInfo {
         orb: senses.orb.gather(avatar, stage),
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct SensesMessage {
-    pub avatar_id: AvatarId,
-    pub turn: u64,
-    pub senses: SenseInfo,
-}
-
-pub type SensesQueue = Sender<SensesMessage>;

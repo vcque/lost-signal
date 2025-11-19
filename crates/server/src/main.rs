@@ -1,15 +1,13 @@
-use std::sync::{Arc, Mutex, mpsc};
+use losig_core::leaderboard::Leaderboard;
 
-use crate::{
-    command::CommandMessage, game::Game, sense::SensesMessage, states::States, tui::GameTui,
-    ws_server::WsServer,
-};
+use crate::{dispatch::Dispatch, services::Services, tui::GameTui, ws_server::WsServer};
 
 mod command;
+mod dispatch;
 mod fov;
 mod game;
 mod sense;
-mod states;
+mod services;
 mod tiled;
 mod tui;
 mod world;
@@ -19,22 +17,16 @@ fn main() {
     tui_logger::init_logger(log::LevelFilter::Debug).unwrap();
     tui_logger::set_default_level(log::LevelFilter::Debug);
 
-    let (sense_sender, sense_receiver) = mpsc::channel::<SensesMessage>();
-    let (cmd_sender, cmd_receiver) = mpsc::channel::<CommandMessage>();
-
-    let states = States {
-        world: Mutex::new(tiled::load_world().unwrap()),
-        commands: cmd_sender,
-        senses: sense_sender,
-    };
-    let states = Arc::new(states);
-
-    let game = Game::new(states.clone(), cmd_receiver);
-    game.run();
-
-    let server = WsServer::new(states.clone(), sense_receiver);
+    let (server, sm_tx, cm_rx) = WsServer::new();
     server.run();
 
-    let mut tui = GameTui::new(states);
+    let world = tiled::load_world().unwrap();
+    let leaderboard = Leaderboard::default();
+    let services = Services::new(world, leaderboard, sm_tx);
+
+    let dispatch = Dispatch::new(services.clone(), cm_rx);
+    dispatch.run();
+
+    let mut tui = GameTui::new(services);
     tui.run().expect("Could not start TUI");
 }

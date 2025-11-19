@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     net::{SocketAddr, TcpListener, TcpStream},
-    sync::{Arc, mpsc::Receiver},
+    sync::mpsc::{Receiver, Sender, channel},
     thread::{sleep, spawn},
     time::Duration,
 };
@@ -9,26 +9,39 @@ use std::{
 use anyhow::{Result, bail};
 use log::{error, info, warn};
 use losig_core::{
-    network::{UdpCommandPacket, UdpSensesPacket},
+    network::{ClientMessage, ServerMessage},
     types::AvatarId,
 };
 use tungstenite::{Bytes, Message, WebSocket};
 
-use crate::{sense::SensesMessage, states::States};
-
 type Ws = WebSocket<TcpStream>;
 
+pub enum Recipient {
+    Broadcast,
+    Single(AvatarId),
+    Multi(Vec<AvatarId>),
+}
+
+/// Server message with recipient
+pub struct ServerMessageWithRecipient {
+    pub recipient: Recipient,
+    pub message: ServerMessage,
+}
+
 pub struct WsServer {
-    states: Arc<States>,
-    senses: Receiver<SensesMessage>,
+    cm_tx: Sender<ClientMessage>,
+    sm_rx: Receiver<ServerMessageWithRecipient>,
 }
 
 impl WsServer {
-    pub fn new(states: Arc<States>, senses: Receiver<SensesMessage>) -> WsServer {
-        WsServer {
-            states: states.clone(),
-            senses,
-        }
+    pub fn new() -> (
+        WsServer,
+        Sender<ServerMessageWithRecipient>,
+        Receiver<ClientMessage>,
+    ) {
+        let (cm_tx, cm_rx) = channel();
+        let (sm_tx, sm_rx) = channel();
+        (WsServer { cm_tx, sm_rx }, sm_tx, cm_rx)
     }
 
     pub fn run(self) {
@@ -39,7 +52,7 @@ impl WsServer {
     }
 
     fn do_run(self) -> Result<()> {
-        let Self { states, senses } = self;
+        let Self { cm_tx, sm_rx } = self;
 
         let server = TcpListener::bind("127.0.0.1:9001")?;
         server.set_nonblocking(true)?;
@@ -66,9 +79,11 @@ impl WsServer {
 
             for (addr, stream) in ws_by_addr.iter_mut() {
                 match handle_read(stream) {
-                    Ok(cmd) => {
-                        addr_by_avatar_id.insert(cmd.avatar_id, *addr);
-                        states.commands.send(cmd)?;
+                    Ok(client_message) => {
+                        if let Some(avatar_id) = client_message.avatar_id {
+                            addr_by_avatar_id.insert(avatar_id, *addr);
+                        }
+                        cm_tx.send(client_message)?;
                     }
                     Err(e) => {
                         if !is_would_block(&e) {
@@ -78,19 +93,29 @@ impl WsServer {
                 }
             }
 
-            for sense in senses.try_iter() {
-                let avatar_id = sense.avatar_id;
-                let ws = addr_by_avatar_id
-                    .get(&avatar_id)
-                    .and_then(|addr| ws_by_addr.get_mut(addr));
-
-                if let Some(ws) = ws {
-                    let msg = UdpSensesPacket {
-                        avatar_id,
-                        turn: sense.turn,
-                        senses: sense.senses,
-                    };
-                    let _ = handle_write(ws, msg);
+            for server_message in sm_rx.try_iter() {
+                match server_message.recipient {
+                    Recipient::Single(id) => {
+                        if let Some(addr) = addr_by_avatar_id.get(&id)
+                            && let Some(ws) = ws_by_addr.get_mut(addr)
+                        {
+                            let _ = handle_write(ws, &server_message.message);
+                        }
+                    }
+                    Recipient::Broadcast => {
+                        for ws in ws_by_addr.values_mut() {
+                            let _ = handle_write(ws, &server_message.message);
+                        }
+                    }
+                    Recipient::Multi(aids) => {
+                        for aid in aids {
+                            if let Some(addr) = addr_by_avatar_id.get(&aid)
+                                && let Some(ws) = ws_by_addr.get_mut(addr)
+                            {
+                                let _ = handle_write(ws, &server_message.message);
+                            }
+                        }
+                    }
                 }
             }
             ws_by_addr.retain(|_, v| v.can_read());
@@ -108,18 +133,18 @@ fn handle_incoming(server: &TcpListener) -> Result<(Ws, SocketAddr)> {
     Ok((stream, addr))
 }
 
-fn handle_read(stream: &mut Ws) -> Result<UdpCommandPacket> {
+fn handle_read(stream: &mut Ws) -> Result<ClientMessage> {
     let msg = stream.read()?;
     let Message::Binary(msg) = msg else {
         bail!("Not a binary");
     };
 
-    let command = bincode::deserialize::<UdpCommandPacket>(&msg)?;
+    let command = bincode::deserialize::<ClientMessage>(&msg)?;
     Ok(command)
 }
 
-fn handle_write(ws: &mut Ws, msg: UdpSensesPacket) -> Result<()> {
-    let msg = bincode::serialize(&msg)?;
+fn handle_write(ws: &mut Ws, msg: &ServerMessage) -> Result<()> {
+    let msg = bincode::serialize(msg)?;
     let msg = Bytes::from_owner(msg);
     ws.send(Message::Binary(msg))?;
     Ok(())

@@ -38,7 +38,7 @@ impl LeaderboardEntry {
     pub fn new(mut name: String, deaths: u32, turns: u32) -> Self {
         name.truncate(8);
         LeaderboardEntry {
-            name: name,
+            name,
             deaths,
             turns,
             score: Self::score(deaths, turns),

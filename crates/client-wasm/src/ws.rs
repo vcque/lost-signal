@@ -4,7 +4,6 @@ use anyhow::{Result, bail};
 use gloo_timers::callback::Interval;
 use js_sys::ArrayBuffer;
 use log::{debug, error};
-use losig_client::game::CommandMessage;
 use losig_core::network::{ClientMessage, ServerMessage};
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{BinaryType, MessageEvent, WebSocket, console};

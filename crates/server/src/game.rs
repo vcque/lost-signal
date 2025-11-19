@@ -1,59 +1,46 @@
-use std::{
-    sync::{Arc, mpsc::Receiver},
-    thread::spawn,
-};
-
 use log::*;
 use losig_core::{
+    network::{ServerMessage, UdpCommandPacket, UdpSensesPacket},
     sense::{SelfSense, SenseInfo, Senses},
     types::{Action, Avatar, AvatarId, Offset, Position, Tile},
 };
 
 use crate::{
-    command::CommandMessage,
-    sense::{self, SensesMessage},
-    states::States,
+    sense,
+    services::Services,
     world::{Stage, World},
+    ws_server::{Recipient, ServerMessageWithRecipient},
 };
 
 pub struct Game {
-    states: Arc<States>,
-    commands: Receiver<CommandMessage>,
+    services: Services,
 }
 
 impl Game {
-    pub fn new(states: Arc<States>, commands: Receiver<CommandMessage>) -> Game {
-        Game { states, commands }
+    pub fn new(services: Services) -> Game {
+        Game { services }
     }
 
-    pub fn run(self) {
-        spawn(move || {
-            loop {
-                let command = self.recv_cmd();
-                let world = &mut *self.states.world.lock().unwrap();
-                let senses = enact_tick(world, &command);
-                let info = senses.and_then(|s| gather_info(world, command.avatar_id, &s));
-                if let Some(info) = info {
-                    let msg = SensesMessage {
-                        avatar_id: command.avatar_id,
-                        turn: command.turn,
-                        senses: info,
-                    };
-                    self.states.senses.send(msg).unwrap();
-                }
-            }
-        });
-    }
-
-    fn recv_cmd(&self) -> CommandMessage {
-        match self.commands.recv() {
-            Ok(cmd) => cmd,
-            Err(e) => panic!("Command channel error: {}", e),
+    pub fn enact(&self, command: UdpCommandPacket) {
+        let world = &mut *self.services.world.lock().unwrap();
+        let senses = enact_tick(world, &command);
+        let info = senses.and_then(|s| gather_info(world, command.avatar_id, &s));
+        if let Some(info) = info {
+            let msg = UdpSensesPacket {
+                avatar_id: command.avatar_id,
+                turn: command.turn,
+                senses: info,
+            };
+            let msg = ServerMessageWithRecipient {
+                recipient: Recipient::Single(command.avatar_id),
+                message: ServerMessage::Senses(msg),
+            };
+            self.services.sender.send(msg).unwrap();
         }
     }
 }
 
-pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
+pub fn enact_tick(world: &mut World, cmd: &UdpCommandPacket) -> Option<Senses> {
     world.tick = world.tick.wrapping_add(1);
     let avatar = world.avatars.remove(&cmd.avatar_id);
 

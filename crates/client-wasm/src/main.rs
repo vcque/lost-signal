@@ -7,7 +7,7 @@ use crate::{ratzilla_adapter::RatzillaAdapter, ws::WsServer};
 use log::Level;
 use losig_client::{game::GameSim, tui::GameTui};
 use losig_core::{
-    network::{ServerMessage, UdpCommandPacket, UdpSensesPacket},
+    network::{ClientMessage, ServerMessage, UdpCommandPacket, UdpSensesPacket},
     types::AvatarId,
 };
 use wasm_bindgen::JsValue;
@@ -47,10 +47,15 @@ fn main() -> io::Result<()> {
     {
         let mut game = game.lock().unwrap();
         game.set_callback(Box::new(move |cmd| {
+            let msg = ClientMessage {
+                avatar_id: Some(cmd.avatar_id),
+                content: losig_core::network::ClientMessageContent::Command(cmd),
+            };
+
             server
                 .lock()
                 .unwrap()
-                .send(losig_core::network::ClientMessage::Command(cmd))
+                .send(msg)
                 .expect("Cannot send message");
         }));
     }

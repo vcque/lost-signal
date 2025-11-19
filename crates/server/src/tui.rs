@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -15,15 +13,15 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use crate::{states::States, world::World};
+use crate::{services::Services, world::World};
 
 pub struct GameTui {
-    states: Arc<States>,
+    services: Services,
 }
 
 impl GameTui {
-    pub fn new(states: Arc<States>) -> Self {
-        Self { states }
+    pub fn new(services: Services) -> Self {
+        Self { services }
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -93,7 +91,7 @@ impl GameTui {
     }
 
     fn render_game_view(&self, area: Rect, buf: &mut Buffer) {
-        let world = self.states.world.lock().unwrap();
+        let world = self.services.world.lock().unwrap();
         let game_title = format!("Game View - Turn {}", world.tick);
         let borders = Block::default().borders(Borders::all()).title(game_title);
 

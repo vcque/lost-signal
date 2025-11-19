@@ -26,7 +26,13 @@ pub struct UdpSensesPacket {
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum ClientMessage {
+pub struct ClientMessage {
+    pub avatar_id: Option<AvatarId>,
+    pub content: ClientMessageContent,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum ClientMessageContent {
     Leaderboard,
     LeaderboardSubmit(AvatarId, String),
     Command(UdpCommandPacket),

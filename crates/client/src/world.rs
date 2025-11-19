@@ -59,6 +59,9 @@ impl WorldView {
         if diff == 0
             && let Some(ref selfi) = info.selfi
         {
+            if self.stage != selfi.stage {
+                self.clear();
+            }
             self.winner = selfi.winner;
             self.stage = selfi.stage;
         }

@@ -1,14 +1,11 @@
 use log::debug;
 use losig_core::{
-    network::{UdpCommandPacket, UdpSensesPacket},
+    network::CommandMessage,
     sense::{SenseInfo, Senses},
     types::{Action, AvatarId},
 };
 
 use crate::world::WorldView;
-
-pub type CommandMessage = UdpCommandPacket;
-pub type SenseMessage = UdpSensesPacket;
 
 type CallbackFn = Box<dyn Fn(CommandMessage) + Send>;
 

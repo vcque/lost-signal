@@ -1,6 +1,6 @@
 use log::*;
 use losig_core::{
-    network::{ServerMessage, UdpCommandPacket, UdpSensesPacket},
+    network::{CommandMessage, SenseInfoMessage, ServerMessage},
     sense::{SelfSense, SenseInfo, Senses},
     types::{Action, Avatar, AvatarId, Offset, Position, Tile},
 };
@@ -21,12 +21,12 @@ impl Game {
         Game { services }
     }
 
-    pub fn enact(&self, command: UdpCommandPacket) {
+    pub fn enact(&self, command: CommandMessage) {
         let world = &mut *self.services.world.lock().unwrap();
         let senses = enact_tick(world, &command);
         let info = senses.and_then(|s| gather_info(world, command.avatar_id, &s));
         if let Some(info) = info {
-            let msg = UdpSensesPacket {
+            let msg = SenseInfoMessage {
                 avatar_id: command.avatar_id,
                 turn: command.turn,
                 senses: info,
@@ -40,7 +40,7 @@ impl Game {
     }
 }
 
-pub fn enact_tick(world: &mut World, cmd: &UdpCommandPacket) -> Option<Senses> {
+pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
     world.tick = world.tick.wrapping_add(1);
     let avatar = world.avatars.remove(&cmd.avatar_id);
 

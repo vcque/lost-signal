@@ -7,23 +7,23 @@ use std::{
 
 use anyhow::{Result, bail};
 use log::{debug, error};
-use losig_core::network::UdpSensesPacket;
+use losig_core::network::SenseInfoMessage;
 use serde::{Deserialize, Serialize};
 use tungstenite::{Bytes, ClientHandshake, HandshakeError, Message, WebSocket, http::Request};
 
-use crate::{CommandMessage, SenseMessage};
+use crate::CommandMessage;
 
 const SERVER_ADDR: &str = "127.0.0.1:9001";
 
 pub struct WsClient {
     commands: Receiver<CommandMessage>,
-    senses: Sender<SenseMessage>,
+    senses: Sender<SenseInfoMessage>,
 }
 
 type Ws = WebSocket<TcpStream>;
 
 impl WsClient {
-    pub fn new(commands: Receiver<CommandMessage>, senses: Sender<SenseMessage>) -> Self {
+    pub fn new(commands: Receiver<CommandMessage>, senses: Sender<SenseInfoMessage>) -> Self {
         Self { commands, senses }
     }
     pub fn run(self) {
@@ -47,7 +47,7 @@ impl WsClient {
                 continue;
             };
 
-            if let Ok(sense) = handle_read::<UdpSensesPacket>(socket) {
+            if let Ok(sense) = handle_read::<SenseInfoMessage>(socket) {
                 debug!("sending senses to channel");
                 let _ = senses.send(sense);
             }

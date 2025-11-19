@@ -2,7 +2,7 @@
 
 use losig_client::game::GameSim;
 use losig_client::tui::GameTui;
-use losig_core::network::{UdpCommandPacket, UdpSensesPacket};
+use losig_core::network::{CommandMessage, SenseInfoMessage};
 use losig_core::types::AvatarId;
 
 use std::sync::mpsc::channel;
@@ -11,11 +11,7 @@ use std::thread::spawn;
 
 mod crossterm_adapter;
 mod tui;
-mod udp_client;
 mod ws_client;
-
-pub type SenseMessage = UdpSensesPacket;
-pub type CommandMessage = UdpCommandPacket;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tui_logger::init_logger(log::LevelFilter::Debug).unwrap();
@@ -33,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .parse()
         .map_err(|_| "Avatar ID must be a valid number")?;
 
-    let (senses_tx, senses_rx) = channel::<SenseMessage>();
+    let (senses_tx, senses_rx) = channel::<SenseInfoMessage>();
     let (cmd_tx, cmd_rx) = channel::<CommandMessage>();
 
     let client = ws_client::WsClient::new(cmd_rx, senses_tx);

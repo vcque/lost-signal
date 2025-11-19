@@ -7,7 +7,7 @@ use crate::{ratzilla_adapter::RatzillaAdapter, ws::WsServer};
 use log::Level;
 use losig_client::{game::GameSim, tui::GameTui};
 use losig_core::{
-    network::{ClientMessage, ServerMessage, UdpCommandPacket, UdpSensesPacket},
+    network::{ClientMessage, ServerMessage},
     types::AvatarId,
 };
 use wasm_bindgen::JsValue;
@@ -15,9 +15,6 @@ use web_sys::{Url, UrlSearchParams, window};
 
 mod ratzilla_adapter;
 mod ws;
-
-pub type SenseMessage = UdpSensesPacket;
-pub type CommandMessage = UdpCommandPacket;
 
 fn main() -> io::Result<()> {
     console_log::init_with_level(Level::Debug).unwrap();

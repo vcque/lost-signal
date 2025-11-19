@@ -21,6 +21,53 @@ impl Senses {
         cost += self.orb.signal_cost();
         cost
     }
+
+    pub fn merge(mut self, other: Self) -> Self {
+        if let Some(other_terrain) = other.terrain {
+            self.terrain = Some(match self.terrain {
+                Some(current) => {
+                    if other_terrain.radius > current.radius {
+                        other_terrain
+                    } else {
+                        current
+                    }
+                }
+                None => other_terrain,
+            });
+        }
+
+        if other.selfs.is_some() {
+            self.selfs = other.selfs;
+        }
+
+        if let Some(other_danger) = other.danger {
+            self.danger = Some(match self.danger {
+                Some(current) => {
+                    if other_danger.radius > current.radius {
+                        other_danger
+                    } else {
+                        current
+                    }
+                }
+                None => other_danger,
+            });
+        }
+
+        if let Some(other_orb) = other.orb {
+            self.orb = Some(match self.orb {
+                Some(current) => {
+                    if other_orb.level > current.level {
+                        other_orb
+                    } else {
+                        current
+                    }
+                }
+                None => other_orb,
+            });
+        }
+
+        self
+    }
 }
 
 pub trait Sense {

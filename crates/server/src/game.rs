@@ -5,7 +5,7 @@ use std::{
 
 use log::*;
 use losig_core::{
-    sense::SenseInfo,
+    sense::{SelfSense, SenseInfo, Senses},
     types::{Action, Avatar, AvatarId, Offset, Position, Tile},
 };
 
@@ -29,59 +29,59 @@ impl Game {
     pub fn run(self) {
         spawn(move || {
             loop {
-                let commands = &self.recv_cmds();
-                let msgs: Vec<SensesMessage>;
-                {
-                    let world = &mut *self.states.world.lock().unwrap();
-                    let accepted_commands = enact_tick(world, commands);
-                    msgs = gather_infos(world, &accepted_commands);
-                }
-
-                for msg in msgs {
+                let command = self.recv_cmd();
+                let world = &mut *self.states.world.lock().unwrap();
+                let senses = enact_tick(world, &command);
+                let info = senses.and_then(|s| gather_info(world, command.avatar_id, &s));
+                if let Some(info) = info {
+                    let msg = SensesMessage {
+                        avatar_id: command.avatar_id,
+                        turn: command.turn,
+                        senses: info,
+                    };
                     self.states.senses.send(msg).unwrap();
                 }
             }
         });
     }
 
-    fn recv_cmds(&self) -> Vec<CommandMessage> {
-        let mut results: Vec<CommandMessage> = self.commands.recv().into_iter().collect();
-        results.extend(self.commands.try_iter());
-        results
+    fn recv_cmd(&self) -> CommandMessage {
+        match self.commands.recv() {
+            Ok(cmd) => cmd,
+            Err(e) => panic!("Command channel error: {}", e),
+        }
     }
 }
 
-/// Returns accepted information gathers
-pub fn enact_tick<'a>(
-    world: &mut World,
-    commands: &'a [CommandMessage],
-) -> Vec<&'a CommandMessage> {
-    let mut accepted_senses = vec![];
+pub fn enact_tick<'a>(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
     world.tick = world.tick.wrapping_add(1);
-    for cmd in commands {
-        let avatar = world.avatars.remove(&cmd.avatar_id);
-        match avatar {
-            Some(mut avatar) => {
-                enact_command(world, cmd, &mut avatar);
-                let cost = cmd.senses.signal_cost();
-                if avatar.signal >= cost {
-                    avatar.signal -= cost;
-                    accepted_senses.push(cmd);
-                }
+    let avatar = world.avatars.remove(&cmd.avatar_id);
 
-                world.avatars.insert(avatar.id, avatar); // Put it back!
+    let mut all_senses: Vec<Senses> = vec![];
+
+    match avatar {
+        Some(mut avatar) => {
+            let additional_senses = enact_action(world, &cmd.action, &mut avatar);
+            all_senses.push(additional_senses);
+            let cost = cmd.senses.signal_cost();
+            if avatar.signal >= cost {
+                avatar.signal -= cost;
+                all_senses.push(cmd.senses.clone());
             }
-            None => {
-                if matches!(cmd.action, Action::Spawn) {
-                    spawn_avatar(world, cmd.avatar_id);
-                }
+
+            world.avatars.insert(avatar.id, avatar); // Put it back!
+        }
+        None => {
+            if matches!(cmd.action, Action::Spawn) {
+                spawn_avatar(world, cmd.avatar_id);
             }
         }
     }
 
     enact_foes(world);
-
-    accepted_senses
+    all_senses
+        .into_iter()
+        .reduce(|acc, senses| acc.merge(senses))
 }
 
 fn spawn_avatar(world: &mut World, avatar_id: AvatarId) {
@@ -117,27 +117,26 @@ fn enact_foes(world: &mut World) {
     }
 }
 
-fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
-    if avatar.broken && !cmd.action.allow_broken() {
-        return;
+fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Senses {
+    let mut result = Senses::default();
+    if avatar.broken && !action.allow_broken() {
+        return result;
     }
 
     // Specific spawn action
-    if cmd.action == Action::Spawn {
+    if *action == Action::Spawn {
         let stage = world.stages.get(avatar.stage).unwrap();
         avatar.position = spawn_position(stage, avatar.id);
         avatar.signal = 100;
         avatar.broken = false;
-        return;
+        return result;
     }
 
-    let avatar_id = cmd.avatar_id;
     let Some(stage) = world.stages.get_mut(avatar.stage) else {
-        return;
+        return result;
     };
 
-    debug!("cmd received: {cmd:?}");
-    match cmd.action {
+    match *action {
         Action::Move(dir) => {
             let next_pos = avatar.position.move_once(dir);
 
@@ -154,7 +153,7 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
                 } else {
                     avatar.stage += 1; // Crashes the server when the player wins
                     if let Some(stage) = world.stages.get(avatar.stage) {
-                        avatar.position = spawn_position(stage, avatar_id);
+                        avatar.position = spawn_position(stage, avatar.id);
                     }
                 }
             }
@@ -165,43 +164,29 @@ fn enact_command(world: &mut World, cmd: &CommandMessage, avatar: &mut Avatar) {
         }
     }
 
-    let Some(stage) = world.stages.get(avatar.stage) else {
-        return;
-    };
-    // If pylon is adjacent, recharges signal
-    for x in -1..2 {
-        for y in -1..2 {
-            let offset = Offset { x, y };
-            let tile = stage.tiles.at(avatar.position + offset);
-            if matches!(tile, Tile::Pylon) {
-                avatar.signal = 100;
+    if let Some(stage) = world.stages.get(avatar.stage) {
+        // If pylon is adjacent, recharges signal
+        for x in -1..2 {
+            for y in -1..2 {
+                let offset = Offset { x, y };
+                let tile = stage.tiles.at(avatar.position + offset);
+                if matches!(tile, Tile::Pylon) {
+                    avatar.signal = 100;
+                }
             }
         }
-    }
+    };
+
+    result
 }
 
-fn gather_infos(world: &World, cmds: &[&CommandMessage]) -> Vec<SensesMessage> {
-    cmds.iter()
-        .filter_map(|cmd| gather_info(world, cmd))
-        .collect()
-}
-
-fn gather_info(world: &World, command: &CommandMessage) -> Option<SensesMessage> {
-    let avatar = world.find_avatar(command.avatar_id)?;
-    let senses = &command.senses;
+fn gather_info(world: &World, avatar_id: AvatarId, senses: &Senses) -> Option<SenseInfo> {
+    let avatar = world.find_avatar(avatar_id)?;
     if avatar.winner {
-        return Some(SensesMessage {
-            avatar_id: command.avatar_id,
-            turn: command.turn,
-            senses: SenseInfo::win(),
-        });
+        return Some(SenseInfo::win());
     }
 
     let stage = world.stages.get(avatar.stage)?;
     let senses = sense::gather(senses, avatar, stage);
-    Some(SensesMessage {
-        avatar_id: command.avatar_id,
-        turn: command.turn,
-        senses,
-    })
+    Some(senses)
 }

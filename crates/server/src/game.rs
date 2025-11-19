@@ -147,6 +147,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
 
             if avatar.position == stage.orb {
                 stage.move_orb();
+                result.selfs = Some(SelfSense {});
                 if avatar.stage == world.stages.len() - 1 {
                     // Player has won all stages
                     avatar.winner = true;

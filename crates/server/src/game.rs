@@ -53,7 +53,7 @@ impl Game {
     }
 }
 
-pub fn enact_tick<'a>(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
+pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
     world.tick = world.tick.wrapping_add(1);
     let avatar = world.avatars.remove(&cmd.avatar_id);
 

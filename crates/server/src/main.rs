@@ -12,7 +12,6 @@ mod sense;
 mod states;
 mod tiled;
 mod tui;
-mod udp_server;
 mod world;
 mod ws_server;
 

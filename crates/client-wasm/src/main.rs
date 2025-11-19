@@ -7,7 +7,7 @@ use crate::{ratzilla_adapter::RatzillaAdapter, ws::WsServer};
 use log::Level;
 use losig_client::{game::GameSim, tui::GameTui};
 use losig_core::{
-    network::{UdpCommandPacket, UdpSensesPacket},
+    network::{ServerMessage, UdpCommandPacket, UdpSensesPacket},
     types::AvatarId,
 };
 use wasm_bindgen::JsValue;
@@ -32,7 +32,13 @@ fn main() -> io::Result<()> {
     {
         let game = game.clone();
         server.set_callback(Box::new(move |msg| {
-            game.lock().unwrap().update(msg.turn, msg.senses);
+            let mut game = game.lock().unwrap();
+            match msg {
+                ServerMessage::Senses(s) => game.update(s.turn, s.senses),
+                ServerMessage::Leaderboard(_) => {
+                    // TODO: update leaderboard
+                }
+            }
         }));
     }
 
@@ -44,7 +50,7 @@ fn main() -> io::Result<()> {
             server
                 .lock()
                 .unwrap()
-                .send(cmd)
+                .send(losig_core::network::ClientMessage::Command(cmd))
                 .expect("Cannot send message");
         }));
     }

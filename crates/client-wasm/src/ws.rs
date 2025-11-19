@@ -4,12 +4,12 @@ use anyhow::{Result, bail};
 use gloo_timers::callback::Interval;
 use js_sys::ArrayBuffer;
 use log::{debug, error};
-use losig_client::game::{CommandMessage, SenseMessage};
-use losig_core::network::UdpSensesPacket;
+use losig_client::game::CommandMessage;
+use losig_core::network::{ClientMessage, ServerMessage};
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{BinaryType, MessageEvent, WebSocket, console};
 
-type Callback = Box<dyn Fn(SenseMessage) + Send>;
+type Callback = Box<dyn Fn(ServerMessage) + Send>;
 
 #[derive(Clone)]
 pub struct WsServer {
@@ -99,7 +99,7 @@ impl WsServer {
         Ok(())
     }
 
-    pub fn send(&mut self, msg: CommandMessage) -> Result<()> {
+    pub fn send(&mut self, msg: ClientMessage) -> Result<()> {
         let data = bincode::serialize(&msg)?;
         let socket = self.socket.borrow();
         let socket = socket.as_ref().unwrap();
@@ -110,7 +110,7 @@ impl WsServer {
     }
 }
 
-fn convert_response(me: MessageEvent) -> Option<UdpSensesPacket> {
+fn convert_response(me: MessageEvent) -> Option<ServerMessage> {
     let Ok(array) = me.data().dyn_into::<ArrayBuffer>() else {
         return None;
     };
@@ -118,7 +118,7 @@ fn convert_response(me: MessageEvent) -> Option<UdpSensesPacket> {
     let bytes: Vec<u8> = uint8_array.to_vec();
     let slice: &[u8] = &bytes;
 
-    match bincode::deserialize::<UdpSensesPacket>(slice) {
+    match bincode::deserialize::<ServerMessage>(slice) {
         Ok(msg) => Some(msg),
         Err(e) => {
             error!("Couldn't deser: {e:?}");

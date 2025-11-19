@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    leaderboard::Leaderboard,
     sense::{SenseInfo, Senses},
     types::{Action, AvatarId},
 };
@@ -22,4 +23,17 @@ pub struct UdpSensesPacket {
     pub turn: u64,
     pub avatar_id: AvatarId,
     pub senses: SenseInfo,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum ClientMessage {
+    Leaderboard,
+    LeaderboardSubmit(AvatarId, String),
+    Command(UdpCommandPacket),
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum ServerMessage {
+    Leaderboard(Leaderboard),
+    Senses(UdpSensesPacket),
 }

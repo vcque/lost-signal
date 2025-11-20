@@ -6,11 +6,22 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no"
     />
+    <meta name="description" content="A roguelike about perception." />
+    <meta name="keywords" content="game, terminal, lost signal" />
+    <meta name="author" content="Vincent Ocquet" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="http://losig.vcque.eu/" />
+    <meta property="og:title" content="Lost Signal" />
+    <meta property="og:description" content="A roguelike about perception." />
+    <meta property="og:image" content="http://losig.vcque.eu/losig-preview.png" />
+    
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/fira_code.min.css"
     />
-    <title>lost-signal</title>
+    <title>Lost Signal - Terminal Puzzle Game</title>
     <style>
       body {
         margin: 0;
@@ -32,5 +43,6 @@
   </head>
     <body>
     <link data-trunk rel="rust" data-type="main" href="Cargo.toml" data-bin="wasm" />
+    <link data-trunk rel="copy-file" href="losig-preview.png" />
   </body>
 </html>

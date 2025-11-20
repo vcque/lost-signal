@@ -40,61 +40,64 @@ impl Component for GamePage {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         {
-            let [world_a, log_a, _senses_a] = Self::layout(area);
-            let world = &state.external.world.lock().unwrap();
-            let world_widget = WorldViewWidget { world };
+            {
+                let [world_a, log_a, _senses_a] = Self::layout(area);
+                let world = &state.external.world.lock().unwrap();
+                let world_widget = WorldViewWidget { world };
 
-            let world_title = Line::from(Span::raw(format!(
-                "World - stage {} - turn {}",
-                world.stage + 1,
-                world.turn
-            )));
+                let world_title = Line::from(Span::raw(format!(
+                    "World - stage {} - turn {}",
+                    world.stage + 1,
+                    world.turn
+                )));
 
-            Block::default()
-                .borders(Borders::ALL)
-                .title(world_title)
-                .wrap(world_widget)
-                .render(world_a, buf);
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(world_title)
+                    .wrap(world_widget)
+                    .render(world_a, buf);
 
-            let logs_widget = LogsWidget {
-                logs: world.logs.logs(),
-            };
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Game Log")
-                .wrap(logs_widget)
-                .render(log_a, buf);
+                let logs_widget = LogsWidget {
+                    logs: world.logs.logs(),
+                };
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Game Log")
+                    .wrap(logs_widget)
+                    .render(log_a, buf);
 
-            let state = &mut state.game;
-            let senses_widget = SensesWidget {
-                senses: state.senses.clone(),
-                info: world.last_info(),
-                selection: state.sense_selection,
-            };
+                let game_state = &mut state.game;
+                let senses_widget = SensesWidget {
+                    senses: game_state.senses.clone(),
+                    info: world.last_info(),
+                    selection: game_state.sense_selection,
+                };
 
-            let cost = state.senses.signal_cost();
-            let cost_style = if cost > world.current_state.signal {
-                Style::default().bold().bg(Color::Red)
-            } else {
-                Style::default()
-            };
+                let cost = game_state.senses.signal_cost();
+                let cost_style = if cost > world.current_state.signal {
+                    Style::default().bold().bg(Color::Red)
+                } else {
+                    Style::default()
+                };
 
-            let title = Line::from(format!(
-                "Senses - cost: {} / {}",
-                cost,
-                world.current_state().signal
-            ))
-            .alignment(ratatui::layout::Alignment::Center);
+                let title = Line::from(format!(
+                    "Senses - cost: {} / {}",
+                    cost,
+                    world.current_state().signal
+                ))
+                .alignment(ratatui::layout::Alignment::Center);
 
-            let senses_wigdet = Block::default()
-                .borders(Borders::TOP)
-                .title(title)
-                .border_style(cost_style)
-                .wrap(senses_widget);
-            senses_wigdet.render(_senses_a, buf);
+                let senses_wigdet = Block::default()
+                    .borders(Borders::TOP)
+                    .title(title)
+                    .border_style(cost_style)
+                    .wrap(senses_widget);
+                senses_wigdet.render(_senses_a, buf);
+            }
 
-            if world.winner {
-                YouWinWidget {}.render(area, buf);
+            let winner = state.external.world.lock().unwrap().winner;
+            if winner {
+                YouWinWidget {}.render(area, buf, state);
             }
         }
 
@@ -114,9 +117,12 @@ impl Component for GamePage {
         };
 
         {
-            let world = state.external.world.lock().unwrap();
-            if world.winner {
-                return false;
+            let winner: bool;
+            {
+                winner = state.external.world.lock().unwrap().winner;
+            }
+            if winner && (YouWinWidget {}).on_event(event, state) {
+                return true;
             }
         }
 
@@ -376,14 +382,11 @@ impl Widget for SensesWidget {
 
 struct YouWinWidget {}
 
-impl Widget for YouWinWidget {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-    where
-        Self: Sized,
-    {
-        let message = "YOU WIN";
-        let popup_width = 30;
-        let popup_height = 7;
+impl Component for YouWinWidget {
+    type State = TuiState;
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let popup_width = 50;
+        let popup_height = 10;
 
         let popup_area = center(
             area,
@@ -391,6 +394,7 @@ impl Widget for YouWinWidget {
             Constraint::Length(popup_height),
         );
 
+        // Clear background
         for x in popup_area.x..popup_area.x + popup_area.width {
             for y in popup_area.y..popup_area.y + popup_area.height {
                 buf.set_string(x, y, " ", Style::default().bg(Color::Black));
@@ -398,18 +402,88 @@ impl Widget for YouWinWidget {
         }
 
         let block = Block::default()
-            .title("Game Over")
+            .title("🎉 Victory! 🎉")
             .borders(Borders::ALL)
-            .style(Style::default().bg(Color::Black).fg(Color::White));
+            .style(Style::default().bg(Color::Black).fg(Color::Green));
 
         let inner = block.inner(popup_area);
         block.render(popup_area, buf);
 
-        let text_y = inner.y + inner.height / 2;
-        let text_x = inner.x + (inner.width.saturating_sub(message.len() as u16)) / 2;
+        if state.you_win.sent {
+            // Show submission confirmation
+            let lines = [
+                "Your score has been submitted.",
+                "",
+                "Thank you for playing!",
+            ];
 
-        let text_style = Style::default().fg(Color::Green);
-        buf.set_string(text_x, text_y, message, text_style);
+            for (i, line) in lines.iter().enumerate() {
+                let y = inner.y + 2 + i as u16;
+                let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
+                let style = if i == 0 {
+                    Style::default().fg(Color::Yellow)
+                } else {
+                    Style::default().fg(Color::Gray)
+                };
+                buf.set_string(x, y, line, style);
+            }
+        } else {
+            // Show name input form
+            let lines = [
+                "Enter your name for the leaderboard:",
+                "",
+                &format!("> {}_", state.you_win.name),
+                "",
+                "(Max 8 characters, press Enter to submit)",
+            ];
+
+            for (i, line) in lines.iter().enumerate() {
+                let y = inner.y + 1 + i as u16;
+                let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
+                let style = match i {
+                    0 => Style::default().fg(Color::White),
+                    2 => Style::default().fg(Color::Yellow),
+                    4 | 5 => Style::default().fg(Color::Gray),
+                    _ => Style::default().fg(Color::White),
+                };
+                buf.set_string(x, y, line, style);
+            }
+        }
+    }
+    fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
+        // Handle YouWin events
+        let you_win = &mut state.you_win;
+
+        if you_win.sent {
+            // Already sent, any key closes win screen
+            state.you_win.open = false;
+            return true;
+        }
+
+        let Event::Key(event) = event else {
+            return false;
+        };
+
+        match event.code {
+            KeyCode::Enter => {
+                if !you_win.name.is_empty() {
+                    state.external.submit_leaderboard(you_win.name.clone());
+                    you_win.sent = true;
+                }
+            }
+            KeyCode::Backspace => {
+                you_win.name.pop();
+            }
+            KeyCode::Char(c) if you_win.name.len() < 8 => {
+                you_win.name.push(c);
+            }
+            KeyCode::Esc => {
+                you_win.open = false;
+            }
+            _ => {}
+        };
+
+        true
     }
 }
 

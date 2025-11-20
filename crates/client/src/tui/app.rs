@@ -7,7 +7,7 @@ use crate::{
     tui::{
         component::Component,
         pages::{GamePage, MenuPage},
-        state::{ExternalState, GameState, MenuState, PageSelection, TuiState},
+        state::{ExternalState, GameState, MenuState, PageSelection, TuiState, YouWinState},
     },
     tui_adapter::{Event, TuiApp},
     world::WorldView,
@@ -32,6 +32,7 @@ impl GameTui {
                 },
                 menu: MenuState::default(),
                 game: GameState::default(),
+                you_win: YouWinState::default(),
                 page: PageSelection::Menu,
                 should_exit: false,
             },

@@ -1,6 +1,6 @@
 use losig_core::{
     leaderboard::Leaderboard,
-    network::{ClientMessage, CommandMessage},
+    network::{ClientMessage, ClientMessageContent, CommandMessage},
     sense::{SelfSense, Senses, TerrainSense},
     types::Action,
 };
@@ -13,6 +13,7 @@ pub struct TuiState {
     pub external: ExternalState,
     pub menu: MenuState,
     pub game: GameState,
+    pub you_win: YouWinState,
     pub page: PageSelection,
     pub should_exit: bool,
 }
@@ -35,6 +36,14 @@ impl ExternalState {
                 action,
                 senses,
             }),
+        });
+    }
+
+    pub fn submit_leaderboard(&self, name: String) {
+        let world = self.world.lock().unwrap();
+        self.client.send(ClientMessage {
+            avatar_id: Some(world.avatar_id),
+            content: ClientMessageContent::LeaderboardSubmit(world.avatar_id, name),
         });
     }
 }
@@ -88,5 +97,12 @@ impl Default for GameState {
             show_help: false,
         }
     }
+}
+
+#[derive(Debug, Default)]
+pub struct YouWinState {
+    pub open: bool,
+    pub name: String,
+    pub sent: bool,
 }
 

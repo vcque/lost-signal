@@ -127,7 +127,8 @@ impl Component for GamePage {
         }
 
         let game_state = &mut state.game;
-        if key.modifiers.control {
+        if key.modifiers.shift {
+            let mut consumed = true;
             match key.code {
                 KeyCode::Up => {
                     if game_state.sense_selection > 0 {
@@ -145,30 +146,43 @@ impl Component for GamePage {
                 KeyCode::Left => {
                     game_state.selected_sense_mut().decr();
                 }
-                _ => {}
-            }
-        } else {
-            let action = match key.code {
-                KeyCode::Up | KeyCode::Char('8') => Some(Action::Move(Direction::Up)),
-                KeyCode::Down | KeyCode::Char('2') => Some(Action::Move(Direction::Down)),
-                KeyCode::Left | KeyCode::Char('4') => Some(Action::Move(Direction::Left)),
-                KeyCode::Right | KeyCode::Char('6') => Some(Action::Move(Direction::Right)),
-                KeyCode::Char('7') => Some(Action::Move(Direction::UpLeft)),
-                KeyCode::Char('9') => Some(Action::Move(Direction::UpRight)),
-                KeyCode::Char('1') => Some(Action::Move(Direction::DownLeft)),
-                KeyCode::Char('3') => Some(Action::Move(Direction::DownRight)),
-                KeyCode::Char('5') => Some(Action::Wait),
-                KeyCode::Char('r') => Some(Action::Spawn),
-                KeyCode::Char('h') => {
-                    game_state.show_help = true;
-                    return true;
+                _ => {
+                    consumed = false;
                 }
-                _ => None,
-            };
-            if let Some(action) = action {
-                state.external.act(action, game_state.senses.clone());
+            }
+            if consumed {
                 return true;
             }
+        }
+
+        let action = match key.code {
+            KeyCode::Up | KeyCode::Char('8') | KeyCode::Char('k') => {
+                Some(Action::Move(Direction::Up))
+            }
+            KeyCode::Down | KeyCode::Char('2') | KeyCode::Char('j') => {
+                Some(Action::Move(Direction::Down))
+            }
+            KeyCode::Left | KeyCode::Char('4') | KeyCode::Char('h') => {
+                Some(Action::Move(Direction::Left))
+            }
+            KeyCode::Right | KeyCode::Char('6') | KeyCode::Char('l') => {
+                Some(Action::Move(Direction::Right))
+            }
+            KeyCode::Char('7') | KeyCode::Char('y') => Some(Action::Move(Direction::UpLeft)),
+            KeyCode::Char('9') | KeyCode::Char('u') => Some(Action::Move(Direction::UpRight)),
+            KeyCode::Char('1') | KeyCode::Char('b') => Some(Action::Move(Direction::DownLeft)),
+            KeyCode::Char('3') | KeyCode::Char('n') => Some(Action::Move(Direction::DownRight)),
+            KeyCode::Char('5') => Some(Action::Wait),
+            KeyCode::Char('r') => Some(Action::Spawn),
+            KeyCode::Char('?') => {
+                game_state.show_help = true;
+                return true;
+            }
+            _ => None,
+        };
+        if let Some(action) = action {
+            state.external.act(action, game_state.senses.clone());
+            return true;
         }
         false
     }
@@ -530,7 +544,7 @@ impl HelpWidget {
         }
 
         let block = Block::default()
-            .title("Help - Press 'h' to close")
+            .title("Help - Press '?' to close")
             .borders(Borders::ALL)
             .style(Style::default().bg(Color::Black).fg(Color::White));
 
@@ -540,8 +554,8 @@ impl HelpWidget {
         let header_style = Style::default().fg(Color::Yellow).bold();
         let help_text = vec![
             Line::from(Span::styled("CONTROLS", header_style)),
-            Line::from("Movement: Arrow Keys or Numpad (8246 + 7913)"),
-            Line::from("Wait: 5 or Space  |  Respawn: r  |  Help: h"),
+            Line::from("Movement: Arrow Keys, Vi keys (hjkl), or Numpad (8246 + yubn7913)"),
+            Line::from("Wait: 5 or Space  |  Respawn: r  |  Help: ?"),
             Line::from("Sense Controls (Ctrl + Key): Up/Down=Select, Left/Right=Adjust"),
             Line::from(""),
             Line::from(Span::styled("SENSES", header_style)),
@@ -604,8 +618,8 @@ impl<'a> Widget for LogsWidget<'a> {
 
 fn format_log(log: ClientLog) -> (&'static str, Style) {
     match log {
-        ClientLog::Help => ("Press 'h' for help", Style::default().fg(Color::Cyan)),
-        ClientLog::NextStage => ("I am closer", Style::default().fg(Color::Green)),
+        ClientLog::Help => ("Press '?' for help", Style::default().fg(Color::Cyan)),
+        ClientLog::NextStage => ("I'm making progress.", Style::default().fg(Color::Green)),
         ClientLog::Lost => ("I am lost...", Style::default().fg(Color::Red)),
         ClientLog::Win => ("I won!", Style::default().fg(Color::Yellow).bold()),
     }

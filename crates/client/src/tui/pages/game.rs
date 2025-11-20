@@ -130,20 +130,20 @@ impl Component for GamePage {
         if key.modifiers.shift {
             let mut consumed = true;
             match key.code {
-                KeyCode::Up | KeyCode::Char('8') => {
+                KeyCode::Up | KeyCode::Char('8') | KeyCode::Char('K') => {
                     if game_state.sense_selection > 0 {
                         game_state.sense_selection -= 1;
                     }
                 }
-                KeyCode::Down | KeyCode::Char('2') => {
+                KeyCode::Down | KeyCode::Char('2') | KeyCode::Char('J') => {
                     if game_state.sense_selection < 4 {
                         game_state.sense_selection += 1;
                     }
                 }
-                KeyCode::Right | KeyCode::Char('6') => {
+                KeyCode::Right | KeyCode::Char('6') | KeyCode::Char('L') => {
                     game_state.selected_sense_mut().incr();
                 }
-                KeyCode::Left | KeyCode::Char('4') => {
+                KeyCode::Left | KeyCode::Char('4') | KeyCode::Char('H') => {
                     game_state.selected_sense_mut().decr();
                 }
                 _ => {

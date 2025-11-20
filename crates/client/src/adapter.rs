@@ -22,8 +22,7 @@ impl<C: Client + 'static, T: TuiAdapter> Adapter<C, T> {
 
         let world = WorldView::new(self.avatar_id);
         let world = Arc::new(Mutex::new(world));
-        let leaderboard = Arc::new(Mutex::new(Leaderboard::new()));
-
+        let leaderboard = Arc::new(Mutex::new(Leaderboard::default()));
         let callback: ServerMessageCallback;
         {
             let world = world.clone();

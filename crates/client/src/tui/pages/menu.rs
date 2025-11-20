@@ -1,9 +1,9 @@
 use losig_core::{sense::Senses, types::Action};
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
-    widgets::{List, ListItem},
+    widgets::{Block, Borders, Cell, List, ListItem, Row, Table, Widget},
 };
 use std::fmt::Display;
 
@@ -68,13 +68,19 @@ impl Component for MenuPage {
     }
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(area);
+
+        // Menu on the left
         let menu_items: Vec<ListItem> = MENU_OPTIONS
             .iter()
             .map(|option| ListItem::new(option.to_string()))
             .collect();
 
-        let center = center(
-            area,
+        let menu_center = center(
+            chunks[0],
             Constraint::Percentage(50),
             Constraint::Length(menu_items.len() as u16),
         );
@@ -86,9 +92,90 @@ impl Component for MenuPage {
 
         ratatui::widgets::StatefulWidget::render(
             menu_list,
-            center,
+            menu_center,
             buf,
             &mut state.menu.list_state,
         );
+
+        // Leaderboard on the right
+        let leaderboard = state.external.leaderboard.lock().unwrap();
+        let leaderboard_widget = LeaderboardWidget::new(&leaderboard);
+        leaderboard_widget.render(chunks[1], buf);
+    }
+}
+
+struct LeaderboardWidget<'a> {
+    leaderboard: &'a losig_core::leaderboard::Leaderboard,
+    max_entries: usize,
+}
+
+impl<'a> LeaderboardWidget<'a> {
+    fn new(leaderboard: &'a losig_core::leaderboard::Leaderboard) -> Self {
+        Self {
+            leaderboard,
+            max_entries: 10,
+        }
+    }
+}
+
+impl<'a> Widget for LeaderboardWidget<'a> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let area = center(area, Constraint::Length(36), Constraint::Length(12));
+        let top_entries = self.leaderboard.top_entries(self.max_entries);
+
+        let header = Row::new(vec![
+            Cell::from("Rank").style(Style::default().bold()),
+            Cell::from("Name").style(Style::default().bold()),
+            Cell::from("Deaths").style(Style::default().bold()),
+            Cell::from("Turns").style(Style::default().bold()),
+            Cell::from("Score").style(Style::default().bold()),
+        ]);
+
+        let mut rows = Vec::new();
+        let actual_entries = top_entries.iter().rev().collect::<Vec<_>>();
+
+        for i in 0..self.max_entries {
+            let rank = i + 1;
+            if let Some(entry) = actual_entries.get(i) {
+                let row = Row::new(vec![
+                    Cell::from(rank.to_string()),
+                    Cell::from(entry.name.clone()),
+                    Cell::from(entry.deaths.to_string()),
+                    Cell::from(entry.turns.to_string()),
+                    Cell::from(entry.score.to_string()),
+                ]);
+                rows.push(row);
+            } else {
+                let row = Row::new(vec![
+                    Cell::from(rank.to_string()),
+                    Cell::from("-"),
+                    Cell::from("-"),
+                    Cell::from("-"),
+                    Cell::from("-"),
+                ])
+                .style(Style::default().fg(Color::DarkGray));
+                rows.push(row);
+            }
+        }
+
+        let leaderboard_table = Table::new(
+            rows,
+            [
+                Constraint::Length(4), // Rank
+                Constraint::Length(9), // Name
+                Constraint::Length(6), // Deaths
+                Constraint::Length(6), // Turns
+                Constraint::Length(6), // Score
+            ],
+        )
+        .header(header)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("🏆 Leaderboard"),
+        )
+        .style(Style::default().fg(Color::Yellow));
+
+        leaderboard_table.render(area, buf);
     }
 }

@@ -14,6 +14,11 @@ impl Leaderboard {
         self.entries.push(entry);
         self.entries.sort_by_key(|e| e.score);
     }
+
+    pub fn top_entries(&self, n: usize) -> &[LeaderboardEntry] {
+        let end = n.min(self.entries.len());
+        &self.entries[self.entries.len().saturating_sub(end)..]
+    }
 }
 
 impl Default for Leaderboard {
@@ -28,10 +33,10 @@ impl Default for Leaderboard {
 
 #[derive(Serialize, Deserialize)]
 pub struct LeaderboardEntry {
-    name: String,
-    deaths: u32,
-    turns: u32,
-    score: u32,
+    pub name: String,
+    pub deaths: u32,
+    pub turns: u32,
+    pub score: u32,
 }
 
 impl LeaderboardEntry {

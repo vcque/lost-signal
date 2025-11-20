@@ -1,7 +1,7 @@
 use log::*;
 use losig_core::{
     network::{CommandMessage, SenseInfoMessage, ServerMessage},
-    sense::{SelfSense, SenseInfo, Senses},
+    sense::{SelfSense, SenseInfo, Senses, TerrainSense},
     types::{Action, Avatar, AvatarId, Offset, Position, Tile},
 };
 
@@ -120,6 +120,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
         avatar.position = spawn_position(stage, avatar.id);
         avatar.signal = 100;
         avatar.broken = false;
+        result.terrain = Some(TerrainSense { radius: 3 });
         return result;
     }
 

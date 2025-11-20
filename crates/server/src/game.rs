@@ -62,6 +62,10 @@ pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
         None => {
             if matches!(cmd.action, Action::Spawn) {
                 spawn_avatar(world, cmd.avatar_id);
+                all_senses.push(Senses {
+                    terrain: Some(TerrainSense { radius: 3 }),
+                    ..Default::default()
+                });
             }
         }
     }

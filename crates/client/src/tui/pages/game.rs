@@ -512,7 +512,7 @@ impl Component for HelpWidget {
         };
 
         match key.code {
-            KeyCode::Char('h') | KeyCode::Esc => {
+            KeyCode::Char('?') | KeyCode::Esc => {
                 state.show_help = false;
                 true
             }
@@ -544,7 +544,7 @@ impl HelpWidget {
         }
 
         let block = Block::default()
-            .title("Help - Press '?' to close")
+            .title("Help - Press '?' or 'ESC' to close")
             .borders(Borders::ALL)
             .style(Style::default().bg(Color::Black).fg(Color::White));
 

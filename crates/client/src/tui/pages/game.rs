@@ -354,7 +354,7 @@ impl Widget for SensesWidget {
             if orb.detected {
                 Line::from("I can feel it").style(THEME.styles.signal)
             } else {
-                Line::from("Nothing.")
+                Line::from("Nothing")
             }
         });
 
@@ -370,7 +370,7 @@ impl Widget for SensesWidget {
         };
 
         SenseWidget {
-            label: "Goal",
+            label: "Orb",
             indicator,
             status,
             selected: self.selection == row_index,

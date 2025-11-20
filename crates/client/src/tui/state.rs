@@ -19,7 +19,7 @@ pub struct TuiState {
 }
 
 pub struct ExternalState {
-    pub client: Arc<dyn Client>,
+    pub client: Arc<Mutex<dyn Client>>,
     pub world: Arc<Mutex<WorldView>>,
     pub leaderboard: Arc<Mutex<Leaderboard>>,
 }
@@ -28,7 +28,8 @@ impl ExternalState {
     pub fn act(&self, action: Action, senses: Senses) {
         let mut world = self.world.lock().unwrap();
         world.act(&action, &senses);
-        self.client.send(ClientMessage {
+        let client = self.client.lock().unwrap();
+        client.send(ClientMessage {
             avatar_id: Some(world.avatar_id),
             content: losig_core::network::ClientMessageContent::Command(CommandMessage {
                 avatar_id: world.avatar_id,
@@ -41,7 +42,8 @@ impl ExternalState {
 
     pub fn submit_leaderboard(&self, name: String) {
         let world = self.world.lock().unwrap();
-        self.client.send(ClientMessage {
+        let client = self.client.lock().unwrap();
+        client.send(ClientMessage {
             avatar_id: Some(world.avatar_id),
             content: ClientMessageContent::LeaderboardSubmit(world.avatar_id, name),
         });
@@ -105,4 +107,3 @@ pub struct YouWinState {
     pub name: String,
     pub sent: bool,
 }
-

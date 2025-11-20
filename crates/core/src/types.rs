@@ -172,6 +172,8 @@ pub struct Avatar {
     /// Some kind of energy, it's called signal because that's the name of the game
     pub signal: usize,
     pub winner: bool,
+    pub deaths: u32,
+    pub turns: u32,
 }
 
 #[derive(Debug, Clone)]

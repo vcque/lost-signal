@@ -19,7 +19,7 @@ pub struct GameTui {
 
 impl GameTui {
     pub fn new(
-        client: Arc<dyn Client>,
+        client: Arc<Mutex<dyn Client>>,
         world: Arc<Mutex<WorldView>>,
         leaderboard: Arc<Mutex<Leaderboard>>,
     ) -> Self {
@@ -61,4 +61,3 @@ impl TuiApp for GameTui {
         self.state.should_exit
     }
 }
-

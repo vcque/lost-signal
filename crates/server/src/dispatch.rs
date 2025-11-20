@@ -1,8 +1,16 @@
 use std::{sync::mpsc::Receiver, thread::spawn};
 
-use losig_core::network::{ClientMessage, ClientMessageContent};
+use log::{error, warn};
+use losig_core::{
+    leaderboard::LeaderboardEntry,
+    network::{ClientMessage, ClientMessageContent, ServerMessage},
+};
 
-use crate::{game::Game, services::Services};
+use crate::{
+    game::Game,
+    services::Services,
+    ws_server::{Recipient, ServerMessageWithRecipient},
+};
 
 pub struct Dispatch {
     services: Services,
@@ -23,10 +31,45 @@ impl Dispatch {
                         game.enact(cmd);
                     }
                     ClientMessageContent::Leaderboard => {
-                        // TODO: send leaderboard
+                        // Send current leaderboard to requesting client
+                        if let Some(avatar_id) = msg.avatar_id {
+                            let leaderboard = self.services.leaderboard.lock().unwrap();
+                            let message = ServerMessageWithRecipient {
+                                recipient: Recipient::Single(avatar_id),
+                                message: ServerMessage::Leaderboard((*leaderboard).clone()),
+                            };
+
+                            if let Err(e) = self.services.sender.send(message) {
+                                eprintln!("Failed to send leaderboard: {}", e);
+                            }
+                        }
                     }
-                    ClientMessageContent::LeaderboardSubmit(_id, _name) => {
-                        // TODO: update leaderboard and broadcast it
+                    ClientMessageContent::LeaderboardSubmit(avatar_id, name) => {
+                        // Get avatar stats
+                        let mut world = self.services.world.lock().unwrap();
+                        if let Some(avatar) = world.avatars.get(&avatar_id) {
+                            if !avatar.winner {
+                                warn!("Trying to put a non winner in leaderboard: {avatar_id}");
+                                return;
+                            }
+                            let entry = LeaderboardEntry::new(name, avatar.deaths, avatar.turns);
+                            {
+                                let mut leaderboard = self.services.leaderboard.lock().unwrap();
+                                leaderboard.add(entry);
+                            }
+
+                            let leaderboard = self.services.leaderboard.lock().unwrap();
+                            let message = ServerMessageWithRecipient {
+                                recipient: Recipient::Broadcast,
+                                message: ServerMessage::Leaderboard((*leaderboard).clone()),
+                            };
+
+                            if let Err(e) = self.services.sender.send(message) {
+                                error!("Failed to broadcast leaderboard update: {}", e);
+                            }
+
+                            world.avatars.remove(&avatar_id);
+                        }
                     }
                 }
             }

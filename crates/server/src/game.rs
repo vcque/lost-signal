@@ -48,6 +48,7 @@ pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
 
     match avatar {
         Some(mut avatar) => {
+            avatar.turns += 1; // Increment turn count
             let additional_senses = enact_action(world, &cmd.action, &mut avatar);
             all_senses.push(additional_senses);
             let cost = cmd.senses.signal_cost();
@@ -82,6 +83,8 @@ fn spawn_avatar(world: &mut World, avatar_id: AvatarId) {
             broken: false,
             signal: 100,
             winner: false,
+            deaths: 0,
+            turns: 0,
         },
     );
 }
@@ -96,7 +99,8 @@ fn enact_foes(world: &mut World) {
     for (i, stage) in world.stages.iter().enumerate() {
         for foe in stage.foes.iter() {
             for avatar in world.avatars.values_mut() {
-                if foe.position == avatar.position && i == avatar.stage {
+                if foe.position == avatar.position && i == avatar.stage && !avatar.broken {
+                    avatar.deaths += 1;
                     avatar.broken = true;
                 }
             }

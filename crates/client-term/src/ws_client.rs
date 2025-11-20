@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::{Result, bail};
 use log::{error, warn};
-use losig_client::adapter::{Client, ServerMessageCallback};
+use losig_client::adapter::{Client, ConnectCallback, ServerMessageCallback};
 use losig_core::network::{ClientMessage, ServerMessage};
 use serde::{Deserialize, Serialize};
 use tungstenite::{Bytes, ClientHandshake, HandshakeError, Message, WebSocket, http::Request};
@@ -21,6 +21,7 @@ type Ws = WebSocket<TcpStream>;
 
 pub struct WsClient {
     callback: Arc<Mutex<ServerMessageCallback>>,
+    on_connect: Arc<Mutex<ConnectCallback>>,
     sender: Option<Sender<ClientMessage>>,
 }
 
@@ -28,6 +29,7 @@ impl WsClient {
     pub fn new() -> Self {
         Self {
             callback: Arc::new(Mutex::new(Box::new(|_| {}))),
+            on_connect: Arc::new(Mutex::new(Box::new(|| {}))),
             sender: None,
         }
     }
@@ -51,24 +53,39 @@ impl Client for WsClient {
         *self.callback.lock().unwrap() = callback;
     }
 
+    fn set_on_connect(&mut self, callback: ConnectCallback) {
+        *self.on_connect.lock().unwrap() = callback;
+    }
+
     fn run(&mut self) {
         // 1. creates the necessary channels
         let (s_tx, s_rx) = channel::<ServerMessage>();
         let (c_tx, c_rx) = channel::<ClientMessage>();
 
-        self.sender = Some(c_tx);
+        self.sender = Some(c_tx.clone());
 
         // 2. 1 thread for handling the WS
+        let on_connect = self.on_connect.clone();
         spawn(move || {
             let mut socket: Option<Ws> = None;
+            let mut connected = false;
             loop {
                 let Some(ref mut socket) = socket else {
                     match connect() {
-                        Ok(s) => socket = Some(s),
+                        Ok(s) => {
+                            socket = Some(s);
+                            connected = false; // Reset connected flag for new socket
+                        }
                         Err(e) => error!("{e}"),
                     }
                     continue;
                 };
+
+                // Call on_connect callback when first connected
+                if !connected {
+                    (on_connect.lock().unwrap())();
+                    connected = true;
+                }
 
                 if let Ok(server_message) = handle_read::<ServerMessage>(socket) {
                     let _ = s_tx.send(server_message);

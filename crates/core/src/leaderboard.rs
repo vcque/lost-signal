@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Leaderboard {
     entries: Vec<LeaderboardEntry>,
 }
@@ -31,7 +31,7 @@ impl Default for Leaderboard {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LeaderboardEntry {
     pub name: String,
     pub deaths: u32,

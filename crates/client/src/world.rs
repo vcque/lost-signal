@@ -103,7 +103,6 @@ impl WorldView {
 
     /// Resets the world. Mostly after a respawn or a goal reached.
     pub fn clear(&mut self) {
-        self.stage = 0;
         self.history = vec![];
         self.past_state = WorldState::new();
         self.current_state = WorldState::new();

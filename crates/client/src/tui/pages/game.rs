@@ -556,7 +556,7 @@ impl HelpWidget {
             Line::from(Span::styled("CONTROLS", header_style)),
             Line::from("Movement: Arrow Keys, Vi keys (hjkl), or Numpad (8246 + yubn7913)"),
             Line::from("Wait: 5 or Space  |  Respawn: r  |  Help: ?"),
-            Line::from("Sense Controls (Ctrl + Key): Up/Down=Select, Left/Right=Adjust"),
+            Line::from("Sense Controls (Shift + Key): Up/Down=Select, Left/Right=Adjust"),
             Line::from(""),
             Line::from(Span::styled("SENSES", header_style)),
             Line::from("Self: Monitor your integrity"),

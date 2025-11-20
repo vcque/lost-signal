@@ -172,7 +172,7 @@ impl Component for GamePage {
             KeyCode::Char('9') | KeyCode::Char('u') => Some(Action::Move(Direction::UpRight)),
             KeyCode::Char('1') | KeyCode::Char('b') => Some(Action::Move(Direction::DownLeft)),
             KeyCode::Char('3') | KeyCode::Char('n') => Some(Action::Move(Direction::DownRight)),
-            KeyCode::Char('5') => Some(Action::Wait),
+            KeyCode::Char('5') | KeyCode::Char(' ') => Some(Action::Wait),
             KeyCode::Char('r') => Some(Action::Spawn),
             KeyCode::Char('?') => {
                 game_state.show_help = true;
@@ -554,18 +554,19 @@ impl HelpWidget {
         let header_style = Style::default().fg(Color::Yellow).bold();
         let help_text = vec![
             Line::from(Span::styled("CONTROLS", header_style)),
-            Line::from("Movement: Arrow Keys, Vi keys (hjkl), or Numpad (8246 + yubn7913)"),
-            Line::from("Wait: 5 or Space  |  Respawn: r  |  Help: ?"),
+            Line::from("Movement: Arrow Keys, Vi keys (hjklyubn), or Numpad (8246 + 7913)"),
+            Line::from("Wait: 5 or Space |  Respawn: r  |  Help: ?"),
             Line::from("Sense Controls (Shift + Key): Up/Down=Select, Left/Right=Adjust"),
             Line::from(""),
             Line::from(Span::styled("SENSES", header_style)),
             Line::from("Self: Monitor your integrity"),
             Line::from("Terrain: See nearby tiles (radius)"),
             Line::from("Danger: Detect threats (radius)"),
-            Line::from("Goal: Detect the orb"),
+            Line::from("Orb: Detect your goal"),
             Line::from(""),
             Line::from(Span::styled("SIGNAL", header_style)),
             Line::from("Each sense costs signal points per turn"),
+            Line::from("Pylons restore your signal"),
             Line::from("Manage your signal budget carefully"),
             Line::from(""),
             Line::from(Span::styled("GOAL", header_style)),

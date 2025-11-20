@@ -2,9 +2,12 @@ use std::{io::Stdout, time::Duration};
 
 use anyhow::Result;
 use crossterm::event as ct;
-use losig_client::tui_adapter::{
-    Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MediaKeyCode,
-    ModifierKeyCode, MouseButton, MouseEvent, MouseEventKind, TuiApp,
+use losig_client::{
+    adapter::TuiAdapter,
+    tui_adapter::{
+        Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MediaKeyCode,
+        ModifierKeyCode, MouseButton, MouseEvent, MouseEventKind, TuiApp,
+    },
 };
 use ratatui::{
     Terminal,
@@ -12,30 +15,23 @@ use ratatui::{
     widgets::{Block, Widget},
 };
 
-pub struct CrosstermAdapter<T: TuiApp> {
-    app: T,
+pub struct CrosstermAdapter {
     show_logs: bool,
 }
 
-impl<T: TuiApp> CrosstermAdapter<T> {
-    pub fn new(app: T) -> CrosstermAdapter<T> {
-        CrosstermAdapter {
-            app,
-            show_logs: false,
-        }
+impl CrosstermAdapter {
+    pub fn new() -> Self {
+        CrosstermAdapter { show_logs: false }
     }
 
-    pub fn run(self) {
-        let mut terminal = ratatui::init();
-        let result = self.do_run(&mut terminal);
-        ratatui::restore();
-        println!("Tui ended: {result:?}");
-    }
-
-    pub fn do_run(mut self, terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
+    pub fn do_run<T: TuiApp + 'static>(
+        mut self,
+        terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+        mut app: T,
+    ) -> Result<()> {
         loop {
             terminal.draw(|f| {
-                self.app.render(f);
+                app.render(f);
 
                 if self.show_logs {
                     let logger_widget = tui_logger::TuiLoggerWidget::default().block(
@@ -63,14 +59,23 @@ impl<T: TuiApp> CrosstermAdapter<T> {
                     }
                 }
 
-                self.app.handle_events(convert_event(event));
+                app.handle_events(convert_event(event));
 
-                if self.app.should_exit() {
+                if app.should_exit() {
                     break;
                 }
             }
         }
         Ok(())
+    }
+}
+
+impl TuiAdapter for CrosstermAdapter {
+    fn run<T: TuiApp + 'static>(self, tui: T) {
+        let mut terminal = ratatui::init();
+        let result = self.do_run(&mut terminal, tui);
+        ratatui::restore();
+        println!("Tui ended: {result:?}");
     }
 }
 

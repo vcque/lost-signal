@@ -1,8 +1,13 @@
-use std::sync::{Arc, Mutex};
-use losig_core::sense::{SelfSense, Senses, TerrainSense};
+use losig_core::{
+    leaderboard::Leaderboard,
+    network::{ClientMessage, CommandMessage},
+    sense::{SelfSense, Senses, TerrainSense},
+    types::Action,
+};
 use ratatui::widgets::ListState;
+use std::sync::{Arc, Mutex};
 
-use crate::{game::GameSim, sense::ClientSense};
+use crate::{adapter::Client, sense::ClientSense, world::WorldView};
 
 pub struct TuiState {
     pub external: ExternalState,
@@ -13,7 +18,25 @@ pub struct TuiState {
 }
 
 pub struct ExternalState {
-    pub game: Arc<Mutex<GameSim>>,
+    pub client: Arc<dyn Client>,
+    pub world: Arc<Mutex<WorldView>>,
+    pub leaderboard: Arc<Mutex<Leaderboard>>,
+}
+
+impl ExternalState {
+    pub fn act(&self, action: Action, senses: Senses) {
+        let mut world = self.world.lock().unwrap();
+        world.act(&action, &senses);
+        self.client.send(ClientMessage {
+            avatar_id: Some(world.avatar_id),
+            content: losig_core::network::ClientMessageContent::Command(CommandMessage {
+                avatar_id: world.avatar_id,
+                turn: world.turn,
+                action,
+                senses,
+            }),
+        });
+    }
 }
 
 #[derive(Debug)]
@@ -66,3 +89,4 @@ impl Default for GameState {
         }
     }
 }
+

@@ -1,3 +1,4 @@
+pub mod adapter;
 pub mod game;
 pub mod logs;
 pub mod sense;

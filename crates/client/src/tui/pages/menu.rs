@@ -52,12 +52,7 @@ impl Component for MenuPage {
                 if let Some(selection) = list_state.selected().map(|i| MENU_OPTIONS[i]) {
                     match selection {
                         MenuOption::Start => {
-                            state
-                                .external
-                                .game
-                                .lock()
-                                .unwrap()
-                                .act(Action::Spawn, Senses::default());
+                            state.external.act(Action::Spawn, Senses::default());
                         }
                         MenuOption::Continue => {}
                     }

@@ -4,38 +4,33 @@ use anyhow::{Result, bail};
 use gloo_timers::callback::Interval;
 use js_sys::ArrayBuffer;
 use log::{debug, error};
+use losig_client::adapter::{Client, ServerMessageCallback};
 use losig_core::network::{ClientMessage, ServerMessage};
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{BinaryType, MessageEvent, WebSocket, console};
 
-type Callback = Box<dyn Fn(ServerMessage) + Send>;
-
 #[derive(Clone)]
-pub struct WsServer {
-    on_recv: Rc<RefCell<Callback>>,
+pub struct WsClient {
+    on_recv: Rc<RefCell<ServerMessageCallback>>,
     socket: Rc<RefCell<Option<WebSocket>>>,
     timer: Rc<RefCell<Option<Interval>>>,
 }
 
 /// It's okay, we're targeting wasm
-unsafe impl Send for WsServer {}
+unsafe impl Send for WsClient {}
 
-impl WsServer {
+impl WsClient {
     pub fn new() -> Self {
-        WsServer {
+        WsClient {
             on_recv: Rc::new(RefCell::new(Box::new(|_| {}))),
             socket: Rc::new(RefCell::new(None)),
             timer: Rc::new(RefCell::new(None)),
         }
     }
 
-    pub fn set_callback(&mut self, callback: Callback) {
-        *self.on_recv.borrow_mut() = callback;
-    }
-
-    pub fn init(&mut self) {
+    pub fn init(&self) {
         let _ = self.connect();
-        let mut ws = self.clone();
+        let ws = self.clone();
         let timer = Interval::new(5000, move || {
             if ws.socket.borrow().is_none() {
                 let _ = ws.connect();
@@ -44,7 +39,7 @@ impl WsServer {
         *self.timer.borrow_mut() = Some(timer);
     }
 
-    pub fn connect(&mut self) -> Result<()> {
+    pub fn connect(&self) -> Result<()> {
         let socket = match WebSocket::new("/ws") {
             Ok(ws) => ws,
             Err(e) => bail!("Couldn't start ws: {e:?}"),
@@ -98,13 +93,29 @@ impl WsServer {
         Ok(())
     }
 
-    pub fn send(&mut self, msg: ClientMessage) -> Result<()> {
+    pub fn send_inner(&self, msg: ClientMessage) -> Result<()> {
         let data = bincode::serialize(&msg)?;
         let socket = self.socket.borrow();
         let socket = socket.as_ref().unwrap();
         match socket.send_with_u8_array(&data) {
             Ok(_) => Ok(()),
             Err(e) => bail!("{e:?}"),
+        }
+    }
+}
+
+impl Client for WsClient {
+    fn run(&mut self) {
+        self.init();
+    }
+
+    fn set_callback(&mut self, callback: ServerMessageCallback) {
+        *self.on_recv.borrow_mut() = callback;
+    }
+
+    fn send(&self, message: ClientMessage) {
+        if let Err(e) = self.send_inner(message) {
+            error!("Could not send message: {e}");
         }
     }
 }

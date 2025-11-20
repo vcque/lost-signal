@@ -1,31 +1,25 @@
-use std::{
-    cell::RefCell,
-    io::{self},
-    rc::Rc,
-};
+use std::{cell::RefCell, io::Result, rc::Rc};
 
+use log::error;
 use ratatui::Terminal;
 use ratzilla::{WebGl2Backend, WebRenderer, event as rz};
 
-use losig_client::tui_adapter::{
-    Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, TuiApp,
+use losig_client::{
+    adapter::TuiAdapter,
+    tui_adapter::{Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, TuiApp},
 };
 
-pub struct RatzillaAdapter<T> {
-    app: T,
-}
+pub struct RatzillaAdapter {}
 
-impl<T: TuiApp + 'static> RatzillaAdapter<T> {
-    pub fn new(app: T) -> RatzillaAdapter<T> {
-        RatzillaAdapter { app }
+impl RatzillaAdapter {
+    pub fn new() -> Self {
+        RatzillaAdapter {}
     }
-
-    pub fn run(self) -> io::Result<()> {
+    fn run_inner<T: TuiApp + 'static>(self, app: T) -> Result<()> {
         let backend = WebGl2Backend::new()?;
         let terminal = Terminal::new(backend)?;
 
-        let app = Rc::new(RefCell::new(self.app));
-
+        let app = Rc::new(RefCell::new(app));
         let event_app = Rc::clone(&app);
 
         terminal.on_key_event(move |key_event| {
@@ -39,6 +33,14 @@ impl<T: TuiApp + 'static> RatzillaAdapter<T> {
         });
 
         Ok(())
+    }
+}
+
+impl TuiAdapter for RatzillaAdapter {
+    fn run<T: TuiApp + 'static>(self, app: T) {
+        if let Err(e) = self.run_inner(app) {
+            error!("Couldn't start tui: {e}");
+        }
     }
 }
 

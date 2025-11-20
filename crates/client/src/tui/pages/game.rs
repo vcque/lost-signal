@@ -40,9 +40,8 @@ impl Component for GamePage {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         {
-            let game = state.external.game.lock().unwrap();
             let [world_a, log_a, _senses_a] = Self::layout(area);
-            let world = game.world();
+            let world = &state.external.world.lock().unwrap();
             let world_widget = WorldViewWidget { world };
 
             let world_title = Line::from(Span::raw(format!(
@@ -114,29 +113,31 @@ impl Component for GamePage {
             return false;
         };
 
-        let mut game = state.external.game.lock().unwrap();
-        if game.world().winner {
-            return false;
+        {
+            let world = state.external.world.lock().unwrap();
+            if world.winner {
+                return false;
+            }
         }
 
-        let state = &mut state.game;
+        let game_state = &mut state.game;
         if key.modifiers.control {
             match key.code {
                 KeyCode::Up => {
-                    if state.sense_selection > 0 {
-                        state.sense_selection -= 1;
+                    if game_state.sense_selection > 0 {
+                        game_state.sense_selection -= 1;
                     }
                 }
                 KeyCode::Down => {
-                    if state.sense_selection < 4 {
-                        state.sense_selection += 1;
+                    if game_state.sense_selection < 4 {
+                        game_state.sense_selection += 1;
                     }
                 }
                 KeyCode::Right => {
-                    state.selected_sense_mut().incr();
+                    game_state.selected_sense_mut().incr();
                 }
                 KeyCode::Left => {
-                    state.selected_sense_mut().decr();
+                    game_state.selected_sense_mut().decr();
                 }
                 _ => {}
             }
@@ -153,13 +154,13 @@ impl Component for GamePage {
                 KeyCode::Char('5') => Some(Action::Wait),
                 KeyCode::Char('r') => Some(Action::Spawn),
                 KeyCode::Char('h') => {
-                    state.show_help = true;
+                    game_state.show_help = true;
                     return true;
                 }
                 _ => None,
             };
             if let Some(action) = action {
-                game.act(action, state.senses.clone());
+                state.external.act(action, game_state.senses.clone());
                 return true;
             }
         }

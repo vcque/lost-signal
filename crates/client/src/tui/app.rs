@@ -1,14 +1,16 @@
-use std::sync::{Arc, Mutex};
+use losig_core::leaderboard::Leaderboard;
 use ratatui::Frame;
+use std::sync::{Arc, Mutex};
 
 use crate::{
-    game::GameSim,
+    adapter::Client,
     tui::{
         component::Component,
         pages::{GamePage, MenuPage},
         state::{ExternalState, GameState, MenuState, PageSelection, TuiState},
     },
     tui_adapter::{Event, TuiApp},
+    world::WorldView,
 };
 
 pub struct GameTui {
@@ -16,10 +18,18 @@ pub struct GameTui {
 }
 
 impl GameTui {
-    pub fn new(game: Arc<Mutex<GameSim>>) -> Self {
+    pub fn new(
+        client: Arc<dyn Client>,
+        world: Arc<Mutex<WorldView>>,
+        leaderboard: Arc<Mutex<Leaderboard>>,
+    ) -> Self {
         Self {
             state: TuiState {
-                external: ExternalState { game },
+                external: ExternalState {
+                    client,
+                    world,
+                    leaderboard,
+                },
                 menu: MenuState::default(),
                 game: GameState::default(),
                 page: PageSelection::Menu,
@@ -50,3 +60,4 @@ impl TuiApp for GameTui {
         self.state.should_exit
     }
 }
+

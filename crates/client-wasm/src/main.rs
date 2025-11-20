@@ -1,15 +1,9 @@
-use std::{
-    io,
-    sync::{Arc, Mutex},
-};
+use std::io;
 
-use crate::{ratzilla_adapter::RatzillaAdapter, ws::WsServer};
+use crate::{ratzilla_adapter::RatzillaAdapter, ws::WsClient};
 use log::Level;
-use losig_client::{game::GameSim, tui::GameTui};
-use losig_core::{
-    network::{ClientMessage, ServerMessage},
-    types::AvatarId,
-};
+use losig_client::adapter::Adapter;
+use losig_core::types::AvatarId;
 use wasm_bindgen::JsValue;
 use web_sys::{Url, UrlSearchParams, window};
 
@@ -19,47 +13,17 @@ mod ws;
 fn main() -> io::Result<()> {
     console_log::init_with_level(Level::Debug).unwrap();
 
-    let id = get_avatar_id().unwrap_or_else(generate_avatar_id);
-    update_history(id);
+    let avatar_id = get_avatar_id().unwrap_or_else(generate_avatar_id);
+    update_history(avatar_id);
 
-    let game = GameSim::new(id);
-    let game = Arc::new(Mutex::new(game));
-
-    let mut server = WsServer::new();
-    {
-        let game = game.clone();
-        server.set_callback(Box::new(move |msg| {
-            let mut game = game.lock().unwrap();
-            match msg {
-                ServerMessage::Senses(s) => game.update(s.turn, s.senses),
-                ServerMessage::Leaderboard(_) => {
-                    // TODO: update leaderboard
-                }
-            }
-        }));
+    let client = WsClient::new();
+    let tui_adapter = RatzillaAdapter::new();
+    Adapter {
+        avatar_id,
+        client,
+        tui_adapter,
     }
-
-    server.init();
-    let server = Arc::new(Mutex::new(server));
-    {
-        let mut game = game.lock().unwrap();
-        game.set_callback(Box::new(move |cmd| {
-            let msg = ClientMessage {
-                avatar_id: Some(cmd.avatar_id),
-                content: losig_core::network::ClientMessageContent::Command(cmd),
-            };
-
-            server
-                .lock()
-                .unwrap()
-                .send(msg)
-                .expect("Cannot send message");
-        }));
-    }
-
-    let tui = GameTui::new(game);
-    let adapter = RatzillaAdapter::new(tui);
-    adapter.run()?;
+    .run();
     Ok(())
 }
 

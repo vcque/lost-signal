@@ -14,7 +14,7 @@ const START_POS: Position = Position {
 
 #[derive(Debug, Clone)]
 pub struct WorldView {
-    pub id: AvatarId,
+    pub avatar_id: AvatarId,
     pub winner: bool,
     pub stage: usize,
     pub turn: u64,
@@ -31,7 +31,7 @@ impl WorldView {
         logs.add(1, ClientLog::Help);
 
         Self {
-            id,
+            avatar_id: id,
             winner: false,
             stage: 0,
             turn: 1,

@@ -23,11 +23,7 @@ impl Leaderboard {
 
 impl Default for Leaderboard {
     fn default() -> Self {
-        let mut result = Leaderboard::new();
-        result.add(LeaderboardEntry::new("ponobo".to_owned(), 3, 1237));
-        result.add(LeaderboardEntry::new("kiraill".to_owned(), 12, 4660));
-        result.add(LeaderboardEntry::new("cabri".to_owned(), 5, 1801));
-        result
+        Self::new()
     }
 }
 
@@ -51,9 +47,9 @@ impl LeaderboardEntry {
     }
 
     fn score(deaths: u32, turns: u32) -> u32 {
-        let death_score = 100_u32.saturating_sub(deaths);
-        let turn_score = 100_u32.saturating_sub(turns.isqrt());
+        let death_score = 100_u32.saturating_sub(deaths) * 100;
+        let turn_score = 2000_u32.saturating_sub(turns) * 5;
 
-        (death_score + turn_score) * 100
+        death_score + turn_score
     }
 }

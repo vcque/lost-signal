@@ -2,15 +2,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     leaderboard::Leaderboard,
-    sense::{SenseInfo, Senses},
-    types::{Action, AvatarId},
+    sense::{Senses, SensesInfo},
+    types::{Action, AvatarId, Turn},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandMessage {
     pub avatar_id: AvatarId,
     /// The avatar's turn. Used to keep track of which response corresponds to which command
-    pub turn: u64,
+    pub turn: Turn,
     /// Action the avatar takes this tick
     pub action: Action,
     /// Info then avatar wants to gather this tick
@@ -18,11 +18,13 @@ pub struct CommandMessage {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SenseInfoMessage {
+pub struct TurnResultMessage {
     /// The avatar's turn. Used to Keep track of which resposne corresponds to which command
-    pub turn: u64,
     pub avatar_id: AvatarId,
-    pub senses: SenseInfo,
+    pub turn: Turn,
+    pub stage: u8,
+    pub winner: bool,
+    pub info: SensesInfo,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -41,5 +43,5 @@ pub enum ClientMessageContent {
 #[derive(Serialize, Deserialize)]
 pub enum ServerMessage {
     Leaderboard(Leaderboard),
-    Senses(SenseInfoMessage),
+    Turn(TurnResultMessage),
 }

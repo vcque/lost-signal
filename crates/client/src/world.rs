@@ -1,7 +1,8 @@
 use log::warn;
 use losig_core::{
-    sense::{SenseInfo, Senses},
-    types::{Action, AvatarId, Offset, Position, Tile},
+    network::TurnResultMessage,
+    sense::SensesInfo,
+    types::{Action, AvatarId, Offset, Position, Tile, Tiles, Turn},
 };
 
 use crate::logs::{ClientLog, GameLogs};
@@ -16,8 +17,8 @@ const START_POS: Position = Position {
 pub struct WorldView {
     pub avatar_id: AvatarId,
     pub winner: bool,
-    pub stage: usize,
-    pub turn: u64,
+    pub stage: u8,
+    pub turn: Turn,
 
     history: Vec<WorldHistory>,
     past_state: WorldState,
@@ -42,14 +43,13 @@ impl WorldView {
         }
     }
 
-    pub fn act(&mut self, action: &Action, senses: &Senses) {
+    pub fn act(&mut self, action: &Action) {
         if matches!(action, Action::Spawn) {
             self.clear();
         }
 
         let history = WorldHistory {
             action: *action,
-            senses: senses.clone(),
             info: None,
         };
         self.current_state.update(&history);
@@ -64,23 +64,29 @@ impl WorldView {
         self.turn += 1;
     }
 
-    pub fn update(&mut self, turn: u64, info: SenseInfo) {
+    pub fn update(&mut self, turn_result: TurnResultMessage) {
+        let TurnResultMessage {
+            avatar_id: _,
+            turn,
+            stage,
+            winner,
+            info,
+        } = turn_result;
+
         let diff = turn.abs_diff(self.turn);
         // Update global info
-        if diff == 0
-            && let Some(ref selfi) = info.selfi
-        {
-            if self.winner != selfi.winner {
+        if diff == 0 {
+            if self.winner != winner {
                 self.logs.add(turn, ClientLog::Win);
             }
-            self.winner = selfi.winner;
+            self.winner = winner;
 
             if !self.winner {
-                if self.stage != selfi.stage {
+                if self.stage != stage {
                     self.logs.add(turn, ClientLog::NextStage);
                     self.clear();
                 }
-                self.stage = selfi.stage;
+                self.stage = stage;
             }
         }
         match diff {
@@ -112,11 +118,8 @@ impl WorldView {
         &self.current_state
     }
 
-    pub fn last_info(&self) -> SenseInfo {
-        self.history
-            .last()
-            .and_then(|h| h.info.clone())
-            .unwrap_or_default()
+    pub fn last_info(&self) -> Option<&SensesInfo> {
+        self.history.last().and_then(|h| h.info.as_ref())
     }
 
     fn rebuild_current_state(&mut self) {
@@ -133,15 +136,13 @@ impl WorldView {
 #[derive(Debug, Clone)]
 struct WorldHistory {
     action: Action,
-    senses: Senses,
-    info: Option<SenseInfo>,
+    info: Option<SensesInfo>,
 }
 
 #[derive(Debug, Clone)]
 pub struct WorldState {
     pub tiles: [Tile; VIEW_SIZE * VIEW_SIZE],
     pub broken: bool,
-    pub signal: usize,
     pub position: Position,
     pub incoherent: bool,
 }
@@ -151,7 +152,6 @@ impl WorldState {
         Self {
             tiles: [Tile::Unknown; VIEW_SIZE * VIEW_SIZE],
             broken: false,
-            signal: 100,
             position: START_POS,
             incoherent: false,
         }
@@ -179,13 +179,17 @@ impl WorldState {
         self.update_action(&history.action);
 
         if let Some(ref info) = history.info {
-            self.update_info(info);
-        }
+            if let Some(ref info) = info.selfi {
+                self.broken = info.broken;
+            }
 
-        self.apply_pylon_effect();
-        let cost = history.senses.signal_cost();
-        if self.signal >= cost {
-            self.signal -= cost;
+            if let Some(ref info) = info.sight {
+                self.update_tiles(self.position, &info.tiles);
+            }
+
+            if let Some(ref info) = info.touch {
+                self.update_tiles(self.position, &info.tiles);
+            }
         }
     }
 
@@ -207,51 +211,36 @@ impl WorldState {
         }
     }
 
-    fn apply_pylon_effect(&mut self) {
-        for x in -1..2 {
-            for y in -1..2 {
-                let offset = Offset { x, y };
-                let position = self.position + offset;
-                let tile = self.tile_at(position);
-                if matches!(tile, Tile::Pylon) {
-                    self.signal = 100;
-                }
+    fn update_tiles(&mut self, viewer: Position, tiles: &Tiles) {
+        let center = Position {
+            x: tiles.width / 2,
+            y: tiles.height / 2,
+        };
+
+        for (src_i, &tile) in tiles.buf.iter().enumerate() {
+            if tile == Tile::Unknown {
+                continue;
             }
-        }
-    }
 
-    fn update_info(&mut self, info: &SenseInfo) {
-        if let Some(ref terrain) = info.terrain {
-            let center = Position {
-                x: terrain.radius,
-                y: terrain.radius,
-            };
+            let src_x = src_i % tiles.width;
+            let src_y = src_i / tiles.width;
 
-            let iradius = terrain.radius as isize;
-            let terrain_size = 2 * terrain.radius + 1;
+            let world_x = (src_x as i32) - (center.x as i32) + (viewer.x as i32);
+            let world_y = (src_y as i32) - (center.y as i32) + (viewer.y as i32);
 
-            for x in (-iradius)..(iradius + 1) {
-                for y in (-iradius)..(iradius + 1) {
-                    let offset = Offset { x, y };
-                    let info_pos = center + offset;
-                    let tile = terrain.tiles[info_pos.as_index(terrain_size)];
+            if world_x >= 0 && world_y >= 0 {
+                let world_x = world_x as usize;
+                let world_y = world_y as usize;
 
-                    if !matches!(tile, Tile::Unknown) {
-                        let world_pos = self.position + offset;
-                        let index = world_pos.as_index(VIEW_SIZE);
-                        let old_tile = self.tiles[index];
-                        if old_tile != Tile::Unknown && old_tile != tile {
-                            self.incoherent = true;
-                        }
-                        self.tiles[index] = tile;
+                if world_x < VIEW_SIZE && world_y < VIEW_SIZE {
+                    let dest_i = world_x + world_y * VIEW_SIZE;
+                    let dest_tile = self.tiles[dest_i];
+                    if dest_tile != Tile::Unknown && tile != dest_tile {
+                        self.incoherent = true;
                     }
+                    self.tiles[dest_i] = tile;
                 }
             }
-        }
-
-        if let Some(ref selfs) = info.selfi {
-            self.broken = selfs.broken;
-            self.signal = selfs.signal;
         }
     }
 }

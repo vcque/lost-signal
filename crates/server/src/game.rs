@@ -1,7 +1,8 @@
+use bounded_integer::BoundedU8;
 use log::*;
 use losig_core::{
-    network::{CommandMessage, SenseInfoMessage, ServerMessage},
-    sense::{SelfSense, SenseInfo, Senses, TerrainSense},
+    network::{CommandMessage, ServerMessage, TurnResultMessage},
+    sense::{Senses, SensesInfo},
     types::{Action, Avatar, AvatarId, Offset, Position, Tile},
 };
 
@@ -25,15 +26,18 @@ impl Game {
         let world = &mut *self.services.world.lock().unwrap();
         let senses = enact_tick(world, &command);
         let info = senses.and_then(|s| gather_info(world, command.avatar_id, &s));
+        let avatar = world.find_avatar(command.avatar_id);
         if let Some(info) = info {
-            let msg = SenseInfoMessage {
+            let msg = TurnResultMessage {
                 avatar_id: command.avatar_id,
                 turn: command.turn,
-                senses: info,
+                stage: avatar.map(|a| a.stage as u8).unwrap_or_default(),
+                winner: avatar.map(|a| a.winner).unwrap_or_default(),
+                info,
             };
             let msg = ServerMessageWithRecipient {
                 recipient: Recipient::Single(command.avatar_id),
-                message: ServerMessage::Senses(msg),
+                message: ServerMessage::Turn(msg),
             };
             self.services.sender.send(msg).unwrap();
         }
@@ -51,7 +55,7 @@ pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
             avatar.turns += 1; // Increment turn count
             let additional_senses = enact_action(world, &cmd.action, &mut avatar);
             all_senses.push(additional_senses);
-            let cost = cmd.senses.signal_cost();
+            let cost = cmd.senses.cost();
             if avatar.signal >= cost {
                 avatar.signal -= cost;
                 all_senses.push(cmd.senses.clone());
@@ -63,7 +67,7 @@ pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
             if matches!(cmd.action, Action::Spawn) {
                 spawn_avatar(world, cmd.avatar_id);
                 all_senses.push(Senses {
-                    terrain: Some(TerrainSense { radius: 3 }),
+                    sight: BoundedU8::const_new::<3>(),
                     ..Default::default()
                 });
             }
@@ -124,7 +128,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
         avatar.position = spawn_position(stage, avatar.id);
         avatar.signal = 100;
         avatar.broken = false;
-        result.terrain = Some(TerrainSense { radius: 3 });
+        result.sight = BoundedU8::const_new::<3>();
         return result;
     }
 
@@ -143,7 +147,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
 
             if avatar.position == stage.orb {
                 stage.move_orb();
-                result.selfs = Some(SelfSense {});
+                result.selfs = true;
                 if avatar.stage == world.stages.len() - 1 {
                     // Player has won all stages
                     avatar.winner = true;
@@ -177,12 +181,8 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
     result
 }
 
-fn gather_info(world: &World, avatar_id: AvatarId, senses: &Senses) -> Option<SenseInfo> {
+fn gather_info(world: &World, avatar_id: AvatarId, senses: &Senses) -> Option<SensesInfo> {
     let avatar = world.find_avatar(avatar_id)?;
-    if avatar.winner {
-        return Some(SenseInfo::win());
-    }
-
     let stage = world.stages.get(avatar.stage)?;
     let senses = sense::gather(senses, avatar, stage);
     Some(senses)

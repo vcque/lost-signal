@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use log::error;
-use losig_core::types::{Avatar, AvatarId, Foe, Position, Tile};
+use losig_core::types::{Avatar, AvatarId, Foe, Position, Tile, Tiles};
 
 #[derive(Debug)]
 pub struct World {
@@ -70,41 +69,6 @@ impl Stage {
                 self.orb = position;
                 break;
             }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Tiles {
-    pub buf: Vec<Tile>,
-    pub width: usize,
-    pub height: usize,
-}
-
-impl Tiles {
-    pub fn empty(width: usize, height: usize) -> Self {
-        Tiles {
-            buf: vec![Tile::Unknown; width * height],
-            width,
-            height,
-        }
-    }
-
-    pub fn at(&self, position: Position) -> Tile {
-        let index = position.x + self.width * position.y;
-        if index >= self.buf.len() {
-            Tile::Unknown
-        } else {
-            self.buf[index]
-        }
-    }
-
-    pub fn set(&mut self, position: Position, tile: Tile) {
-        let index = position.x + self.width * position.y;
-        if index < self.buf.len() {
-            self.buf[index] = tile;
-        } else {
-            error!("Trying to set tiles oob: {:?}", position);
         }
     }
 }

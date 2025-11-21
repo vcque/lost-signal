@@ -137,6 +137,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bounded-integer"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddfb439fc02606b667a4422a1667bfa6e4574223f7f6062518a41d399697a657"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -753,6 +762,7 @@ dependencies = [
 name = "losig-core"
 version = "0.1.0"
 dependencies = [
+ "bounded-integer",
  "serde",
 ]
 
@@ -762,6 +772,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bincode",
+ "bounded-integer",
  "crossterm 0.29.0",
  "fraction",
  "log",

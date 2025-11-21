@@ -1,5 +1,5 @@
 use losig_core::{
-    sense::{SenseInfo, Senses},
+    sense::{SenseStrength, Senses, SensesInfo},
     types::{Action, Direction, Offset, Tile},
 };
 use ratatui::{
@@ -73,19 +73,21 @@ impl Component for GamePage {
                     selection: game_state.sense_selection,
                 };
 
-                let cost = game_state.senses.signal_cost();
-                let cost_style = if cost > world.current_state.signal {
+                let cost = game_state.senses.cost();
+                let signal = world
+                    .last_info()
+                    .and_then(|info| info.selfi.as_ref())
+                    .map(|selfi| selfi.signal);
+                let cost_style = if signal.is_some_and(|s| s < cost) {
                     Style::default().bold().bg(Color::Red)
                 } else {
                     Style::default()
                 };
 
-                let title = Line::from(format!(
-                    "Senses - cost: {} / {}",
-                    cost,
-                    world.current_state().signal
-                ))
-                .alignment(ratatui::layout::Alignment::Center);
+                let signal_str = signal.map(|s| s.to_string()).unwrap_or("??".to_owned());
+
+                let title = Line::from(format!(" Senses - cost: {} / {} ", cost, signal_str))
+                    .alignment(ratatui::layout::Alignment::Center);
 
                 let senses_wigdet = Block::default()
                     .borders(Borders::TOP)
@@ -141,10 +143,10 @@ impl Component for GamePage {
                     }
                 }
                 KeyCode::Right | KeyCode::Char('6') | KeyCode::Char('L') => {
-                    game_state.selected_sense_mut().incr();
+                    game_state.incr_sense();
                 }
                 KeyCode::Left | KeyCode::Char('4') | KeyCode::Char('H') => {
-                    game_state.selected_sense_mut().decr();
+                    game_state.decr_sense();
                 }
                 _ => {
                     consumed = false;
@@ -286,13 +288,13 @@ impl<'a> Widget for SenseWidget<'a> {
     }
 }
 
-struct SensesWidget {
+struct SensesWidget<'a> {
     senses: Senses,
-    info: SenseInfo,
+    info: Option<&'a SensesInfo>,
     selection: usize,
 }
 
-impl Widget for SensesWidget {
+impl<'a> Widget for SensesWidget<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
     where
         Self: Sized,
@@ -301,94 +303,53 @@ impl Widget for SensesWidget {
         let mut row_index = 0;
 
         let sense = self.senses.selfs;
-        let status = self.info.selfi.map(|selfi| {
+        let info = self.info.and_then(|i| i.selfi.as_ref());
+        let status = info.map(|selfi| {
             if selfi.broken {
-                Line::from("Broken").style(THEME.styles.danger)
+                Line::from("I'm not fine").style(THEME.styles.danger)
             } else {
-                Line::from("Intact")
+                Line::from("I'm fine")
             }
         });
 
-        let indicator = if sense.is_some() { "(+)" } else { "(-)" };
+        let indicator = if sense { "(+)" } else { "(-)" };
 
         SenseWidget {
             label: "Self",
             indicator,
             status,
             selected: self.selection == row_index,
-            active: sense.is_some(),
+            active: sense,
         }
         .render(rows[row_index], buf);
         row_index += 1;
 
-        let sense = self.senses.terrain;
-        let status = self
-            .info
-            .terrain
-            .map(|t| Line::from(format!("{} tiles", t.tiles.len())));
-        let indicator = match sense {
-            Some(t) => format!("({})", t.radius),
-            None => "(-)".to_owned(),
-        };
+        let sense = self.senses.touch;
+        let info = self.info.and_then(|i| i.touch.as_ref());
+        let status = info.map(|_| Line::from("Touching stuff"));
+        let indicator = if sense { "(+)" } else { "(-)" };
 
         SenseWidget {
-            label: "Terrain",
-            indicator: indicator.as_str(),
-            status,
-            selected: self.selection == row_index,
-            active: sense.is_some(),
-        }
-        .render(rows[row_index], buf);
-        row_index += 1;
-
-        let sense = self.senses.danger;
-        let status = self.info.danger.map(|prox| match prox.count {
-            0 => Line::from("Nothing"),
-            1 => Line::from("There is a threat nearby").style(THEME.styles.danger),
-            n => Line::from(format!("There are {} threats nearby", n)).style(THEME.styles.danger),
-        });
-
-        let indicator = match sense {
-            Some(s) => format!("({})", s.radius),
-            None => "(-)".to_owned(),
-        };
-
-        SenseWidget {
-            label: "Danger",
-            indicator: indicator.as_str(),
-            status,
-            selected: self.selection == row_index,
-            active: sense.is_some(),
-        }
-        .render(rows[row_index], buf);
-        row_index += 1;
-
-        let sense = self.senses.orb;
-        let status = self.info.orb.map(|orb| {
-            if orb.detected {
-                Line::from("I can feel it").style(THEME.styles.signal)
-            } else {
-                Line::from("Nothing")
-            }
-        });
-
-        let indicator = match sense {
-            Some(s) => match s.level {
-                losig_core::sense::SenseLevel::Minimum => "(+)",
-                losig_core::sense::SenseLevel::Low => "(++)",
-                losig_core::sense::SenseLevel::Medium => "(+++)",
-                losig_core::sense::SenseLevel::High => "(++++)",
-                losig_core::sense::SenseLevel::Maximum => "(+++++)",
-            },
-            None => "(-)",
-        };
-
-        SenseWidget {
-            label: "Orb",
+            label: "Touch",
             indicator,
             status,
             selected: self.selection == row_index,
-            active: sense.is_some(),
+            active: sense,
+        }
+        .render(rows[row_index], buf);
+        row_index += 1;
+
+        let sense = self.senses.sight;
+        let info = self.info.and_then(|i| i.sight.as_ref());
+        let status = info.map(|_| Line::from("Seeing stuff"));
+        let indicator = format!("({})", sense);
+
+        SenseWidget {
+            label: "Sight",
+            indicator: indicator.as_str(),
+            status,
+            selected: self.selection == row_index,
+            active: !sense.is_min(),
         }
         .render(rows[row_index], buf);
     }

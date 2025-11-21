@@ -1,208 +1,122 @@
+use bounded_integer::BoundedU8;
 use serde::{Deserialize, Serialize};
 
-use crate::types::Tile;
+use crate::types::{Offset, Tiles, Turn};
 
 /// Describe information that an avatar want retrieved for a given turn
 #[derive(Default, Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Senses {
-    /// Retrieve general info about the world
-    pub terrain: Option<TerrainSense>,
-    pub selfs: Option<SelfSense>,
-    pub danger: Option<DangerSense>,
-    pub orb: Option<OrbSense>,
+    pub selfs: bool,
+    pub touch: bool,
+    pub sight: BoundedU8<0, 10>,
 }
 
 impl Senses {
-    pub fn signal_cost(&self) -> usize {
-        let mut cost = 0;
-        cost += self.terrain.signal_cost();
-        cost += self.selfs.signal_cost();
-        cost += self.danger.signal_cost();
-        cost += self.orb.signal_cost();
-        cost
+    pub fn cost(&self) -> u8 {
+        let mut result = 0;
+        if self.selfs {
+            result += 1;
+        }
+        if self.touch {
+            result += 1;
+        }
+        if self.sight > 0 {
+            result += 1;
+            result += self.sight;
+        }
+
+        result
     }
 
-    pub fn merge(mut self, other: Self) -> Self {
-        if let Some(other_terrain) = other.terrain {
-            self.terrain = Some(match self.terrain {
-                Some(current) => {
-                    if other_terrain.radius > current.radius {
-                        other_terrain
-                    } else {
-                        current
-                    }
-                }
-                None => other_terrain,
-            });
-        }
-
-        if other.selfs.is_some() {
-            self.selfs = other.selfs;
-        }
-
-        if let Some(other_danger) = other.danger {
-            self.danger = Some(match self.danger {
-                Some(current) => {
-                    if other_danger.radius > current.radius {
-                        other_danger
-                    } else {
-                        current
-                    }
-                }
-                None => other_danger,
-            });
-        }
-
-        if let Some(other_orb) = other.orb {
-            self.orb = Some(match self.orb {
-                Some(current) => {
-                    if other_orb.level > current.level {
-                        other_orb
-                    } else {
-                        current
-                    }
-                }
-                None => other_orb,
-            });
-        }
-
+    pub fn merge(mut self, senses: Senses) -> Senses {
+        self.touch = bool::merge(senses.touch, self.touch);
+        self.selfs = bool::merge(senses.selfs, self.selfs);
+        self.sight = BoundedU8::merge(senses.sight, self.sight);
         self
     }
 }
 
-pub trait Sense {
-    type Info;
-    fn signal_cost(&self) -> usize;
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
+pub struct SensesInfo {
+    pub selfi: Option<SelfInfo>,
+    pub touch: Option<TouchInfo>,
+    pub sight: Option<SightInfo>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
-pub struct SenseInfo {
-    pub terrain: Option<TerrainInfo>,
-    pub selfi: Option<SelfInfo>,
-    pub danger: Option<DangerInfo>,
-    pub orb: Option<OrbInfo>,
-}
-
-impl SenseInfo {
-    pub fn win() -> Self {
-        Self {
-            selfi: Some(SelfInfo {
-                winner: true,
-                broken: false,
-                signal: 100,
-                stage: 0,
-            }),
-            ..SenseInfo::default()
-        }
-    }
-}
-
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy, PartialOrd, Ord)]
-pub enum SenseLevel {
-    Minimum,
-    Low,
-    Medium,
-    High,
-    Maximum,
-}
-
-impl SenseLevel {
-    pub fn range(&self) -> usize {
-        match self {
-            Self::Minimum => 3,
-            Self::Low => 6,
-            Self::Medium => 9,
-            Self::High => 12,
-            Self::Maximum => 15,
-        }
-    }
-}
-
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
-pub struct TerrainSense {
-    pub radius: usize,
-}
-
-impl Sense for TerrainSense {
-    type Info = TerrainInfo;
-    fn signal_cost(&self) -> usize {
-        let cost = 2 * self.radius + 1; // Number of tiles discovered
-        1 + cost * cost / 10
-    }
-}
-
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
-pub struct TerrainInfo {
-    pub radius: usize,
-    pub tiles: Vec<Tile>,
-}
-
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
-pub struct SelfSense {}
-
-impl Sense for SelfSense {
-    type Info = SelfInfo;
-    fn signal_cost(&self) -> usize {
-        1
-    }
-}
-
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct SelfInfo {
     pub broken: bool,
-    pub signal: usize,
-    pub winner: bool,
-    pub stage: usize,
+    pub signal: u8,
+    pub stage: u8,
+    pub turn: Turn,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
-pub struct DangerSense {
-    pub radius: usize,
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
+pub struct TouchInfo {
+    pub tiles: Tiles,
+    pub foes: Vec<Offset>,
+    pub orb: Option<Offset>,
 }
 
-impl Sense for DangerSense {
-    type Info = DangerInfo;
-    fn signal_cost(&self) -> usize {
-        let cost = self.radius + 1;
-        1 + cost * cost / 10
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
+pub struct SightInfo {
+    pub tiles: Tiles,
+    pub foes: Vec<Offset>,
+    pub orb: Option<Offset>,
+}
+
+pub trait SenseStrength: Eq + Sized {
+    fn max() -> Self;
+    fn min() -> Self;
+    fn decr(self) -> Self;
+    fn incr(self) -> Self;
+    fn merge(left: Self, right: Self) -> Self;
+
+    fn is_min(&self) -> bool {
+        *self == Self::min()
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
-pub struct DangerInfo {
-    pub radius: usize,
-    pub count: usize,
-}
+impl SenseStrength for bool {
+    fn max() -> Self {
+        true
+    }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
-pub struct OrbSense {
-    pub level: SenseLevel,
-}
+    fn min() -> Self {
+        false
+    }
 
-impl Sense for OrbSense {
-    type Info = OrbInfo;
-    fn signal_cost(&self) -> usize {
-        match self.level {
-            SenseLevel::Minimum => 1,
-            SenseLevel::Low => 2,
-            SenseLevel::Medium => 3,
-            SenseLevel::High => 4,
-            SenseLevel::Maximum => 5,
-        }
+    fn incr(self) -> Self {
+        true
+    }
+
+    fn decr(self) -> Self {
+        false
+    }
+
+    fn merge(left: Self, right: Self) -> Self {
+        left | right
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
-pub struct OrbInfo {
-    pub detected: bool,
-}
+impl<const MIN: u8, const MAX: u8> SenseStrength for BoundedU8<MIN, MAX> {
+    fn max() -> Self {
+        Self::const_new::<MAX>()
+    }
 
-impl<T: Sense> Sense for Option<T> {
-    type Info = Option<T::Info>;
-    fn signal_cost(&self) -> usize {
-        match self {
-            Some(s) => s.signal_cost(),
-            None => 0,
-        }
+    fn min() -> Self {
+        Self::const_new::<MIN>()
+    }
+
+    fn incr(self) -> Self {
+        self.saturating_add(1)
+    }
+
+    fn decr(self) -> Self {
+        self.saturating_sub(1)
+    }
+
+    fn merge(left: Self, right: Self) -> Self {
+        left.max(right)
     }
 }

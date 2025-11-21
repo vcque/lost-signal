@@ -31,7 +31,7 @@ pub enum Direction {
     Down,
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Default, PartialEq, Eq, Debug, Clone, Deserialize, Serialize, Copy)]
 pub struct Offset {
     pub x: isize,
     pub y: isize,
@@ -161,6 +161,8 @@ impl Tile {
     }
 }
 
+pub type Turn = u64;
+
 pub type AvatarId = u32;
 
 #[derive(Debug, Clone)]
@@ -170,13 +172,51 @@ pub struct Avatar {
     pub position: Position,
     pub broken: bool,
     /// Some kind of energy, it's called signal because that's the name of the game
-    pub signal: usize,
+    pub signal: u8,
     pub winner: bool,
     pub deaths: u32,
-    pub turns: u32,
+    pub turns: Turn,
 }
 
 #[derive(Debug, Clone)]
 pub struct Foe {
     pub position: Position,
+}
+
+#[derive(Default, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
+pub struct Tiles {
+    pub buf: Vec<Tile>,
+    pub width: usize,
+    pub height: usize,
+}
+
+impl Tiles {
+    pub fn empty(width: usize, height: usize) -> Self {
+        Tiles {
+            buf: vec![Tile::Unknown; width * height],
+            width,
+            height,
+        }
+    }
+
+    pub fn at(&self, position: Position) -> Tile {
+        let index = position.x + self.width * position.y;
+        if index >= self.buf.len() {
+            Tile::Unknown
+        } else {
+            self.buf[index]
+        }
+    }
+
+    pub fn set(&mut self, position: Position, tile: Tile) {
+        let index = position.x + self.width * position.y;
+        self.buf[index] = tile;
+    }
+
+    pub fn center(&self) -> Position {
+        Position {
+            x: self.width / 2,
+            y: self.height / 2,
+        }
+    }
 }

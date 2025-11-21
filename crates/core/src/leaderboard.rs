@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::types::Turn;
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Leaderboard {
     entries: Vec<LeaderboardEntry>,
@@ -31,12 +33,12 @@ impl Default for Leaderboard {
 pub struct LeaderboardEntry {
     pub name: String,
     pub deaths: u32,
-    pub turns: u32,
+    pub turns: Turn,
     pub score: u32,
 }
 
 impl LeaderboardEntry {
-    pub fn new(mut name: String, deaths: u32, turns: u32) -> Self {
+    pub fn new(mut name: String, deaths: u32, turns: Turn) -> Self {
         name.truncate(8);
         LeaderboardEntry {
             name,
@@ -46,9 +48,9 @@ impl LeaderboardEntry {
         }
     }
 
-    fn score(deaths: u32, turns: u32) -> u32 {
+    fn score(deaths: u32, turns: Turn) -> u32 {
         let death_score = 100_u32.saturating_sub(deaths) * 100;
-        let turn_score = 2000_u32.saturating_sub(turns) * 5;
+        let turn_score = 2000_u32.saturating_sub(turns as u32) * 5;
 
         death_score + turn_score
     }

@@ -29,8 +29,8 @@ impl<C: Client + Send + 'static, T: TuiAdapter> Adapter<C, T> {
             let world = world.clone();
             let leaderboard = leaderboard.clone();
             callback = Box::new(move |msg: ServerMessage| match msg {
-                ServerMessage::Senses(s) => {
-                    world.lock().unwrap().update(s.turn, s.senses);
+                ServerMessage::Turn(tr) => {
+                    world.lock().unwrap().update(tr);
                 }
                 ServerMessage::Leaderboard(lb) => {
                     *leaderboard.lock().unwrap() = lb;

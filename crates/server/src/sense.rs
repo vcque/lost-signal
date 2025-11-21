@@ -1,71 +1,59 @@
 use losig_core::{
-    sense::{
-        DangerInfo, DangerSense, OrbInfo, OrbSense, SelfInfo, SelfSense, Sense, SenseInfo, Senses,
-        TerrainInfo, TerrainSense,
-    },
+    sense::{SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, TouchInfo},
     types::Avatar,
 };
 
 use crate::{fov, world::Stage};
 
-trait ServerSense: Sense {
-    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info;
-}
-
-impl ServerSense for TerrainSense {
-    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
-        let tiles = fov::fov(avatar.position, self.radius, &stage.tiles);
-        TerrainInfo {
-            radius: self.radius,
-            tiles: tiles.buf,
-        }
+pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SensesInfo {
+    SensesInfo {
+        selfi: try_gather(senses.selfs, |_| gather_self(avatar)),
+        touch: try_gather(senses.touch, |_| gather_touch(avatar, stage)),
+        sight: try_gather(senses.sight, |strength| {
+            gather_sight(strength.get(), avatar, stage)
+        }),
     }
 }
 
-impl ServerSense for SelfSense {
-    fn gather(&self, avatar: &Avatar, _stage: &Stage) -> Self::Info {
-        SelfInfo {
-            broken: avatar.broken,
-            signal: avatar.signal,
-            winner: avatar.winner,
-            stage: avatar.stage,
-        }
+fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage) -> SightInfo {
+    let tiles = fov::fov(avatar.position, strength.into(), &stage.tiles);
+    let foes = vec![];
+
+    SightInfo {
+        tiles,
+        foes,
+        orb: None,
     }
 }
 
-impl ServerSense for DangerSense {
-    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
-        let radius = self.radius;
-        let pos = avatar.position;
-        let mut count = 0;
+fn gather_touch(avatar: &Avatar, stage: &Stage) -> TouchInfo {
+    // TODO: use a method to copy Tiles into another
+    let tiles = fov::fov(avatar.position, 1, &stage.tiles);
+    let foes = vec![];
 
-        for foe in stage.foes.iter() {
-            if pos.dist(&foe.position) <= radius {
-                count += 1;
-            }
-        }
-        DangerInfo { radius, count }
+    TouchInfo {
+        tiles,
+        foes,
+        orb: None,
     }
 }
 
-impl ServerSense for OrbSense {
-    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
-        let detected = stage.orb.dist(&avatar.position) <= self.level.range();
-        OrbInfo { detected }
+fn gather_self(avatar: &Avatar) -> SelfInfo {
+    SelfInfo {
+        broken: avatar.broken,
+        signal: avatar.signal,
+        stage: avatar.stage as u8,
+        turn: avatar.turns,
     }
 }
 
-impl<T: ServerSense> ServerSense for Option<T> {
-    fn gather(&self, avatar: &Avatar, stage: &Stage) -> Self::Info {
-        self.as_ref().map(|s| s.gather(avatar, stage))
-    }
-}
-
-pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SenseInfo {
-    SenseInfo {
-        terrain: senses.terrain.gather(avatar, stage),
-        selfi: senses.selfs.gather(avatar, stage),
-        danger: senses.danger.gather(avatar, stage),
-        orb: senses.orb.gather(avatar, stage),
+fn try_gather<F, Strength: SenseStrength + Eq, Info>(strength: Strength, gather: F) -> Option<Info>
+where
+    F: FnOnce(Strength) -> Info,
+{
+    if strength == Strength::min() {
+        None
+    } else {
+        Some(gather(strength))
     }
 }

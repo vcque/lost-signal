@@ -1,13 +1,13 @@
 use losig_core::{
     leaderboard::Leaderboard,
     network::{ClientMessage, ClientMessageContent, CommandMessage},
-    sense::{SelfSense, Senses, TerrainSense},
+    sense::{SenseStrength, Senses},
     types::Action,
 };
 use ratatui::widgets::ListState;
 use std::sync::{Arc, Mutex};
 
-use crate::{adapter::Client, sense::ClientSense, world::WorldView};
+use crate::{adapter::Client, world::WorldView};
 
 pub struct TuiState {
     pub external: ExternalState,
@@ -27,7 +27,7 @@ pub struct ExternalState {
 impl ExternalState {
     pub fn act(&self, action: Action, senses: Senses) {
         let mut world = self.world.lock().unwrap();
-        world.act(&action, &senses);
+        world.act(&action);
         let client = self.client.lock().unwrap();
         client.send(ClientMessage {
             avatar_id: Some(world.avatar_id),
@@ -77,12 +77,23 @@ pub struct GameState {
 }
 
 impl GameState {
-    pub fn selected_sense_mut(&mut self) -> &mut dyn ClientSense {
+    pub fn decr_sense(&mut self) {
+        let senses = &mut self.senses;
         match self.sense_selection {
-            0 => &mut self.senses.selfs,
-            1 => &mut self.senses.terrain,
-            2 => &mut self.senses.danger,
-            _ => &mut self.senses.orb,
+            0 => senses.selfs = senses.selfs.decr(),
+            1 => senses.touch = senses.touch.decr(),
+            2 => senses.sight = senses.sight.decr(),
+            _ => {}
+        }
+    }
+
+    pub fn incr_sense(&mut self) {
+        let senses = &mut self.senses;
+        match self.sense_selection {
+            0 => senses.selfs = senses.selfs.incr(),
+            1 => senses.touch = senses.touch.incr(),
+            2 => senses.sight = senses.sight.incr(),
+            _ => {}
         }
     }
 }
@@ -91,8 +102,8 @@ impl Default for GameState {
     fn default() -> Self {
         GameState {
             senses: Senses {
-                selfs: Some(SelfSense {}),
-                terrain: Some(TerrainSense { radius: 1 }),
+                selfs: true,
+                touch: true,
                 ..Default::default()
             },
             sense_selection: 0,

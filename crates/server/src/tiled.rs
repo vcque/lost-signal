@@ -4,10 +4,10 @@ use std::io::Cursor;
 
 use anyhow::{Result, anyhow};
 use log::debug;
-use losig_core::types::{Foe, Position, Tile};
+use losig_core::types::{Foe, Position, Tile, Tiles};
 use tiled::{Layer, Loader};
 
-use crate::world::{Stage, Tiles, World};
+use crate::world::{Stage, World};
 
 struct AssetsReader {}
 
@@ -49,32 +49,28 @@ impl tiled::ResourceReader for AssetsReader {
     }
 }
 
-impl<'a> TryFrom<&tiled::TileLayer<'a>> for Tiles {
-    type Error = anyhow::Error;
+fn convert_tiled(value: &tiled::TileLayer) -> Result<Tiles> {
+    let mut result = Tiles::empty(
+        value.width().ok_or(anyhow!("width is needed"))? as usize,
+        value.height().ok_or(anyhow!("height is needed"))? as usize,
+    );
 
-    fn try_from(value: &tiled::TileLayer<'a>) -> Result<Self, Self::Error> {
-        let mut result = Tiles::empty(
-            value.width().ok_or(anyhow!("width is needed"))? as usize,
-            value.height().ok_or(anyhow!("height is needed"))? as usize,
-        );
-
-        debug!("width: {}, height: {}", result.width, result.height);
-        for x in 0..result.width {
-            for y in 0..result.height {
-                let Some(tiled_tile) = value.get_tile(x as i32, y as i32) else {
-                    continue;
-                };
-                let tile = match tiled_tile.id() {
-                    SPAWN_ID => Tile::Spawn,
-                    WALL_ID => Tile::Wall,
-                    PYLON_ID => Tile::Pylon,
-                    _ => Tile::Empty,
-                };
-                result.set(Position { x, y }, tile);
-            }
+    debug!("width: {}, height: {}", result.width, result.height);
+    for x in 0..result.width {
+        for y in 0..result.height {
+            let Some(tiled_tile) = value.get_tile(x as i32, y as i32) else {
+                continue;
+            };
+            let tile = match tiled_tile.id() {
+                SPAWN_ID => Tile::Spawn,
+                WALL_ID => Tile::Wall,
+                PYLON_ID => Tile::Pylon,
+                _ => Tile::Empty,
+            };
+            result.set(Position { x, y }, tile);
         }
-        Ok(result)
     }
+    Ok(result)
 }
 
 impl TryFrom<&tiled::Map> for Stage {
@@ -93,7 +89,7 @@ impl TryFrom<&tiled::Map> for Stage {
             .ok_or(anyhow!("No foes layer"))?;
 
         Ok(Stage::new(
-            Tiles::try_from(&terrain_layer)?,
+            convert_tiled(&terrain_layer)?,
             get_foes(&foes_layer)?,
         ))
     }

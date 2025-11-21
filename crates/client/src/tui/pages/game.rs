@@ -326,7 +326,20 @@ impl<'a> Widget for SensesWidget<'a> {
 
         let sense = self.senses.touch;
         let info = self.info.and_then(|i| i.touch.as_ref());
-        let status = info.map(|_| Line::from("Touching stuff"));
+        let status = info.map(|info| match (info.foes, info.orb) {
+            (0, false) => Line::from("Nothing nearby"),
+            (1, false) => Line::from("I touched something!").style(THEME.styles.danger),
+            (n, false) => Line::from(format!("I touched {n} things!")).style(THEME.styles.danger),
+            (0, true) => Line::from("The orb is nearby!").style(THEME.styles.signal),
+            (1, true) => Line::from(vec![
+                Span::from("I touched something...").style(THEME.styles.danger),
+                Span::from(" And the orb!").style(THEME.styles.signal),
+            ]),
+            (n, true) => Line::from(vec![
+                Span::from(format!("I touched {n} things...")).style(THEME.styles.danger),
+                Span::from(" And the orb!").style(THEME.styles.signal),
+            ]),
+        });
         let indicator = if sense { "(+)" } else { "(-)" };
 
         SenseWidget {

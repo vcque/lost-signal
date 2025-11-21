@@ -1,6 +1,6 @@
 use losig_core::{
     sense::{SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, TouchInfo},
-    types::Avatar,
+    types::{Avatar, Offset, Tile},
 };
 
 use crate::{fov, world::Stage};
@@ -29,12 +29,18 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage) -> SightInfo {
 fn gather_touch(avatar: &Avatar, stage: &Stage) -> TouchInfo {
     // TODO: use a method to copy Tiles into another
     let tiles = fov::fov(avatar.position, 1, &stage.tiles);
-    let foes = vec![];
+
+    let mut foes = 0;
+    for foe in &stage.foes {
+        if foe.position.dist(&avatar.position) <= 1 {
+            foes += 1;
+        }
+    }
 
     TouchInfo {
         tiles,
         foes,
-        orb: None,
+        orb: stage.orb.dist(&avatar.position) <= 1,
     }
 }
 

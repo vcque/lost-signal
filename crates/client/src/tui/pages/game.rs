@@ -383,11 +383,38 @@ impl<'a> Widget for SensesWidget<'a> {
 
         let sense = self.senses.sight;
         let info = self.info.and_then(|i| i.sight.as_ref());
-        let status = info.map(|_| Line::from("Seeing stuff"));
+        let status = info.map(|_| Line::from("I see stuff"));
         let indicator = format!("({})", sense);
 
         SenseWidget {
             label: "Sight",
+            indicator: indicator.as_str(),
+            status,
+            selected: self.selection == row_index,
+            active: !sense.is_min(),
+        }
+        .render(rows[row_index], buf);
+        row_index += 1;
+
+        let sense = self.senses.earsight;
+        let info = self.info.and_then(|i| i.earsight.as_ref());
+        let status = info.map(|str| match str.range {
+            Some(range) => match range.get() {
+                1 => Line::from("The orb is buzzing nearby!").style(THEME.styles.signal),
+                2 => Line::from("The orb is buzzing somewhat close").style(THEME.styles.signal),
+                3 => Line::from("The orb is buzzing").style(THEME.styles.signal),
+                4 => Line::from("The orb is buzzing distantly").style(THEME.styles.signal),
+                5 => {
+                    Line::from("The orb is buzzing in the far distance").style(THEME.styles.signal)
+                }
+                _ => unreachable!(),
+            },
+            None => Line::from("Nothing"),
+        });
+        let indicator = format!("({})", sense);
+
+        SenseWidget {
+            label: "Earsight",
             indicator: indicator.as_str(),
             status,
             selected: self.selection == row_index,

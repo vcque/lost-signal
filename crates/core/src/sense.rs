@@ -9,6 +9,7 @@ pub struct Senses {
     pub selfs: bool,
     pub touch: bool,
     pub sight: BoundedU8<0, 10>,
+    pub earsight: BoundedU8<0, 5>,
 }
 
 impl Senses {
@@ -24,6 +25,7 @@ impl Senses {
             result += 1;
             result += self.sight;
         }
+        result += self.earsight;
 
         result
     }
@@ -32,6 +34,7 @@ impl Senses {
         self.touch = bool::merge(senses.touch, self.touch);
         self.selfs = bool::merge(senses.selfs, self.selfs);
         self.sight = BoundedU8::merge(senses.sight, self.sight);
+        self.earsight = BoundedU8::merge(senses.earsight, self.earsight);
         self
     }
 }
@@ -41,6 +44,7 @@ pub struct SensesInfo {
     pub selfi: Option<SelfInfo>,
     pub touch: Option<TouchInfo>,
     pub sight: Option<SightInfo>,
+    pub earsight: Option<EarsightInfo>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
@@ -63,6 +67,25 @@ pub struct SightInfo {
     pub tiles: Tiles,
     pub foes: Vec<Offset>,
     pub orb: Option<Offset>,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
+pub struct EarsightInfo {
+    /// We don't want to give the player the exact distance
+    pub range: Option<BoundedU8<1, 5>>,
+}
+
+impl EarsightInfo {
+    pub fn dist(strength: u8) -> Option<u8> {
+        match strength {
+            1 => Some(3),
+            2 => Some(6),
+            3 => Some(10),
+            4 => Some(15),
+            5 => Some(21),
+            _ => None,
+        }
+    }
 }
 
 pub trait SenseStrength: Eq + Sized {

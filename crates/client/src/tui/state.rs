@@ -83,6 +83,7 @@ impl GameState {
             0 => senses.selfs = senses.selfs.decr(),
             1 => senses.touch = senses.touch.decr(),
             2 => senses.sight = senses.sight.decr(),
+            3 => senses.earsight = senses.earsight.decr(),
             _ => {}
         }
     }
@@ -93,6 +94,7 @@ impl GameState {
             0 => senses.selfs = senses.selfs.incr(),
             1 => senses.touch = senses.touch.incr(),
             2 => senses.sight = senses.sight.incr(),
+            3 => senses.earsight = senses.earsight.incr(),
             _ => {}
         }
     }

@@ -62,7 +62,7 @@ impl Stage {
             let x = rand::random_range(0..self.tiles.width);
             let y = rand::random_range(0..self.tiles.height);
             let position = Position { x, y };
-            let tile = self.tiles.at(position);
+            let tile = self.tiles.get(position);
             let foe = self.foes.iter().find(|f| f.position == position);
 
             if let (Tile::Empty, None) = (tile, foe) {

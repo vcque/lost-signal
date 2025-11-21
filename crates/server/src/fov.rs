@@ -93,7 +93,7 @@ pub fn fov(viewer: Position, radius: usize, tiles: &Tiles) -> Tiles {
             for offset in scanner.offsets() {
                 let world_offset = q.transform(&offset);
                 let position = viewer + world_offset;
-                let tile = tiles.at(position);
+                let tile = tiles.get(position);
 
                 // 1. check if we show the tile
                 if tile.opaque() || scanner.see_center(&offset) {

@@ -140,7 +140,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
         Action::Move(dir) => {
             let next_pos = avatar.position.move_once(dir);
 
-            let tile = stage.tiles.at(next_pos);
+            let tile = stage.tiles.get(next_pos);
             if tile.can_travel() {
                 avatar.position = next_pos;
             }
@@ -170,7 +170,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
         for x in -1..2 {
             for y in -1..2 {
                 let offset = Offset { x, y };
-                let tile = stage.tiles.at(avatar.position + offset);
+                let tile = stage.tiles.get(avatar.position + offset);
                 if matches!(tile, Tile::Pylon) {
                     avatar.signal = 100;
                 }

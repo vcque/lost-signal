@@ -158,13 +158,8 @@ impl WorldState {
     }
 
     pub fn tile_from_viewer(&self, offset: Offset) -> Tile {
-        let position = self.position;
-        if position.is_oob(VIEW_SIZE, VIEW_SIZE, offset) {
-            Tile::Unknown
-        } else {
-            let pos = position + offset;
-            self.tile_at(pos)
-        }
+        let position = self.position + offset;
+        self.tile_at(position)
     }
 
     pub fn tile_at(&self, pos: Position) -> Tile {

@@ -113,12 +113,8 @@ impl GameTui {
             for y in 0..area.height as usize {
                 let pos = Position { x, y };
 
-                if pos.is_oob(tiles.width, tiles.height, offset) {
-                    continue;
-                }
-
                 let tile_pos = pos + offset;
-                let tile = tiles.at(tile_pos);
+                let tile = tiles.get(tile_pos);
                 let char = match tile {
                     Tile::Spawn => 'S',
                     Tile::Unknown => ' ',
@@ -144,22 +140,18 @@ impl GameTui {
             }
             let position = avatar.position;
 
-            if !position.is_oob(area.width as usize, area.height as usize, offset) {
-                let Position { x, y } = position + offset;
-                buf.set_string(
-                    area.x + x as u16,
-                    area.y + y as u16,
-                    "@",
-                    Style::default().green(),
-                );
-            }
+            let Position { x, y } = position + offset;
+            buf.set_string(
+                area.x + x as u16,
+                area.y + y as u16,
+                "@",
+                Style::default().green(),
+            );
         }
 
-        if !stage
-            .orb
-            .is_oob(area.width as usize, area.height as usize, offset)
-        {
-            let Position { x, y } = stage.orb + offset;
+        let Position { x, y } = stage.orb + offset;
+
+        if (0..area.width).contains(&(x as u16)) && (0..area.height).contains(&(y as u16)) {
             buf.set_string(
                 area.x + x as u16,
                 area.y + y as u16,
@@ -170,9 +162,8 @@ impl GameTui {
 
         for foe in stage.foes.iter() {
             let position = foe.position;
-
-            if !position.is_oob(area.width as usize, area.height as usize, offset) {
-                let Position { x, y } = position + offset;
+            let Position { x, y } = position + offset;
+            if (0..area.width).contains(&(x as u16)) && (0..area.height).contains(&(y as u16)) {
                 buf.set_string(
                     area.x + x as u16,
                     area.y + y as u16,

@@ -1,4 +1,7 @@
-use std::ops::{Add, Neg, Sub};
+use std::{
+    ops::{Add, Neg, Sub},
+    usize,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -83,21 +86,11 @@ impl Position {
         }
     }
 
-    pub fn as_index(&self, width: usize) -> usize {
-        self.x + width * self.y
-    }
-
     pub fn as_offset(&self) -> Offset {
         Offset {
             x: self.x as isize,
             y: self.y as isize,
         }
-    }
-
-    pub fn is_oob(&self, width: usize, height: usize, offset: Offset) -> bool {
-        let ix = self.x as isize + offset.x;
-        let iy = self.y as isize + offset.y;
-        ix < 0 || iy < 0 || ix >= width as isize || iy >= height as isize
     }
 
     /// Chebyshev distance
@@ -118,10 +111,21 @@ impl Add<Offset> for Position {
     type Output = Position;
 
     fn add(self, offset: Offset) -> Self::Output {
+        // I'm starting to consider 2D geometry crates
         Position {
-            x: (self.x as isize).saturating_add(offset.x).max(0) as usize,
-            y: (self.y as isize).saturating_add(offset.y).max(0) as usize,
+            x: self.x.wrapping_add_signed(offset.x),
+            y: self.y.wrapping_add_signed(offset.y),
         }
+    }
+}
+
+impl Sub<Position> for Position {
+    type Output = Offset;
+
+    fn sub(self, rhs: Position) -> Self::Output {
+        let x = self.x as isize - rhs.x as isize;
+        let y = self.y as isize - rhs.y as isize;
+        Offset { x, y }
     }
 }
 
@@ -199,18 +203,25 @@ impl Tiles {
         }
     }
 
-    pub fn at(&self, position: Position) -> Tile {
-        let index = position.x + self.width * position.y;
-        if index >= self.buf.len() {
-            Tile::Unknown
-        } else {
-            self.buf[index]
+    pub fn get(&self, position: Position) -> Tile {
+        match self.index_of(position) {
+            Some(i) => self.buf[i],
+            None => Tile::Unknown,
         }
     }
 
     pub fn set(&mut self, position: Position, tile: Tile) {
-        let index = position.x + self.width * position.y;
-        self.buf[index] = tile;
+        if let Some(i) = self.index_of(position) {
+            self.buf[i] = tile
+        }
+    }
+
+    pub fn index_of(&self, Position { x, y }: Position) -> Option<usize> {
+        if x >= self.width || y >= self.height {
+            None
+        } else {
+            Some(x + self.width * y)
+        }
     }
 
     pub fn center(&self) -> Position {

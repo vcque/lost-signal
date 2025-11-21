@@ -215,6 +215,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
         let center_x = area.width as isize / 2;
         let center_y = area.height as isize / 2;
 
+        let last_info = w.last_info();
         for x in 0..area.width {
             for y in 0..area.height {
                 let tile = w.current_state().tile_from_viewer(Offset {
@@ -224,6 +225,34 @@ impl<'a> Widget for WorldViewWidget<'a> {
 
                 let (ch, style) = render_tile(tile);
                 buf.set_string(area.x + x, area.y + y, ch.to_string(), *style);
+            }
+        }
+
+        if let Some(sight) = last_info.and_then(|i| i.sight.as_ref()) {
+            // Show the orb
+            if let Some(ref offset) = sight.orb {
+                let x = center_x + offset.x;
+                let y = center_y + offset.y;
+
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    "¤",
+                    THEME.styles.signal,
+                );
+            }
+
+            // Show the foes
+            for foe in &sight.foes {
+                let x = center_x + foe.x;
+                let y = center_y + foe.y;
+
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    "µ",
+                    THEME.styles.danger,
+                );
             }
         }
 

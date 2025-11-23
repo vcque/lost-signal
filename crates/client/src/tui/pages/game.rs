@@ -13,8 +13,8 @@ use ratatui::{
 use crate::{
     logs::{ClientLog, GameLog},
     tui::{
-        GameState, THEME, component::Component, state::TuiState, utils::center,
-        widgets::block_wrap::BlockWrap,
+        GameState, InputServices, RenderServices, THEME, YouWinState, state::TuiState,
+        utils::center, widgets::block_wrap::BlockWrap,
     },
     tui_adapter::{Event, KeyCode},
     world::WorldView,
@@ -33,16 +33,18 @@ impl GamePage {
 
         [world, log, senses]
     }
-}
 
-impl Component for GamePage {
-    type State = TuiState;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    pub fn render(
+        self,
+        area: Rect,
+        buf: &mut Buffer,
+        state: &mut TuiState,
+        services: RenderServices,
+    ) {
         {
             {
                 let [world_a, log_a, _senses_a] = Self::layout(area);
-                let world = &state.external.world.lock().unwrap();
+                let world = &services.state.world;
                 let world_widget = WorldViewWidget { world };
 
                 let world_title = Line::from(Span::raw(format!(
@@ -97,18 +99,23 @@ impl Component for GamePage {
                 senses_wigdet.render(_senses_a, buf);
             }
 
-            let winner = state.external.world.lock().unwrap().winner;
+            let winner = services.state.world.winner;
             if winner {
-                YouWinWidget {}.render(area, buf, state);
+                YouWinWidget {}.render(area, buf, &state.you_win);
             }
         }
 
         if state.game.show_help {
-            HelpWidget {}.render(area, buf, &mut state.game);
+            HelpWidget {}.render(area, buf);
         }
     }
 
-    fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
+    pub fn on_event(
+        self,
+        event: &Event,
+        state: &mut TuiState,
+        mut services: InputServices,
+    ) -> bool {
         // If help is visible, let HelpWidget handle the event
         if state.game.show_help {
             return HelpWidget {}.on_event(event, &mut state.game);
@@ -121,9 +128,9 @@ impl Component for GamePage {
         {
             let winner: bool;
             {
-                winner = state.external.world.lock().unwrap().winner;
+                winner = services.state.world.winner;
             }
-            if winner && (YouWinWidget {}).on_event(event, state) {
+            if winner && (YouWinWidget {}).on_event(event, &mut state.you_win, &mut services) {
                 return true;
             }
         }
@@ -183,7 +190,7 @@ impl Component for GamePage {
             _ => None,
         };
         if let Some(action) = action {
-            state.external.act(action, game_state.senses.clone());
+            services.act(action, game_state.senses.clone());
             return true;
         }
         false
@@ -426,9 +433,8 @@ impl<'a> Widget for SensesWidget<'a> {
 
 struct YouWinWidget {}
 
-impl Component for YouWinWidget {
-    type State = TuiState;
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl YouWinWidget {
+    pub fn render(self, area: Rect, buf: &mut Buffer, state: &YouWinState) {
         let popup_width = 50;
         let popup_height = 10;
 
@@ -453,7 +459,7 @@ impl Component for YouWinWidget {
         let inner = block.inner(popup_area);
         block.render(popup_area, buf);
 
-        if state.you_win.sent {
+        if state.sent {
             // Show submission confirmation
             let lines = [
                 "Your score has been submitted.",
@@ -476,7 +482,7 @@ impl Component for YouWinWidget {
             let lines = [
                 "Enter your name for the leaderboard:",
                 "",
-                &format!("> {}_", state.you_win.name),
+                &format!("> {}_", state.name),
                 "",
                 "(Max 8 characters, press Enter to submit)",
             ];
@@ -494,13 +500,18 @@ impl Component for YouWinWidget {
             }
         }
     }
-    fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
+    fn on_event(
+        self,
+        event: &Event,
+        state: &mut YouWinState,
+        services: &mut InputServices,
+    ) -> bool {
         // Handle YouWin events
-        let you_win = &mut state.you_win;
+        let you_win = state;
 
         if you_win.sent {
             // Already sent, any key closes win screen
-            state.you_win.open = false;
+            you_win.open = false;
             return true;
         }
 
@@ -511,7 +522,7 @@ impl Component for YouWinWidget {
         match event.code {
             KeyCode::Enter => {
                 if !you_win.name.is_empty() {
-                    state.external.submit_leaderboard(you_win.name.clone());
+                    services.submit_leaderboard(you_win.name.clone());
                     you_win.sent = true;
                 }
             }
@@ -533,10 +544,8 @@ impl Component for YouWinWidget {
 
 struct HelpWidget {}
 
-impl Component for HelpWidget {
-    type State = GameState;
-
-    fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
+impl HelpWidget {
+    fn on_event(self, event: &Event, state: &mut GameState) -> bool {
         let Event::Key(key) = event else {
             return true; // Consume all non-key events when help is visible
         };
@@ -550,7 +559,7 @@ impl Component for HelpWidget {
         }
     }
 
-    fn render(self, area: Rect, buf: &mut Buffer, _state: &mut Self::State) {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         self.render_widget(area, buf);
     }
 }

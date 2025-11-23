@@ -1,4 +1,4 @@
-use losig_core::{sense::Senses, types::Action};
+use losig_core::{leaderboard::Leaderboard, sense::Senses, types::Action};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
@@ -9,7 +9,7 @@ use std::fmt::Display;
 
 use crate::{
     tui::{
-        component::Component,
+        InputServices, MenuState, RenderServices,
         state::{PageSelection, TuiState},
         utils::center,
     },
@@ -36,10 +36,13 @@ const MENU_OPTIONS: &[MenuOption] = &[MenuOption::Start, MenuOption::Continue];
 
 pub struct MenuPage {}
 
-impl Component for MenuPage {
-    type State = TuiState;
-
-    fn on_event(self, event: &Event, state: &mut Self::State) -> bool {
+impl MenuPage {
+    pub fn on_event(
+        self,
+        event: &Event,
+        state: &mut TuiState,
+        mut services: InputServices,
+    ) -> bool {
         let Event::Key(key) = event else {
             return false;
         };
@@ -52,7 +55,7 @@ impl Component for MenuPage {
                 if let Some(selection) = list_state.selected().map(|i| MENU_OPTIONS[i]) {
                     match selection {
                         MenuOption::Start => {
-                            state.external.act(Action::Spawn, Senses::default());
+                            services.act(Action::Spawn, Senses::default());
                         }
                         MenuOption::Continue => {}
                     }
@@ -67,7 +70,13 @@ impl Component for MenuPage {
         true
     }
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    pub fn render(
+        self,
+        area: Rect,
+        buf: &mut Buffer,
+        state: &mut MenuState,
+        services: RenderServices,
+    ) {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -94,23 +103,22 @@ impl Component for MenuPage {
             menu_list,
             menu_center,
             buf,
-            &mut state.menu.list_state,
+            &mut state.list_state,
         );
 
         // Leaderboard on the right
-        let leaderboard = state.external.leaderboard.lock().unwrap();
-        let leaderboard_widget = LeaderboardWidget::new(&leaderboard);
+        let leaderboard_widget = LeaderboardWidget::new(&services.state.leaderboard);
         leaderboard_widget.render(chunks[1], buf);
     }
 }
 
 struct LeaderboardWidget<'a> {
-    leaderboard: &'a losig_core::leaderboard::Leaderboard,
+    leaderboard: &'a Leaderboard,
     max_entries: usize,
 }
 
 impl<'a> LeaderboardWidget<'a> {
-    fn new(leaderboard: &'a losig_core::leaderboard::Leaderboard) -> Self {
+    fn new(leaderboard: &'a Leaderboard) -> Self {
         Self {
             leaderboard,
             max_entries: 10,

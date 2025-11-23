@@ -6,7 +6,8 @@ use ratzilla::{WebGl2Backend, WebRenderer, event as rz};
 
 use losig_client::{
     adapter::TuiAdapter,
-    tui_adapter::{Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, TuiApp},
+    tui::GameTui,
+    tui_adapter::{Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers},
 };
 
 pub struct RatzillaAdapter {}
@@ -15,7 +16,7 @@ impl RatzillaAdapter {
     pub fn new() -> Self {
         RatzillaAdapter {}
     }
-    fn run_inner<T: TuiApp + 'static>(self, app: T) -> Result<()> {
+    fn run_inner(self, app: GameTui) -> Result<()> {
         let backend = WebGl2Backend::new()?;
         let terminal = Terminal::new(backend)?;
 
@@ -37,7 +38,7 @@ impl RatzillaAdapter {
 }
 
 impl TuiAdapter for RatzillaAdapter {
-    fn run<T: TuiApp + 'static>(self, app: T) {
+    fn run(self, app: GameTui) {
         if let Err(e) = self.run_inner(app) {
             error!("Couldn't start tui: {e}");
         }

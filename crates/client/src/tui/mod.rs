@@ -1,12 +1,11 @@
 pub mod app;
-pub mod component;
-pub mod state;
 pub mod pages;
-pub mod widgets;
-pub mod utils;
+pub mod state;
 pub mod theme;
+pub mod utils;
+pub mod widgets;
 
 pub use app::*;
-pub use component::*;
 pub use state::*;
 pub use theme::*;
+

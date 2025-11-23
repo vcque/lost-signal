@@ -1,53 +1,12 @@
-use losig_core::{
-    leaderboard::Leaderboard,
-    network::{ClientMessage, ClientMessageContent, CommandMessage},
-    sense::{SenseStrength, Senses},
-    types::Action,
-};
+use losig_core::sense::{SenseStrength, Senses};
 use ratatui::widgets::ListState;
-use std::sync::{Arc, Mutex};
-
-use crate::{adapter::Client, world::WorldView};
 
 pub struct TuiState {
-    pub external: ExternalState,
     pub menu: MenuState,
     pub game: GameState,
     pub you_win: YouWinState,
     pub page: PageSelection,
     pub should_exit: bool,
-}
-
-pub struct ExternalState {
-    pub client: Arc<Mutex<dyn Client>>,
-    pub world: Arc<Mutex<WorldView>>,
-    pub leaderboard: Arc<Mutex<Leaderboard>>,
-}
-
-impl ExternalState {
-    pub fn act(&self, action: Action, senses: Senses) {
-        let mut world = self.world.lock().unwrap();
-        world.act(&action);
-        let client = self.client.lock().unwrap();
-        client.send(ClientMessage {
-            avatar_id: Some(world.avatar_id),
-            content: losig_core::network::ClientMessageContent::Command(CommandMessage {
-                avatar_id: world.avatar_id,
-                turn: world.turn,
-                action,
-                senses,
-            }),
-        });
-    }
-
-    pub fn submit_leaderboard(&self, name: String) {
-        let world = self.world.lock().unwrap();
-        let client = self.client.lock().unwrap();
-        client.send(ClientMessage {
-            avatar_id: Some(world.avatar_id),
-            content: ClientMessageContent::LeaderboardSubmit(world.avatar_id, name),
-        });
-    }
 }
 
 #[derive(Debug)]

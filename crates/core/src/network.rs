@@ -28,6 +28,14 @@ pub struct TurnResultMessage {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct GameOverMessage {
+    pub winner: bool,
+    pub stage: u8,
+    pub turn: Turn,
+    pub score: u32,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct ClientMessage {
     pub avatar_id: Option<AvatarId>,
     pub content: ClientMessageContent,
@@ -44,4 +52,5 @@ pub enum ClientMessageContent {
 pub enum ServerMessage {
     Leaderboard(Leaderboard),
     Turn(TurnResultMessage),
+    GameOver(GameOverMessage),
 }

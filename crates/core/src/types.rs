@@ -1,7 +1,4 @@
-use std::{
-    ops::{Add, Neg, Sub},
-    usize,
-};
+use std::ops::{Add, Neg, Sub};
 
 use serde::{Deserialize, Serialize};
 

@@ -1,5 +1,3 @@
-use ratatui::Frame;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     /// Terminal gained focus
@@ -140,11 +138,4 @@ pub enum MouseButton {
     Left,
     Right,
     Middle,
-}
-
-/// App that can be rendered cross in wasm and term
-pub trait TuiApp {
-    fn render(&mut self, f: &mut Frame);
-    fn handle_events(&mut self, event: Event) -> bool;
-    fn should_exit(&self) -> bool;
 }

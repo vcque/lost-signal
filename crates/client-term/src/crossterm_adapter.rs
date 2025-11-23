@@ -4,9 +4,10 @@ use anyhow::Result;
 use crossterm::event as ct;
 use losig_client::{
     adapter::TuiAdapter,
+    tui::GameTui,
     tui_adapter::{
         Event, KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers, MediaKeyCode,
-        ModifierKeyCode, MouseButton, MouseEvent, MouseEventKind, TuiApp,
+        ModifierKeyCode, MouseButton, MouseEvent, MouseEventKind,
     },
 };
 use ratatui::{
@@ -24,10 +25,10 @@ impl CrosstermAdapter {
         CrosstermAdapter { show_logs: false }
     }
 
-    pub fn do_run<T: TuiApp + 'static>(
+    pub fn do_run(
         mut self,
         terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-        mut app: T,
+        mut app: GameTui,
     ) -> Result<()> {
         loop {
             terminal.draw(|f| {
@@ -71,7 +72,7 @@ impl CrosstermAdapter {
 }
 
 impl TuiAdapter for CrosstermAdapter {
-    fn run<T: TuiApp + 'static>(self, tui: T) {
+    fn run(self, tui: GameTui) {
         let mut terminal = ratatui::init();
         let result = self.do_run(&mut terminal, tui);
         ratatui::restore();

@@ -12,14 +12,27 @@ struct AssetsReader {}
 
 const TILESET: &[u8] = include_bytes!("../../../maps/tileset/editor.tsx");
 
-const STAGES: &[(&str, &[u8])] = &[
-    ("lvl1", include_bytes!("../../../maps/lvl1.tmx")),
-    ("lvl2", include_bytes!("../../../maps/lvl2.tmx")),
-    ("lvl3", include_bytes!("../../../maps/lvl3.tmx")),
+macro_rules! include_stages {
+      ($($name:literal),* $(,)?) => {
+          &[
+              $(
+                  ($name, include_bytes!(concat!("../../../maps/", $name, ".tmx"))),
+              )*
+          ]
+      };
+  }
+
+const STAGES: &[(&str, &[u8])] = include_stages![
+    "tuto_self",
+    "tuto_touch",
+    "tuto_hearsight",
+    "tuto_sight",
+    "tuto_end"
 ];
 
 const FOE_ID: u32 = 1;
 const SPAWN_ID: u32 = 2;
+const ORB_ID: u32 = 2;
 const WALL_ID: u32 = 4;
 const PYLON_ID: u32 = 5;
 

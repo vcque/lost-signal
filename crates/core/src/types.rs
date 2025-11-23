@@ -72,6 +72,12 @@ pub struct Position {
     pub y: usize,
 }
 
+impl From<(usize, usize)> for Position {
+    fn from((x, y): (usize, usize)) -> Self {
+        Position { x, y }
+    }
+}
+
 impl From<Position> for (usize, usize) {
     fn from(value: Position) -> Self {
         (value.x, value.y)

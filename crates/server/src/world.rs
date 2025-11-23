@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use grid::Grid;
+use log::warn;
 use losig_core::types::{Avatar, AvatarId, Foe, Position, Tile, Tiles};
 
 #[derive(Debug)]
@@ -26,15 +28,17 @@ impl World {
 #[derive(Debug)]
 pub struct Stage {
     pub tiles: Tiles,
+    pub orb_spawns: Grid<bool>,
     pub foes: Vec<Foe>,
     pub orb: Position,
 }
 
 impl Stage {
-    pub fn new(tiles: Tiles, foes: Vec<Foe>) -> Self {
+    pub fn new(tiles: Tiles, orb_spawns: Grid<bool>, foes: Vec<Foe>) -> Self {
         let mut new = Self {
             tiles,
             foes,
+            orb_spawns,
             orb: Position::default(),
         };
 
@@ -57,17 +61,26 @@ impl Stage {
     }
 
     pub fn move_orb(&mut self) {
-        loop {
-            let x = rand::random_range(0..self.tiles.width());
-            let y = rand::random_range(0..self.tiles.height());
-            let position = Position { x, y };
-            let tile = self.tiles.get(position);
-            let foe = self.foes.iter().find(|f| f.position == position);
+        let x = rand::random_range(0..self.tiles.width());
+        let y = rand::random_range(0..self.tiles.height());
+        let position = Position { x, y };
+        let can_spawn = self.orb_spawns[position.into()];
+        let spawns: Vec<Position> = self
+            .orb_spawns
+            .indexed_iter()
+            .filter(|(_, val)| **val)
+            .map(|(pos, _)| Position::from(pos))
+            .collect();
 
-            if let (Tile::Empty, None) = (tile, foe) {
-                self.orb = position;
-                break;
-            }
+        if spawns.is_empty() {
+            warn!("Couldn't find a spawn point for lvl");
+            return;
+        }
+        let i = rand::random_range(0..spawns.len());
+        self.orb = spawns[i];
+
+        if can_spawn {
+            self.orb = position;
         }
     }
 }

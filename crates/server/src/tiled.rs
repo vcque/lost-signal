@@ -3,6 +3,7 @@
 use std::io::Cursor;
 
 use anyhow::{Result, anyhow};
+use grid::Grid;
 use losig_core::types::{Foe, Position, Tile, Tiles};
 use tiled::{Layer, Loader};
 
@@ -32,7 +33,7 @@ const STAGES: &[(&str, &[u8])] = include_stages![
 
 const FOE_ID: u32 = 1;
 const SPAWN_ID: u32 = 2;
-const ORB_ID: u32 = 2;
+const ORB_ID: u32 = 3;
 const WALL_ID: u32 = 4;
 const PYLON_ID: u32 = 5;
 
@@ -98,12 +99,36 @@ impl TryFrom<&tiled::Map> for Stage {
             .find(|l| l.name == "Foes")
             .and_then(Layer::as_tile_layer)
             .ok_or(anyhow!("No foes layer"))?;
+        let orb_layer = value
+            .layers()
+            .find(|l| l.name == "Orb")
+            .and_then(Layer::as_tile_layer)
+            .ok_or(anyhow!("No Orb layer"))?;
 
         Ok(Stage::new(
             convert_tiled(&terrain_layer)?,
+            get_orb_spawns(&orb_layer)?,
             get_foes(&foes_layer)?,
         ))
     }
+}
+
+fn get_orb_spawns(layer: &tiled::TileLayer) -> Result<Grid<bool>> {
+    let width = layer.width().ok_or(anyhow!("no width"))? as usize;
+    let height = layer.height().ok_or(anyhow!("no height"))? as usize;
+
+    let mut grid = Grid::<bool>::new(width as usize, height as usize);
+    for x in 0..width {
+        for y in 0..height {
+            let Some(tile) = layer.get_tile(x as i32, y as i32) else {
+                continue;
+            };
+            if tile.id() == ORB_ID {
+                grid[(x, y)] = true;
+            }
+        }
+    }
+    Ok(grid)
 }
 
 fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {

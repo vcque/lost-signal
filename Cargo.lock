@@ -785,6 +785,7 @@ dependencies = [
  "bounded-integer",
  "crossterm 0.29.0",
  "fraction",
+ "grid",
  "log",
  "losig-core",
  "rand",

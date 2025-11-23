@@ -19,6 +19,7 @@ tui-logger.workspace = true
 fraction = "0.15.3"
 tiled = "0.15.0"
 bounded-integer.workspace = true
+grid.workspace = true
 
 [lints]
 workspace = true

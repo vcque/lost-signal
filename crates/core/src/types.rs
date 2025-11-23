@@ -1,5 +1,6 @@
 use std::ops::{Add, Neg, Sub};
 
+use grid::Grid;
 use serde::{Deserialize, Serialize};
 
 /**
@@ -69,6 +70,12 @@ impl Neg for Offset {
 pub struct Position {
     pub x: usize,
     pub y: usize,
+}
+
+impl From<Position> for (usize, usize) {
+    fn from(value: Position) -> Self {
+        (value.x, value.y)
+    }
 }
 
 impl Position {
@@ -142,13 +149,14 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum Tile {
+    #[default]
+    Unknown,
     Wall,
     Empty,
     Spawn,
-    Unknown,
     Pylon,
 }
 
@@ -163,7 +171,6 @@ impl Tile {
 }
 
 pub type Turn = u64;
-
 pub type AvatarId = u32;
 
 #[derive(Debug, Clone)]
@@ -185,46 +192,36 @@ pub struct Foe {
 
 #[derive(Default, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
 pub struct Tiles {
-    pub buf: Vec<Tile>,
-    pub width: usize,
-    pub height: usize,
+    pub grid: Grid<Tile>,
 }
 
 impl Tiles {
-    pub fn empty(width: usize, height: usize) -> Self {
+    pub fn new(width: usize, height: usize) -> Self {
         Tiles {
-            buf: vec![Tile::Unknown; width * height],
-            width,
-            height,
+            grid: Grid::new(width, height),
         }
     }
 
-    pub fn get(&self, position: Position) -> Tile {
-        match self.index_of(position) {
-            Some(i) => self.buf[i],
-            None => Tile::Unknown,
-        }
+    pub fn width(&self) -> usize {
+        self.grid.rows()
     }
 
-    pub fn set(&mut self, position: Position, tile: Tile) {
-        if let Some(i) = self.index_of(position) {
-            self.buf[i] = tile
-        }
-    }
-
-    pub fn index_of(&self, Position { x, y }: Position) -> Option<usize> {
-        if x >= self.width || y >= self.height {
-            None
-        } else {
-            Some(x + self.width * y)
-        }
+    pub fn height(&self) -> usize {
+        self.grid.cols()
     }
 
     pub fn center(&self) -> Position {
         Position {
-            x: self.width / 2,
-            y: self.height / 2,
+            x: self.width() / 2,
+            y: self.height() / 2,
         }
+    }
+
+    pub fn get(&self, index: impl TryInto<(usize, usize)>) -> Tile {
+        let Ok((x, y)) = index.try_into() else {
+            return Default::default();
+        };
+        self.grid.get(x, y).copied().unwrap_or_default()
     }
 }
 

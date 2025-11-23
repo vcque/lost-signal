@@ -68,7 +68,7 @@ impl Scanner {
 
 /// This does a clone instead of a bit mask for now
 pub fn fov(viewer: Position, radius: usize, tiles: &Tiles) -> Tiles {
-    let mut result = Tiles::empty(2 * radius + 1, 2 * radius + 1);
+    let mut result = Tiles::new(2 * radius + 1, 2 * radius + 1);
 
     let center_view = Position {
         x: radius,
@@ -93,12 +93,16 @@ pub fn fov(viewer: Position, radius: usize, tiles: &Tiles) -> Tiles {
             for offset in scanner.offsets() {
                 let world_offset = q.transform(&offset);
                 let position = viewer + world_offset;
-                let tile = tiles.get(position);
+                let tile = tiles
+                    .grid
+                    .get(position.x, position.y)
+                    .copied()
+                    .unwrap_or_default();
 
                 // 1. check if we show the tile
                 if tile.opaque() || scanner.see_center(&offset) {
                     let result_pos = center_view + world_offset;
-                    result.set(result_pos, tile);
+                    result.grid[result_pos.into()] = tile;
                 }
                 // 2. Start a new scanner if we go from (nothing | opaque) -> see through
                 if next_scan.is_none() && !tile.opaque() {

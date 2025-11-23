@@ -195,18 +195,12 @@ impl WorldState {
     }
 
     fn update_tiles(&mut self, viewer: Position, tiles: &Tiles) {
-        let center = Position {
-            x: tiles.width / 2,
-            y: tiles.height / 2,
-        };
+        let center = tiles.center();
 
-        for (src_i, &tile) in tiles.buf.iter().enumerate() {
+        for ((src_x, src_y), &tile) in tiles.grid.indexed_iter() {
             if tile == Tile::Unknown {
                 continue;
             }
-
-            let src_x = src_i % tiles.width;
-            let src_y = src_i / tiles.width;
 
             let world_x = (src_x as i32) - (center.x as i32) + (viewer.x as i32);
             let world_y = (src_y as i32) - (center.y as i32) + (viewer.y as i32);

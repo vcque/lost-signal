@@ -180,13 +180,7 @@ impl GameTui {
             (avatar.stage, avatar.position)
         } else {
             let stage = world.stages.first().unwrap();
-            (
-                0,
-                Position {
-                    x: stage.tiles.width / 2, // MAP_SIZE / 2
-                    y: stage.tiles.height / 2,
-                },
-            )
+            (0, stage.tiles.center())
         }
     }
 }

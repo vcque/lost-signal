@@ -44,12 +44,11 @@ impl Stage {
 
     pub fn find_spawns(&self) -> Vec<Position> {
         self.tiles
-            .buf
-            .iter()
-            .enumerate()
-            .filter_map(|(i, t)| {
+            .grid
+            .indexed_iter()
+            .filter_map(|((x, y), t)| {
                 if *t == Tile::Spawn {
-                    Some(Position::from_index(i, self.tiles.width))
+                    Some(Position { x, y })
                 } else {
                     None
                 }
@@ -59,8 +58,8 @@ impl Stage {
 
     pub fn move_orb(&mut self) {
         loop {
-            let x = rand::random_range(0..self.tiles.width);
-            let y = rand::random_range(0..self.tiles.height);
+            let x = rand::random_range(0..self.tiles.width());
+            let y = rand::random_range(0..self.tiles.height());
             let position = Position { x, y };
             let tile = self.tiles.get(position);
             let foe = self.foes.iter().find(|f| f.position == position);

@@ -577,6 +577,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "grid"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9e2d4c0a8296178d8802098410ca05d86b17a10bb5ab559b3fb404c1f948220"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -763,6 +772,7 @@ name = "losig-core"
 version = "0.1.0"
 dependencies = [
  "bounded-integer",
+ "grid",
  "serde",
 ]
 

@@ -3,7 +3,6 @@
 use std::io::Cursor;
 
 use anyhow::{Result, anyhow};
-use log::debug;
 use losig_core::types::{Foe, Position, Tile, Tiles};
 use tiled::{Layer, Loader};
 
@@ -50,14 +49,13 @@ impl tiled::ResourceReader for AssetsReader {
 }
 
 fn convert_tiled(value: &tiled::TileLayer) -> Result<Tiles> {
-    let mut result = Tiles::empty(
+    let mut result = Tiles::new(
         value.width().ok_or(anyhow!("width is needed"))? as usize,
         value.height().ok_or(anyhow!("height is needed"))? as usize,
     );
 
-    debug!("width: {}, height: {}", result.width, result.height);
-    for x in 0..result.width {
-        for y in 0..result.height {
+    for x in 0..result.width() {
+        for y in 0..result.height() {
             let Some(tiled_tile) = value.get_tile(x as i32, y as i32) else {
                 continue;
             };
@@ -67,7 +65,7 @@ fn convert_tiled(value: &tiled::TileLayer) -> Result<Tiles> {
                 PYLON_ID => Tile::Pylon,
                 _ => Tile::Empty,
             };
-            result.set(Position { x, y }, tile);
+            result.grid[(x, y)] = tile;
         }
     }
     Ok(result)

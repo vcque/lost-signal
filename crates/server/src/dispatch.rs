@@ -50,8 +50,12 @@ impl Dispatch {
                     ClientMessageContent::LeaderboardSubmit(avatar_id, name) => {
                         // Get avatar stats
                         let mut world = self.services.world.lock().unwrap();
-                        if let Some(avatar) = world.avatars.get(&avatar_id) {
-                            let entry = LeaderboardEntry::new(name, 1, avatar.turns);
+                        if let Some(gameover) = world
+                            .avatars
+                            .get(&avatar_id)
+                            .and_then(|a| a.gameover.as_ref())
+                        {
+                            let entry = LeaderboardEntry::new(name, gameover);
                             {
                                 let mut leaderboard = self.services.leaderboard.lock().unwrap();
                                 leaderboard.add(entry);

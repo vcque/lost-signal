@@ -56,7 +56,7 @@ impl Game {
 
         if let Some(info) = info {
             let msg = TurnResultMessage {
-                avatar_id: avatar_id,
+                avatar_id,
                 turn: command.turn,
                 stage: avatar.stage as u8,
                 info,
@@ -116,7 +116,7 @@ fn enact_foes(world: &mut World) {
         for foe in stage.foes.iter() {
             for avatar in world.avatars.values_mut() {
                 if foe.position == avatar.position && i == avatar.stage {
-                    avatar.gameover = Some(GameOver::new(&avatar, false));
+                    avatar.gameover = Some(GameOver::new(avatar, false));
                 }
             }
         }

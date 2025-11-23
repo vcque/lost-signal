@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::Turn;
+use crate::types::GameOver;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Leaderboard {
@@ -14,7 +14,7 @@ impl Leaderboard {
 
     pub fn add(&mut self, entry: LeaderboardEntry) {
         self.entries.push(entry);
-        self.entries.sort_by_key(|e| e.score);
+        self.entries.sort_by_key(|e| e.gameover.score);
     }
 
     pub fn top_entries(&self, n: usize) -> &[LeaderboardEntry] {
@@ -32,26 +32,15 @@ impl Default for Leaderboard {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct LeaderboardEntry {
     pub name: String,
-    pub deaths: u32,
-    pub turns: Turn,
-    pub score: u32,
+    pub gameover: GameOver,
 }
 
 impl LeaderboardEntry {
-    pub fn new(mut name: String, deaths: u32, turns: Turn) -> Self {
+    pub fn new(mut name: String, gameover: &GameOver) -> Self {
         name.truncate(8);
         LeaderboardEntry {
             name,
-            deaths,
-            turns,
-            score: Self::score(deaths, turns),
+            gameover: gameover.clone(),
         }
-    }
-
-    fn score(deaths: u32, turns: Turn) -> u32 {
-        let death_score = 100_u32.saturating_sub(deaths) * 100;
-        let turn_score = 2000_u32.saturating_sub(turns as u32) * 5;
-
-        death_score + turn_score
     }
 }

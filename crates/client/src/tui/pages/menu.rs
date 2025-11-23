@@ -136,7 +136,7 @@ impl<'a> Widget for LeaderboardWidget<'a> {
         let header = Row::new(vec![
             Cell::from("Rank").style(Style::default().bold()),
             Cell::from("Name").style(Style::default().bold()),
-            Cell::from("Deaths").style(Style::default().bold()),
+            Cell::from("Stage").style(Style::default().bold()),
             Cell::from("Turns").style(Style::default().bold()),
             Cell::from("Score").style(Style::default().bold()),
         ]);
@@ -150,9 +150,13 @@ impl<'a> Widget for LeaderboardWidget<'a> {
                 let row = Row::new(vec![
                     Cell::from(rank.to_string()),
                     Cell::from(entry.name.clone()),
-                    Cell::from(entry.deaths.to_string()),
-                    Cell::from(entry.turns.to_string()),
-                    Cell::from(entry.score.to_string()),
+                    Cell::from(if entry.gameover.win {
+                        "WIN".to_owned()
+                    } else {
+                        entry.gameover.stage.to_string()
+                    }),
+                    Cell::from(entry.gameover.turns.to_string()),
+                    Cell::from(entry.gameover.score.to_string()),
                 ]);
                 rows.push(row);
             } else {

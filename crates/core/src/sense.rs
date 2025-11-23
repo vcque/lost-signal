@@ -9,7 +9,7 @@ pub struct Senses {
     pub selfs: bool,
     pub touch: bool,
     pub sight: BoundedU8<0, 10>,
-    pub earsight: BoundedU8<0, 5>,
+    pub hearing: BoundedU8<0, 5>,
 }
 
 impl Senses {
@@ -25,7 +25,7 @@ impl Senses {
             result += 1;
             result += self.sight;
         }
-        result += self.earsight;
+        result += self.hearing;
 
         result
     }
@@ -34,7 +34,7 @@ impl Senses {
         self.touch = bool::merge(senses.touch, self.touch);
         self.selfs = bool::merge(senses.selfs, self.selfs);
         self.sight = BoundedU8::merge(senses.sight, self.sight);
-        self.earsight = BoundedU8::merge(senses.earsight, self.earsight);
+        self.hearing = BoundedU8::merge(senses.hearing, self.hearing);
         self
     }
 }
@@ -44,7 +44,7 @@ pub struct SensesInfo {
     pub selfi: Option<SelfInfo>,
     pub touch: Option<TouchInfo>,
     pub sight: Option<SightInfo>,
-    pub earsight: Option<EarsightInfo>,
+    pub hearing: Option<HearingInfo>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
@@ -69,12 +69,12 @@ pub struct SightInfo {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
-pub struct EarsightInfo {
+pub struct HearingInfo {
     /// We don't want to give the player the exact distance
     pub range: Option<BoundedU8<1, 5>>,
 }
 
-impl EarsightInfo {
+impl HearingInfo {
     pub fn dist(strength: u8) -> Option<u8> {
         match strength {
             1 => Some(3),

@@ -26,7 +26,7 @@ macro_rules! include_stages {
 const STAGES: &[(&str, &[u8])] = include_stages![
     "tuto_self",
     "tuto_touch",
-    "tuto_hearsight",
+    "tuto_hearing",
     "tuto_sight",
     "tuto_end"
 ];

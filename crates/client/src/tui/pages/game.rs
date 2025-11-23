@@ -377,8 +377,8 @@ impl<'a> Widget for SensesWidget<'a> {
             return;
         }
 
-        let sense = self.senses.earsight;
-        let info = self.info.and_then(|i| i.earsight.as_ref());
+        let sense = self.senses.hearing;
+        let info = self.info.and_then(|i| i.hearing.as_ref());
         let status = info.map(|str| match str.range {
             Some(range) => match range.get() {
                 1 => Line::from("The orb is buzzing nearby!").style(THEME.styles.signal),
@@ -395,7 +395,7 @@ impl<'a> Widget for SensesWidget<'a> {
         let indicator = format!("({})", sense);
 
         SenseWidget {
-            label: "Earsight",
+            label: "Hearing",
             indicator: indicator.as_str(),
             status,
             selected: self.selection == row_index,

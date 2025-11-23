@@ -1,6 +1,6 @@
 use bounded_integer::BoundedU8;
 use losig_core::{
-    sense::{EarsightInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, TouchInfo},
+    sense::{HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, TouchInfo},
     types::{Avatar, Tile},
 };
 
@@ -13,26 +13,26 @@ pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SensesInfo {
         sight: try_gather(senses.sight, |strength| {
             gather_sight(strength.get(), avatar, stage)
         }),
-        earsight: try_gather(senses.earsight, |strength| {
-            gather_earsight(strength.get(), avatar, stage)
+        hearing: try_gather(senses.hearing, |strength| {
+            gather_hearing(strength.get(), avatar, stage)
         }),
     }
 }
 
-fn gather_earsight(strength: u8, avatar: &Avatar, stage: &Stage) -> EarsightInfo {
+fn gather_hearing(strength: u8, avatar: &Avatar, stage: &Stage) -> HearingInfo {
     let dist = avatar.position.dist(&stage.orb) as u8;
 
     for s in 1..(strength + 1) {
-        if let Some(range) = EarsightInfo::dist(s)
+        if let Some(range) = HearingInfo::dist(s)
             && dist <= range
         {
-            return EarsightInfo {
+            return HearingInfo {
                 range: BoundedU8::new(s),
             };
         }
     }
 
-    EarsightInfo { range: None }
+    HearingInfo { range: None }
 }
 
 fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage) -> SightInfo {

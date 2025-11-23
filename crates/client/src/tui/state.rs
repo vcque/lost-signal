@@ -42,7 +42,7 @@ impl GameState {
         match self.sense_selection {
             0 => senses.selfs = senses.selfs.decr(),
             1 => senses.touch = senses.touch.decr(),
-            2 => senses.earsight = senses.earsight.decr(),
+            2 => senses.hearing = senses.hearing.decr(),
             3 => senses.sight = senses.sight.decr(),
             _ => {}
         }
@@ -53,7 +53,7 @@ impl GameState {
         match self.sense_selection {
             0 => senses.selfs = senses.selfs.incr(),
             1 => senses.touch = senses.touch.incr(),
-            2 => senses.earsight = senses.earsight.incr(),
+            2 => senses.hearing = senses.hearing.incr(),
             3 => senses.sight = senses.sight.incr(),
             _ => {}
         }

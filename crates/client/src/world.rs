@@ -67,25 +67,17 @@ impl WorldView {
             avatar_id: _,
             turn,
             stage,
-            winner,
             info,
         } = turn_result;
 
         let diff = turn.abs_diff(self.turn);
         // Update global info
         if diff == 0 {
-            if self.winner != winner {
-                self.logs.add(turn, ClientLog::Win);
+            if self.stage != stage {
+                self.logs.add(turn, ClientLog::NextStage);
+                self.clear();
             }
-            self.winner = winner;
-
-            if !self.winner {
-                if self.stage != stage {
-                    self.logs.add(turn, ClientLog::NextStage);
-                    self.clear();
-                }
-                self.stage = stage;
-            }
+            self.stage = stage;
         }
         match diff {
             i if self.history.len() > i as usize => {
@@ -146,7 +138,6 @@ struct WorldHistory {
 #[derive(Debug, Clone)]
 pub struct WorldState {
     pub tiles: [Tile; VIEW_SIZE * VIEW_SIZE],
-    pub broken: bool,
     pub position: Position,
     pub incoherent: bool,
 }
@@ -155,7 +146,6 @@ impl WorldState {
     pub fn new() -> Self {
         Self {
             tiles: [Tile::Unknown; VIEW_SIZE * VIEW_SIZE],
-            broken: false,
             position: START_POS,
             incoherent: false,
         }
@@ -178,10 +168,6 @@ impl WorldState {
         self.update_action(&history.action);
 
         if let Some(ref info) = history.info {
-            if let Some(ref info) = info.selfi {
-                self.broken = info.broken;
-            }
-
             if let Some(ref info) = info.sight {
                 self.update_tiles(self.position, &info.tiles);
             }
@@ -195,12 +181,10 @@ impl WorldState {
     fn update_action(&mut self, action: &Action) {
         match action {
             Action::Move(dir) => {
-                if !self.broken {
-                    let new_pos = self.position + dir.offset();
-                    let tile = self.tile_at(new_pos);
-                    if tile.can_travel() {
-                        self.position = new_pos;
-                    }
+                let new_pos = self.position + dir.offset();
+                let tile = self.tile_at(new_pos);
+                if tile.can_travel() {
+                    self.position = new_pos;
                 }
             }
             Action::Spawn => {

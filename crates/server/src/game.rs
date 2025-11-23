@@ -3,7 +3,7 @@ use log::*;
 use losig_core::{
     network::{CommandMessage, ServerMessage, TurnResultMessage},
     sense::{Senses, SensesInfo},
-    types::{Action, Avatar, AvatarId, Offset, Position, Tile},
+    types::{Action, Avatar, AvatarId, GameOver, Offset, Position, Tile},
 };
 
 use crate::{
@@ -22,22 +22,56 @@ impl Game {
         Game { services }
     }
 
-    pub fn enact(&self, command: CommandMessage) {
+    pub fn new_player(&self, avatar_id: AvatarId) {
         let world = &mut *self.services.world.lock().unwrap();
+        info!("Avatar {} spawned.", avatar_id);
+        world.avatars.insert(
+            avatar_id,
+            Avatar {
+                id: avatar_id,
+                stage: 0,
+                position: spawn_position(world.stages.first().unwrap(), avatar_id),
+                signal: 100,
+                turns: 0,
+                gameover: None,
+            },
+        );
+    }
+
+    pub fn enact(&self, command: CommandMessage) {
+        let avatar_id = command.avatar_id;
+        let world = &mut *self.services.world.lock().unwrap();
+        if !world.avatars.contains_key(&avatar_id) {
+            // TODO: send back an error msg?
+            warn!("Couldn't find avatar #{avatar_id} from command");
+            return;
+        }
+
         let senses = enact_tick(world, &command);
         let info = senses.and_then(|s| gather_info(world, command.avatar_id, &s));
-        let avatar = world.find_avatar(command.avatar_id);
+        let Some(avatar) = world.find_avatar(avatar_id) else {
+            warn!("Couldn't find avatar #{avatar_id} after enacting turn");
+            return;
+        };
+
         if let Some(info) = info {
             let msg = TurnResultMessage {
-                avatar_id: command.avatar_id,
+                avatar_id: avatar_id,
                 turn: command.turn,
-                stage: avatar.map(|a| a.stage as u8).unwrap_or_default(),
-                winner: avatar.map(|a| a.winner).unwrap_or_default(),
+                stage: avatar.stage as u8,
                 info,
             };
             let msg = ServerMessageWithRecipient {
                 recipient: Recipient::Single(command.avatar_id),
                 message: ServerMessage::Turn(msg),
+            };
+            self.services.sender.send(msg).unwrap();
+        }
+
+        if let Some(ref gameover) = avatar.gameover {
+            let msg = ServerMessageWithRecipient {
+                recipient: Recipient::Single(avatar_id),
+                message: ServerMessage::GameOver(gameover.clone()),
             };
             self.services.sender.send(msg).unwrap();
         }
@@ -50,51 +84,25 @@ pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
 
     let mut all_senses: Vec<Senses> = vec![];
 
-    match avatar {
-        Some(mut avatar) => {
-            avatar.turns += 1; // Increment turn count
-            let additional_senses = enact_action(world, &cmd.action, &mut avatar);
-            all_senses.push(additional_senses);
-            let cost = cmd.senses.cost();
-            if avatar.signal >= cost {
-                avatar.signal -= cost;
-                all_senses.push(cmd.senses.clone());
-            }
+    if let Some(mut avatar) = avatar {
+        avatar.turns += 1; // Increment turn count
+        let additional_senses = enact_action(world, &cmd.action, &mut avatar);
+        all_senses.push(additional_senses);
+        let cost = cmd.senses.cost();
+        if avatar.signal >= cost {
+            avatar.signal -= cost;
+            all_senses.push(cmd.senses.clone());
+        }
 
-            world.avatars.insert(avatar.id, avatar); // Put it back!
-        }
-        None => {
-            if matches!(cmd.action, Action::Spawn) {
-                spawn_avatar(world, cmd.avatar_id);
-                all_senses.push(Senses {
-                    sight: BoundedU8::const_new::<3>(),
-                    ..Default::default()
-                });
-            }
-        }
+        world.avatars.insert(avatar.id, avatar); // Put it back!
+    } else {
+        warn!("Unreachable: {cmd:?}");
     }
 
     enact_foes(world);
     all_senses
         .into_iter()
         .reduce(|acc, senses| acc.merge(senses))
-}
-
-fn spawn_avatar(world: &mut World, avatar_id: AvatarId) {
-    info!("Avatar {} spawned.", avatar_id);
-    world.avatars.insert(
-        avatar_id,
-        Avatar {
-            id: avatar_id,
-            stage: 0,
-            position: spawn_position(world.stages.first().unwrap(), avatar_id),
-            broken: false,
-            signal: 100,
-            winner: false,
-            deaths: 0,
-            turns: 0,
-        },
-    );
 }
 
 fn spawn_position(stage: &Stage, avatar_id: AvatarId) -> Position {
@@ -107,9 +115,8 @@ fn enact_foes(world: &mut World) {
     for (i, stage) in world.stages.iter().enumerate() {
         for foe in stage.foes.iter() {
             for avatar in world.avatars.values_mut() {
-                if foe.position == avatar.position && i == avatar.stage && !avatar.broken {
-                    avatar.deaths += 1;
-                    avatar.broken = true;
+                if foe.position == avatar.position && i == avatar.stage {
+                    avatar.gameover = Some(GameOver::new(&avatar, false));
                 }
             }
         }
@@ -118,16 +125,12 @@ fn enact_foes(world: &mut World) {
 
 fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Senses {
     let mut result = Senses::default();
-    if avatar.broken && !action.allow_broken() {
-        return result;
-    }
 
     // Specific spawn action
     if *action == Action::Spawn {
         let stage = world.stages.get(avatar.stage).unwrap();
         avatar.position = spawn_position(stage, avatar.id);
         avatar.signal = 100;
-        avatar.broken = false;
         result.sight = BoundedU8::const_new::<3>();
         return result;
     }
@@ -150,7 +153,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
                 result.selfs = true;
                 if avatar.stage == world.stages.len() - 1 {
                     // Player has won all stages
-                    avatar.winner = true;
+                    avatar.gameover = Some(GameOver::new(avatar, true));
                 } else {
                     avatar.stage += 1; // Crashes the server when the player wins
                     if let Some(stage) = world.stages.get(avatar.stage) {

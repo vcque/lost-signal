@@ -4,8 +4,8 @@ use std::sync::{Arc, Mutex};
 
 use losig_core::{
     leaderboard::Leaderboard,
-    network::{ClientMessage, ClientMessageContent, GameOverMessage, ServerMessage},
-    types::AvatarId,
+    network::{ClientMessage, ClientMessageContent, ServerMessage},
+    types::{AvatarId, GameOver},
 };
 
 use crate::{tui::GameTui, world::WorldView};
@@ -73,8 +73,6 @@ pub trait Client: Send + 'static {
 pub trait TuiAdapter {
     fn run(self, tui: GameTui);
 }
-
-type GameOver = GameOverMessage;
 
 /// State manipulated by either the tui or incoming messages
 pub struct SharedState {

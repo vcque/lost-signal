@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     leaderboard::Leaderboard,
     sense::{Senses, SensesInfo},
-    types::{Action, AvatarId, Turn},
+    types::{Action, AvatarId, GameOver, Turn},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,17 +23,10 @@ pub struct TurnResultMessage {
     pub avatar_id: AvatarId,
     pub turn: Turn,
     pub stage: u8,
-    pub winner: bool,
     pub info: SensesInfo,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct GameOverMessage {
-    pub winner: bool,
-    pub stage: u8,
-    pub turn: Turn,
-    pub score: u32,
-}
+pub type GameOverMessage = GameOver;
 
 #[derive(Serialize, Deserialize)]
 pub struct ClientMessage {
@@ -43,6 +36,7 @@ pub struct ClientMessage {
 
 #[derive(Serialize, Deserialize)]
 pub enum ClientMessageContent {
+    Start(AvatarId),
     Leaderboard,
     LeaderboardSubmit(AvatarId, String),
     Command(CommandMessage),

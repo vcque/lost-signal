@@ -55,9 +55,11 @@ impl MenuPage {
                 if let Some(selection) = list_state.selected().map(|i| MENU_OPTIONS[i]) {
                     match selection {
                         MenuOption::Start => {
+                            services.new_game();
+                        }
+                        MenuOption::Continue => {
                             services.act(Action::Spawn, Senses::default());
                         }
-                        MenuOption::Continue => {}
                     }
                     state.page = PageSelection::Game;
                 }

@@ -171,12 +171,11 @@ pub struct Avatar {
     pub id: AvatarId,
     pub stage: usize,
     pub position: Position,
-    pub broken: bool,
     /// Some kind of energy, it's called signal because that's the name of the game
     pub signal: u8,
-    pub winner: bool,
-    pub deaths: u32,
     pub turns: Turn,
+    /// This field is set when the player has won of lost
+    pub gameover: Option<GameOver>,
 }
 
 #[derive(Debug, Clone)]
@@ -225,6 +224,32 @@ impl Tiles {
         Position {
             x: self.width / 2,
             y: self.height / 2,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GameOver {
+    pub win: bool,
+    pub stage: u8,
+    pub turns: Turn,
+    pub score: u64,
+}
+
+impl GameOver {
+    pub fn new(avatar: &Avatar, win: bool) -> Self {
+        let mut score: u64 = (avatar.stage as u64 + 1) * 100;
+        score = score.saturating_sub(avatar.turns);
+        score *= 100;
+        if win {
+            score *= 2;
+        }
+
+        Self {
+            win,
+            stage: (avatar.stage + 1) as u8,
+            turns: avatar.turns,
+            score,
         }
     }
 }

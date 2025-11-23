@@ -1,6 +1,6 @@
 use losig_core::{
     sense::{SenseStrength, Senses, SensesInfo},
-    types::{Action, Direction, Offset, Tile},
+    types::{Action, Direction, GameOver, Offset, Tile},
 };
 use ratatui::{
     buffer::Buffer,
@@ -99,9 +99,8 @@ impl GamePage {
                 senses_wigdet.render(_senses_a, buf);
             }
 
-            let winner = services.state.world.winner;
-            if winner {
-                YouWinWidget {}.render(area, buf, &state.you_win);
+            if let Some(gameover) = &services.state.gameover {
+                GameOverWidget {}.render(area, buf, gameover, &mut state.you_win);
             }
         }
 
@@ -125,14 +124,10 @@ impl GamePage {
             return false;
         };
 
+        if services.state.gameover.is_some()
+            && (GameOverWidget {}).on_event(event, &mut state.you_win, &mut services)
         {
-            let winner: bool;
-            {
-                winner = services.state.world.winner;
-            }
-            if winner && (YouWinWidget {}).on_event(event, &mut state.you_win, &mut services) {
-                return true;
-            }
+            return true;
         }
 
         let game_state = &mut state.game;
@@ -263,16 +258,11 @@ impl<'a> Widget for WorldViewWidget<'a> {
             }
         }
 
-        let mut style = Style::default();
-        if self.world.current_state().broken {
-            style = style.red();
-        }
-
         buf.set_string(
             area.x + center_x as u16,
             area.y + center_y as u16,
             "@",
-            style,
+            Style::default(),
         );
     }
 }
@@ -340,13 +330,7 @@ impl<'a> Widget for SensesWidget<'a> {
 
         let sense = self.senses.selfs;
         let info = self.info.and_then(|i| i.selfi.as_ref());
-        let status = info.map(|selfi| {
-            if selfi.broken {
-                Line::from("I'm not fine").style(THEME.styles.danger)
-            } else {
-                Line::from("I'm fine")
-            }
-        });
+        let status = info.map(|_| Line::from("I exist"));
 
         let indicator = if sense { "(+)" } else { "(-)" };
 
@@ -431,10 +415,16 @@ impl<'a> Widget for SensesWidget<'a> {
     }
 }
 
-struct YouWinWidget {}
+struct GameOverWidget {}
 
-impl YouWinWidget {
-    pub fn render(self, area: Rect, buf: &mut Buffer, state: &YouWinState) {
+impl GameOverWidget {
+    pub fn render(
+        self,
+        area: Rect,
+        buf: &mut Buffer,
+        gameover: &GameOver,
+        state: &mut YouWinState,
+    ) {
         let popup_width = 50;
         let popup_height = 10;
 
@@ -451,10 +441,16 @@ impl YouWinWidget {
             }
         }
 
+        let (title, color) = if gameover.win {
+            ("🎉 Victory! 🎉", Color::Green)
+        } else {
+            ("💀 Game Over 💀", Color::Red)
+        };
+
         let block = Block::default()
-            .title("🎉 Victory! 🎉")
+            .title(title)
             .borders(Borders::ALL)
-            .style(Style::default().bg(Color::Black).fg(Color::Green));
+            .style(Style::default().bg(Color::Black).fg(color));
 
         let inner = block.inner(popup_area);
         block.render(popup_area, buf);
@@ -478,22 +474,32 @@ impl YouWinWidget {
                 buf.set_string(x, y, line, style);
             }
         } else {
-            // Show name input form
-            let lines = [
+            // Show game stats and name input form
+            let stage_line = format!("Stage: {}", gameover.stage);
+            let turns_line = format!("Turns: {}", gameover.turns);
+            let score_line = format!("Score: {}", gameover.score);
+            let name_line = format!("> {}_", state.name);
+
+            let stats_lines = [
+                stage_line.as_str(),
+                turns_line.as_str(),
+                score_line.as_str(),
+                "",
                 "Enter your name for the leaderboard:",
                 "",
-                &format!("> {}_", state.name),
+                name_line.as_str(),
                 "",
                 "(Max 8 characters, press Enter to submit)",
             ];
 
-            for (i, line) in lines.iter().enumerate() {
-                let y = inner.y + 1 + i as u16;
+            for (i, line) in stats_lines.iter().enumerate() {
+                let y = inner.y + i as u16;
                 let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
                 let style = match i {
-                    0 => Style::default().fg(Color::White),
-                    2 => Style::default().fg(Color::Yellow),
-                    4 | 5 => Style::default().fg(Color::Gray),
+                    0..=2 => Style::default().fg(Color::Cyan), // Stats
+                    4 => Style::default().fg(Color::White),    // Prompt
+                    6 => Style::default().fg(Color::Yellow),   // Name input
+                    8 => Style::default().fg(Color::Gray),     // Instructions
                     _ => Style::default().fg(Color::White),
                 };
                 buf.set_string(x, y, line, style);

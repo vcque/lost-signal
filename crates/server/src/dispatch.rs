@@ -1,6 +1,6 @@
 use std::{sync::mpsc::Receiver, thread::spawn};
 
-use log::{error, warn};
+use log::error;
 use losig_core::{
     leaderboard::LeaderboardEntry,
     network::{ClientMessage, ClientMessageContent, ServerMessage},
@@ -27,6 +27,9 @@ impl Dispatch {
             let game = Game::new(self.services.clone());
             while let Ok(msg) = self.cm_rx.recv() {
                 match msg.content {
+                    ClientMessageContent::Start(aid) => {
+                        game.new_player(aid);
+                    }
                     ClientMessageContent::Command(cmd) => {
                         game.enact(cmd);
                     }
@@ -48,11 +51,7 @@ impl Dispatch {
                         // Get avatar stats
                         let mut world = self.services.world.lock().unwrap();
                         if let Some(avatar) = world.avatars.get(&avatar_id) {
-                            if !avatar.winner {
-                                warn!("Trying to put a non winner in leaderboard: {avatar_id}");
-                                return;
-                            }
-                            let entry = LeaderboardEntry::new(name, avatar.deaths, avatar.turns);
+                            let entry = LeaderboardEntry::new(name, 1, avatar.turns);
                             {
                                 let mut leaderboard = self.services.leaderboard.lock().unwrap();
                                 leaderboard.add(entry);

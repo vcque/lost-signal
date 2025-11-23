@@ -72,6 +72,13 @@ impl<'a> InputServices<'a> {
             content: ClientMessageContent::LeaderboardSubmit(self.state.avatar_id, name),
         });
     }
+
+    pub fn new_game(&self) {
+        self.client.send(ClientMessage {
+            avatar_id: Some(self.state.avatar_id),
+            content: ClientMessageContent::Start(self.state.avatar_id),
+        });
+    }
 }
 
 impl GameTui {

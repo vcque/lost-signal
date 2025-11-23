@@ -49,7 +49,6 @@ pub struct SensesInfo {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SelfInfo {
-    pub broken: bool,
     pub signal: u8,
     pub stage: u8,
     pub turn: Turn,

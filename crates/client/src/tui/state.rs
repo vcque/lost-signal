@@ -28,9 +28,10 @@ impl Default for MenuState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GameState {
     pub senses: Senses,
+    pub stage: u8,
     pub sense_selection: usize,
     pub show_help: bool,
 }
@@ -41,8 +42,8 @@ impl GameState {
         match self.sense_selection {
             0 => senses.selfs = senses.selfs.decr(),
             1 => senses.touch = senses.touch.decr(),
-            2 => senses.sight = senses.sight.decr(),
-            3 => senses.earsight = senses.earsight.decr(),
+            2 => senses.earsight = senses.earsight.decr(),
+            3 => senses.sight = senses.sight.decr(),
             _ => {}
         }
     }
@@ -52,23 +53,9 @@ impl GameState {
         match self.sense_selection {
             0 => senses.selfs = senses.selfs.incr(),
             1 => senses.touch = senses.touch.incr(),
-            2 => senses.sight = senses.sight.incr(),
-            3 => senses.earsight = senses.earsight.incr(),
+            2 => senses.earsight = senses.earsight.incr(),
+            3 => senses.sight = senses.sight.incr(),
             _ => {}
-        }
-    }
-}
-
-impl Default for GameState {
-    fn default() -> Self {
-        GameState {
-            senses: Senses {
-                selfs: true,
-                touch: true,
-                ..Default::default()
-            },
-            sense_selection: 0,
-            show_help: false,
         }
     }
 }

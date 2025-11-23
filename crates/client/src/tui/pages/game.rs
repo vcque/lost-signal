@@ -41,67 +41,65 @@ impl GamePage {
         state: &mut TuiState,
         services: RenderServices,
     ) {
-        {
-            {
-                let [world_a, log_a, _senses_a] = Self::layout(area);
-                let world = &services.state.world;
-                let world_widget = WorldViewWidget { world };
+        let [world_a, log_a, _senses_a] = Self::layout(area);
+        let world = &services.state.world;
+        state.game.stage = world.stage;
+        let world_widget = WorldViewWidget { world };
 
-                let world_title = Line::from(Span::raw(format!(
-                    "World - stage {} - turn {}",
-                    world.stage + 1,
-                    world.turn
-                )));
+        let world_title = Line::from(Span::raw(format!(
+            "World - stage {} - turn {}",
+            world.stage + 1,
+            world.turn
+        )));
 
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(world_title)
-                    .wrap(world_widget)
-                    .render(world_a, buf);
+        Block::default()
+            .borders(Borders::ALL)
+            .title(world_title)
+            .wrap(world_widget)
+            .render(world_a, buf);
 
-                let logs_widget = LogsWidget {
-                    logs: world.logs.logs(),
-                };
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Game Log")
-                    .wrap(logs_widget)
-                    .render(log_a, buf);
+        let logs_widget = LogsWidget {
+            logs: world.logs.logs(),
+        };
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Game Log")
+            .wrap(logs_widget)
+            .render(log_a, buf);
 
-                let game_state = &mut state.game;
-                let senses_widget = SensesWidget {
-                    senses: game_state.senses.clone(),
-                    info: world.last_info(),
-                    selection: game_state.sense_selection,
-                };
+        let game_state = &mut state.game;
+        let senses_widget = SensesWidget {
+            senses: game_state.senses.clone(),
+            info: world.last_info(),
+            selection: game_state.sense_selection,
+            max_sense: game_state.stage as usize,
+        };
 
-                let cost = game_state.senses.cost();
-                let signal = world
-                    .last_info()
-                    .and_then(|info| info.selfi.as_ref())
-                    .map(|selfi| selfi.signal);
-                let cost_style = if signal.is_some_and(|s| s < cost) {
-                    Style::default().bold().bg(Color::Red)
-                } else {
-                    Style::default()
-                };
+        let cost = game_state.senses.cost();
+        let signal = world
+            .last_info()
+            .and_then(|info| info.selfi.as_ref())
+            .map(|selfi| selfi.signal);
+        let cost_style = if signal.is_some_and(|s| s < cost) {
+            Style::default().bold().bg(Color::Red)
+        } else {
+            Style::default()
+        };
 
-                let signal_str = signal.map(|s| s.to_string()).unwrap_or("??".to_owned());
+        let signal_str = signal.map(|s| s.to_string()).unwrap_or("??".to_owned());
 
-                let title = Line::from(format!(" Senses - cost: {} / {} ", cost, signal_str))
-                    .alignment(ratatui::layout::Alignment::Center);
+        let title = Line::from(format!(" Senses - cost: {} / {} ", cost, signal_str))
+            .alignment(ratatui::layout::Alignment::Center);
 
-                let senses_wigdet = Block::default()
-                    .borders(Borders::TOP)
-                    .title(title)
-                    .border_style(cost_style)
-                    .wrap(senses_widget);
-                senses_wigdet.render(_senses_a, buf);
-            }
+        let senses_wigdet = Block::default()
+            .borders(Borders::TOP)
+            .title(title)
+            .border_style(cost_style)
+            .wrap(senses_widget);
+        senses_wigdet.render(_senses_a, buf);
 
-            if let Some(gameover) = &services.state.gameover {
-                GameOverWidget {}.render(area, buf, gameover, &mut state.you_win);
-            }
+        if let Some(gameover) = &services.state.gameover {
+            GameOverWidget {}.render(area, buf, gameover, &mut state.you_win);
         }
 
         if state.game.show_help {
@@ -135,12 +133,11 @@ impl GamePage {
             let mut consumed = true;
             match key.code {
                 KeyCode::Up | KeyCode::Char('8') | KeyCode::Char('K') => {
-                    if game_state.sense_selection > 0 {
-                        game_state.sense_selection -= 1;
-                    }
+                    game_state.sense_selection = game_state.sense_selection.saturating_sub(1);
                 }
                 KeyCode::Down | KeyCode::Char('2') | KeyCode::Char('J') => {
-                    if game_state.sense_selection < 4 {
+                    let max_sense = game_state.stage.min(3);
+                    if game_state.sense_selection < max_sense as usize {
                         game_state.sense_selection += 1;
                     }
                 }
@@ -318,6 +315,7 @@ struct SensesWidget<'a> {
     senses: Senses,
     info: Option<&'a SensesInfo>,
     selection: usize,
+    max_sense: usize,
 }
 
 impl<'a> Widget for SensesWidget<'a> {
@@ -343,6 +341,9 @@ impl<'a> Widget for SensesWidget<'a> {
         }
         .render(rows[row_index], buf);
         row_index += 1;
+        if self.max_sense < 1 {
+            return;
+        }
 
         let sense = self.senses.touch;
         let info = self.info.and_then(|i| i.touch.as_ref());
@@ -372,20 +373,9 @@ impl<'a> Widget for SensesWidget<'a> {
         .render(rows[row_index], buf);
         row_index += 1;
 
-        let sense = self.senses.sight;
-        let info = self.info.and_then(|i| i.sight.as_ref());
-        let status = info.map(|_| Line::from("I see stuff"));
-        let indicator = format!("({})", sense);
-
-        SenseWidget {
-            label: "Sight",
-            indicator: indicator.as_str(),
-            status,
-            selected: self.selection == row_index,
-            active: !sense.is_min(),
+        if self.max_sense < 2 {
+            return;
         }
-        .render(rows[row_index], buf);
-        row_index += 1;
 
         let sense = self.senses.earsight;
         let info = self.info.and_then(|i| i.earsight.as_ref());
@@ -406,6 +396,24 @@ impl<'a> Widget for SensesWidget<'a> {
 
         SenseWidget {
             label: "Earsight",
+            indicator: indicator.as_str(),
+            status,
+            selected: self.selection == row_index,
+            active: !sense.is_min(),
+        }
+        .render(rows[row_index], buf);
+        row_index += 1;
+        if self.max_sense < 3 {
+            return;
+        }
+
+        let sense = self.senses.sight;
+        let info = self.info.and_then(|i| i.sight.as_ref());
+        let status = info.map(|_| Line::from("I see stuff"));
+        let indicator = format!("({})", sense);
+
+        SenseWidget {
+            label: "Sight",
             indicator: indicator.as_str(),
             status,
             selected: self.selection == row_index,

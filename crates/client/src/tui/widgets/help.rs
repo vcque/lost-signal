@@ -68,7 +68,7 @@ impl HelpWidget {
     }
 
     pub fn render(&self, area: Rect, buf: &mut Buffer, state: &HelpState) {
-        let popup_area = center(area, Constraint::Percentage(50), Constraint::Percentage(50));
+        let popup_area = center(area, Constraint::Percentage(60), Constraint::Percentage(60));
 
         // Clear the popup area with a background
         for x in popup_area.x..popup_area.x + popup_area.width {
@@ -121,14 +121,14 @@ impl HelpWidget {
             Line::from(""),
             Line::from("SENSES"),
             Line::from(
-                "Senses are your only way of gathering information on your surroundings. Enabled senses cost focus each turn and don't activate if you can't pay the cost.",
+                "Senses are your only way of gathering information on your surroundings. Enabled senses cost focus each turn and won't activate if you can't pay the cost.",
             ),
             Line::from(""),
             Line::from(
                 "At the bottom of the lesser realities, only the (limited) sense of Self exists. But you might find more useful senses as you climb.",
             ),
             Line::from(""),
-            Line::from("Controls: Shift + Left/Right to disable/enable a sense"),
+            Line::from("Controls: Shift + Left/Right to disable/enable a sense."),
             Line::from(""),
             Line::from("SELF SENSE - cost: 1"),
             Line::from("Shows your current focus level."),
@@ -138,7 +138,24 @@ impl HelpWidget {
     }
 
     fn page_2(&self) -> Paragraph<'_> {
-        Paragraph::new(vec![])
+        Paragraph::new(vec![
+            Line::from("A tingling sensation overwhelms you as you reach a higher reality. You can feel again.").italic(),
+            Line::from(""),
+            Line::from("TOUCH SENSE - cost: 1"),
+            Line::from("Shows the adjacent tiles."),
+            Line::from("Shows how many adjacent entities there are."),
+            Line::from(""),
+            Line::from("FOCUS"),
+            Line::from("You can recharge focus either by respawning with 'r' or by standing next to a pylon '|'."),
+            Line::from(""),
+            Line::from("SELECTING A SENSE"),
+            Line::from("Shift + Up/Down to select a sense that you can then enable/disable."),
+            Line::from(""),
+            Line::from("THE ORB"),
+            Line::from("The orb is a passageway between two realities. Grab it to climb further up."),
+            Line::from(""),
+            Line::from("Enable your touch sense to feel your surroundings and search for the orb."),
+        ])
     }
 
     fn page_3(&self) -> Paragraph<'_> {

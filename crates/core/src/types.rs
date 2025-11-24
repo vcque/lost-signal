@@ -228,6 +228,11 @@ impl Tiles {
         };
         self.grid.get(x, y).copied().unwrap_or_default()
     }
+
+    pub fn at_offset_from_center(&self, offset: Offset) -> Tile {
+        let position = self.center() + offset;
+        self.get(position)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -219,12 +219,30 @@ impl<'a> Widget for WorldViewWidget<'a> {
         let last_info = w.last_info();
         for x in 0..area.width {
             for y in 0..area.height {
-                let tile = w.current_state().tile_from_viewer(Offset {
+                let offset = Offset {
                     x: x as isize - center_x,
                     y: y as isize - center_y,
-                });
+                };
+
+                let tile = w.current_state().tile_from_viewer(offset);
+
+                let in_fov = last_info
+                    .as_ref()
+                    .and_then(|i| i.sight.as_ref())
+                    .map(|t| t.tiles.at_offset_from_center(offset))
+                    .unwrap_or_default()
+                    != Tile::Unknown;
 
                 let (ch, style) = render_tile(tile);
+                let style = if in_fov {
+                    style
+                } else if style.fg.is_some() {
+                    style.fg(THEME.palette.terrain_unseen)
+                } else if style.bg.is_some() {
+                    style.bg(THEME.palette.terrain_unseen)
+                } else {
+                    style
+                };
                 buf.set_string(area.x + x, area.y + y, ch.to_string(), style);
             }
         }

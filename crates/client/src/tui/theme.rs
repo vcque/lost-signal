@@ -33,7 +33,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
     palette: ThemePalette {
         foe: Color::from_hsl(Hsl::new(0.0, 1.0, 0.5)),
         terrain: Color::from_hsl(Hsl::new(270.0, 1.0, 0.5)),
-        terrain_unseen: Color::from_hsl(Hsl::new(270.0, 1.0, 0.2)),
+        terrain_unseen: Color::from_hsl(Hsl::new(270.0, 0.0, 0.1)),
 
         ui: Color::White,
         ui_disabled: Color::from_hsl(Hsl::new(0.0, 0.0, 0.5)),

@@ -13,8 +13,10 @@ use ratatui::{
 use crate::{
     logs::{ClientLog, GameLog},
     tui::{
-        GameState, InputServices, RenderServices, THEME, YouWinState, state::TuiState,
-        utils::center, widgets::block_wrap::BlockWrap,
+        InputServices, RenderServices, THEME, YouWinState,
+        state::TuiState,
+        utils::center,
+        widgets::{block_wrap::BlockWrap, help::HelpWidget},
     },
     tui_adapter::{Event, KeyCode},
     world::WorldView,
@@ -44,6 +46,8 @@ impl GamePage {
         let [world_a, log_a, _senses_a] = Self::layout(area);
         let world = &services.state.world;
         state.game.stage = world.stage;
+        state.game.help.next_page(world.stage);
+
         let world_widget = WorldViewWidget { world };
 
         let world_title = Line::from(Span::raw(format!(
@@ -102,8 +106,8 @@ impl GamePage {
             GameOverWidget {}.render(area, buf, gameover, &mut state.you_win);
         }
 
-        if state.game.show_help {
-            HelpWidget {}.render(area, buf);
+        if state.game.help.open {
+            HelpWidget.render(area, buf, &state.game.help);
         }
     }
 
@@ -114,8 +118,8 @@ impl GamePage {
         mut services: InputServices,
     ) -> bool {
         // If help is visible, let HelpWidget handle the event
-        if state.game.show_help {
-            return HelpWidget {}.on_event(event, &mut state.game);
+        if state.game.help.open {
+            return HelpWidget.on_event(event, &mut state.game.help);
         }
 
         let Event::Key(key) = event else {
@@ -176,7 +180,7 @@ impl GamePage {
             KeyCode::Char('5') | KeyCode::Char(' ') => Some(Action::Wait),
             KeyCode::Char('r') => Some(Action::Spawn),
             KeyCode::Char('?') => {
-                game_state.show_help = true;
+                game_state.help.open = true;
                 return true;
             }
             _ => None,
@@ -551,93 +555,6 @@ impl GameOverWidget {
         };
 
         true
-    }
-}
-
-struct HelpWidget {}
-
-impl HelpWidget {
-    fn on_event(self, event: &Event, state: &mut GameState) -> bool {
-        let Event::Key(key) = event else {
-            return true; // Consume all non-key events when help is visible
-        };
-
-        match key.code {
-            KeyCode::Char('?') | KeyCode::Esc => {
-                state.show_help = false;
-                true
-            }
-            _ => true, // Consume all other key events when help is visible
-        }
-    }
-
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        self.render_widget(area, buf);
-    }
-}
-
-impl HelpWidget {
-    fn render_widget(self, area: Rect, buf: &mut Buffer) {
-        let popup_width = 80;
-        let popup_height = 22;
-
-        let popup_area = center(
-            area,
-            Constraint::Length(popup_width),
-            Constraint::Length(popup_height),
-        );
-
-        // Clear the popup area with a background
-        for x in popup_area.x..popup_area.x + popup_area.width {
-            for y in popup_area.y..popup_area.y + popup_area.height {
-                buf.set_string(x, y, " ", Style::default().bg(Color::Black));
-            }
-        }
-
-        let block = Block::default()
-            .title("Help - Press '?' or 'ESC' to close")
-            .borders(Borders::ALL)
-            .style(Style::default().bg(Color::Black).fg(Color::White));
-
-        let inner = block.inner(popup_area);
-        block.render(popup_area, buf);
-
-        let header_style = Style::default().fg(Color::Yellow).bold();
-        let help_text = vec![
-            Line::from(Span::styled("CONTROLS", header_style)),
-            Line::from("Movement: Arrow Keys, Vi keys (hjklyubn), or Numpad (8246 + 7913)"),
-            Line::from("Wait: 5 or Space |  Respawn: r  |  Help: ?"),
-            Line::from("Sense Controls (Shift + Key): Up/Down=Select, Left/Right=Adjust"),
-            Line::from(""),
-            Line::from(Span::styled("SENSES", header_style)),
-            Line::from("Self: Monitor your integrity"),
-            Line::from("Terrain: See nearby tiles (radius)"),
-            Line::from("Danger: Detect threats (radius)"),
-            Line::from("Orb: Detect your goal"),
-            Line::from(""),
-            Line::from(Span::styled("SIGNAL", header_style)),
-            Line::from("Each sense costs signal points per turn"),
-            Line::from("Pylons restore your signal"),
-            Line::from("Manage your signal budget carefully"),
-            Line::from(""),
-            Line::from(Span::styled("GOAL", header_style)),
-            Line::from("Find and reach the orb to win the game"),
-            Line::from("Use your senses to navigate the world"),
-        ];
-
-        for (i, line) in help_text.iter().enumerate() {
-            if i < inner.height as usize {
-                line.render(
-                    Rect {
-                        x: inner.x,
-                        y: inner.y + i as u16,
-                        width: inner.width,
-                        height: 1,
-                    },
-                    buf,
-                );
-            }
-        }
     }
 }
 

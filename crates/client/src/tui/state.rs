@@ -1,6 +1,8 @@
 use losig_core::sense::{SenseStrength, Senses};
 use ratatui::widgets::ListState;
 
+use crate::tui::widgets::help::HelpState;
+
 pub struct TuiState {
     pub menu: MenuState,
     pub game: GameState,
@@ -33,7 +35,7 @@ pub struct GameState {
     pub senses: Senses,
     pub stage: u8,
     pub sense_selection: usize,
-    pub show_help: bool,
+    pub help: HelpState,
 }
 
 impl GameState {

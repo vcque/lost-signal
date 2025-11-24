@@ -243,7 +243,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 buf.set_string(
                     area.x + x as u16,
                     area.y + y as u16,
-                    "¤",
+                    "o",
                     THEME.styles.focus,
                 );
             }
@@ -256,7 +256,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 buf.set_string(
                     area.x + x as u16,
                     area.y + y as u16,
-                    "µ",
+                    "¤",
                     THEME.styles.danger,
                 );
             }

@@ -1,9 +1,9 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Rect},
-    style::{Color, Style},
+    layout::{Alignment, Constraint, Rect},
+    style::{Color, Style, Stylize},
     text::Line,
-    widgets::{Block, Borders, Widget},
+    widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap},
 };
 
 use crate::{
@@ -94,21 +94,12 @@ impl HelpWidget {
             2 => self.page_3(),
             3 => self.page_4(),
             _ => self.page_1(),
-        };
-
-        for (i, line) in help_text.iter().enumerate() {
-            if i < inner.height as usize {
-                line.render(
-                    Rect {
-                        x: inner.x,
-                        y: inner.y + i as u16,
-                        width: inner.width,
-                        height: 1,
-                    },
-                    buf,
-                );
-            }
         }
+        .wrap(Wrap { trim: true });
+
+        help_text
+            .block(Block::new().padding(Padding::uniform(1)))
+            .render(inner, buf);
 
         // Render page info in bottom right corner
         let page_y = popup_area.y + popup_area.height - 1;
@@ -116,41 +107,45 @@ impl HelpWidget {
         buf.set_string(page_x, page_y, page_info, Style::default().fg(Color::Gray));
     }
 
-    fn page_1(&self) -> Vec<Line<'_>> {
-        vec![
-            Line::from("Movement: Arrow Keys, Vi keys (hjklyubn), or Numpad (8246 + 7913)"),
-            Line::from("Wait: 5 or Space |  Respawn: r  |  Help: ?"),
-            Line::from("Sense Controls (Shift + Key): Up/Down=Select, Left/Right=Adjust"),
+    fn page_1(&self) -> Paragraph<'_> {
+        Paragraph::new(vec![
+            Line::from("Welcome to LOSIG!").alignment(Alignment::Center),
             Line::from(""),
-            Line::from("Navigation: Use Left/Right arrow keys to change help pages"),
-        ]
+            Line::from(
+                "LOSIG is a (WIP) game about perception. You play as someone lost at the bottom of the lesser realities and need to reach the surface to become whole again.",
+            ),
+            Line::from(""),
+            Line::from("CONTROLS"),
+            Line::from("Movement: Arrow Keys, Vi keys (hjklyubn), or Numpad"),
+            Line::from("Wait: 5 or Space | Help: ?"),
+            Line::from(""),
+            Line::from("SENSES"),
+            Line::from(
+                "Senses are your only way of gathering information on your surroundings. Enabled senses cost focus each turn and don't activate if you can't pay the cost.",
+            ),
+            Line::from(""),
+            Line::from(
+                "At the bottom of the lesser realities, only the (limited) sense of Self exists. But you might find more useful senses as you climb.",
+            ),
+            Line::from(""),
+            Line::from("Controls: Shift + Left/Right to disable/enable a sense"),
+            Line::from(""),
+            Line::from("SELF SENSE - cost: 1"),
+            Line::from("Shows your current focus level."),
+            Line::from(""),
+            Line::from("You somehow know in your inner Self that you must go north.").italic(),
+        ])
     }
 
-    fn page_2(&self) -> Vec<Line<'_>> {
-        vec![
-            Line::from("Self: Monitor your integrity"),
-            Line::from("Touch: Detect adjacent tiles and entities"),
-            Line::from("Hearing: Detect orb distance (radius)"),
-            Line::from("Sight: See nearby tiles and entities (radius)"),
-        ]
+    fn page_2(&self) -> Paragraph<'_> {
+        Paragraph::new(vec![])
     }
 
-    fn page_3(&self) -> Vec<Line<'_>> {
-        vec![
-            Line::from("Each sense costs signal points per turn"),
-            Line::from("Pylons restore your signal"),
-            Line::from("Manage your signal budget carefully"),
-            Line::from(""),
-            Line::from("Higher sense levels cost more signal"),
-        ]
+    fn page_3(&self) -> Paragraph<'_> {
+        Paragraph::new(vec![])
     }
 
-    fn page_4(&self) -> Vec<Line<'_>> {
-        vec![
-            Line::from("Find and reach the orb to win the game"),
-            Line::from("Use your senses to navigate the world"),
-            Line::from(""),
-            Line::from("Progress through stages to advance"),
-        ]
+    fn page_4(&self) -> Paragraph<'_> {
+        Paragraph::new(vec![])
     }
 }

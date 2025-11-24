@@ -1,4 +1,3 @@
-use bounded_integer::BoundedU8;
 use log::*;
 use losig_core::{
     network::{CommandMessage, ServerMessage, TurnResultMessage},

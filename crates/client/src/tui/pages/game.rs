@@ -5,7 +5,7 @@ use losig_core::{
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Widget},
 };
@@ -85,7 +85,7 @@ impl GamePage {
             .and_then(|info| info.selfi.as_ref())
             .map(|selfi| selfi.focus);
         let cost_style = if focus.is_some_and(|s| s < cost) {
-            Style::default().bold().bg(Color::Red)
+            Style::default().bold().bg(THEME.palette.accent_danger)
         } else {
             Style::default()
         };
@@ -193,18 +193,21 @@ impl GamePage {
     }
 }
 
-const SPAWN_STYLE: &Style = &Style::new().fg(Color::LightYellow);
-const PYLON_STYLE: &Style = &Style::new().bg(Color::Gray).fg(Color::LightBlue);
-const WALL_STYLE: &Style = &Style::new().bg(Color::Gray);
+// Game tile styles are now inline to use THEME palette
 const DEFAULT_STYLE: &Style = &Style::new();
 
-fn render_tile(tile: Tile) -> (char, &'static Style) {
+fn render_tile(tile: Tile) -> (char, Style) {
     match tile {
-        Tile::Spawn => ('S', SPAWN_STYLE),
-        Tile::Wall => (' ', WALL_STYLE),
-        Tile::Unknown => (' ', DEFAULT_STYLE),
-        Tile::Empty => ('.', DEFAULT_STYLE),
-        Tile::Pylon => ('|', PYLON_STYLE),
+        Tile::Spawn => ('S', Style::new().fg(THEME.palette.game_spawn)),
+        Tile::Wall => (' ', Style::new().bg(THEME.palette.game_wall_bg)),
+        Tile::Unknown => (' ', *DEFAULT_STYLE),
+        Tile::Empty => ('.', *DEFAULT_STYLE),
+        Tile::Pylon => (
+            '|',
+            Style::new()
+                .bg(THEME.palette.game_pylon_bg)
+                .fg(THEME.palette.game_pylon_fg),
+        ),
     }
 }
 
@@ -227,7 +230,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 });
 
                 let (ch, style) = render_tile(tile);
-                buf.set_string(area.x + x, area.y + y, ch.to_string(), *style);
+                buf.set_string(area.x + x, area.y + y, ch.to_string(), style);
             }
         }
 
@@ -447,20 +450,20 @@ impl GameOverWidget {
         // Clear background
         for x in popup_area.x..popup_area.x + popup_area.width {
             for y in popup_area.y..popup_area.y + popup_area.height {
-                buf.set_string(x, y, " ", Style::default().bg(Color::Black));
+                buf.set_string(x, y, " ", Style::default().bg(THEME.palette.popup_bg));
             }
         }
 
         let (title, color) = if gameover.win {
-            ("🎉 Victory! 🎉", Color::Green)
+            ("🎉 Victory! 🎉", THEME.palette.accent_success)
         } else {
-            ("💀 Game Over 💀", Color::Red)
+            ("💀 Game Over 💀", THEME.palette.accent_danger)
         };
 
         let block = Block::default()
             .title(title)
             .borders(Borders::ALL)
-            .style(Style::default().bg(Color::Black).fg(color));
+            .style(Style::default().bg(THEME.palette.popup_bg).fg(color));
 
         let inner = block.inner(popup_area);
         block.render(popup_area, buf);
@@ -477,9 +480,9 @@ impl GameOverWidget {
                 let y = inner.y + 2 + i as u16;
                 let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
                 let style = if i == 0 {
-                    Style::default().fg(Color::Yellow)
+                    Style::default().fg(THEME.palette.accent_warning)
                 } else {
-                    Style::default().fg(Color::Gray)
+                    Style::default().fg(THEME.palette.foreground_muted)
                 };
                 buf.set_string(x, y, line, style);
             }
@@ -506,11 +509,11 @@ impl GameOverWidget {
                 let y = inner.y + i as u16;
                 let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
                 let style = match i {
-                    0..=2 => Style::default().fg(Color::Cyan), // Stats
-                    4 => Style::default().fg(Color::White),    // Prompt
-                    6 => Style::default().fg(Color::Yellow),   // Name input
-                    8 => Style::default().fg(Color::Gray),     // Instructions
-                    _ => Style::default().fg(Color::White),
+                    0..=2 => Style::default().fg(THEME.palette.accent_info), // Stats
+                    4 => Style::default().fg(THEME.palette.foreground_primary), // Prompt
+                    6 => Style::default().fg(THEME.palette.foreground_secondary), // Name input
+                    8 => Style::default().fg(THEME.palette.foreground_muted), // Instructions
+                    _ => Style::default().fg(THEME.palette.foreground_primary),
                 };
                 buf.set_string(x, y, line, style);
             }
@@ -587,9 +590,21 @@ impl<'a> Widget for LogsWidget<'a> {
 
 fn format_log(log: ClientLog) -> (&'static str, Style) {
     match log {
-        ClientLog::Help => ("Press '?' for help", Style::default().fg(Color::Cyan)),
-        ClientLog::NextStage => ("I'm making progress.", Style::default().fg(Color::Green)),
-        ClientLog::Lost => ("I am lost...", Style::default().fg(Color::Red)),
-        ClientLog::Win => ("I won!", Style::default().fg(Color::Yellow).bold()),
+        ClientLog::Help => (
+            "Press '?' for help",
+            Style::default().fg(THEME.palette.accent_info),
+        ),
+        ClientLog::NextStage => (
+            "I have reached a higher reality.",
+            Style::default().fg(THEME.palette.accent_success),
+        ),
+        ClientLog::Lost => (
+            "I am lost...",
+            Style::default().fg(THEME.palette.accent_danger),
+        ),
+        ClientLog::Win => (
+            "I am whole again!",
+            Style::default().fg(THEME.palette.accent_warning).bold(),
+        ),
     }
 }

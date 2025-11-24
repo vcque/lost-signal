@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Rect},
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap},
 };
@@ -73,7 +73,7 @@ impl HelpWidget {
         // Clear the popup area with a background
         for x in popup_area.x..popup_area.x + popup_area.width {
             for y in popup_area.y..popup_area.y + popup_area.height {
-                buf.set_string(x, y, " ", Style::default().bg(Color::Black));
+                buf.set_string(x, y, " ", Style::default().bg(THEME.palette.popup_bg));
             }
         }
 
@@ -83,7 +83,7 @@ impl HelpWidget {
         let block = Block::default()
             .title(title)
             .borders(Borders::ALL)
-            .style(Style::default().bg(Color::Black).fg(Color::White));
+            .style(Style::default().bg(THEME.palette.popup_bg).fg(THEME.palette.popup_fg));
 
         let inner = block.inner(popup_area);
         block.render(popup_area, buf);
@@ -104,7 +104,7 @@ impl HelpWidget {
         // Render page info in bottom right corner
         let page_y = popup_area.y + popup_area.height - 1;
         let page_x = popup_area.x + popup_area.width - page_info.len() as u16 - 1;
-        buf.set_string(page_x, page_y, page_info, Style::default().fg(Color::Gray));
+        buf.set_string(page_x, page_y, page_info, Style::default().fg(THEME.palette.page_info));
     }
 
     fn page_1(&self) -> Paragraph<'_> {

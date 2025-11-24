@@ -2,14 +2,14 @@ use losig_core::{leaderboard::Leaderboard, sense::Senses, types::Action};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     widgets::{Block, Borders, Cell, List, ListItem, Row, Table, Widget},
 };
 use std::fmt::Display;
 
 use crate::{
     tui::{
-        InputServices, MenuState, RenderServices,
+        InputServices, MenuState, RenderServices, THEME,
         state::{PageSelection, TuiState},
         utils::center,
     },
@@ -97,7 +97,7 @@ impl MenuPage {
         );
 
         let menu_list = List::new(menu_items)
-            .style(Style::default().fg(Color::Gray))
+            .style(Style::default().fg(THEME.palette.foreground_muted))
             .highlight_style(Style::default().bold())
             .highlight_symbol("> ");
 
@@ -167,7 +167,7 @@ impl<'a> Widget for LeaderboardWidget<'a> {
                     Cell::from("-"),
                     Cell::from("-"),
                 ])
-                .style(Style::default().fg(Color::DarkGray));
+                .style(Style::default().fg(THEME.palette.foreground_dark));
                 rows.push(row);
             }
         }
@@ -188,7 +188,7 @@ impl<'a> Widget for LeaderboardWidget<'a> {
                 .borders(Borders::ALL)
                 .title("🏆 Leaderboard"),
         )
-        .style(Style::default().fg(Color::Yellow));
+        .style(Style::default().fg(THEME.palette.foreground_secondary));
 
         leaderboard_table.render(area, buf);
     }

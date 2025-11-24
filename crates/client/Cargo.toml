@@ -10,6 +10,7 @@ anyhow.workspace = true
 losig-core = { path = "../core" }
 ratatui.workspace = true
 log.workspace = true
+palette.workspace = true
 
 [lints]
 workspace = true

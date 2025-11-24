@@ -97,7 +97,7 @@ impl MenuPage {
         );
 
         let menu_list = List::new(menu_items)
-            .style(Style::default().fg(THEME.palette.foreground_muted))
+            .style(Style::default().fg(THEME.palette.ui_text))
             .highlight_style(Style::default().bold())
             .highlight_symbol("> ");
 
@@ -167,7 +167,7 @@ impl<'a> Widget for LeaderboardWidget<'a> {
                     Cell::from("-"),
                     Cell::from("-"),
                 ])
-                .style(Style::default().fg(THEME.palette.foreground_dark));
+                .style(THEME.palette.ui_disabled);
                 rows.push(row);
             }
         }
@@ -188,7 +188,7 @@ impl<'a> Widget for LeaderboardWidget<'a> {
                 .borders(Borders::ALL)
                 .title("🏆 Leaderboard"),
         )
-        .style(Style::default().fg(THEME.palette.foreground_secondary));
+        .style(THEME.palette.important);
 
         leaderboard_table.render(area, buf);
     }

@@ -85,7 +85,7 @@ impl GamePage {
             .and_then(|info| info.selfi.as_ref())
             .map(|selfi| selfi.focus);
         let cost_style = if focus.is_some_and(|s| s < cost) {
-            Style::default().bold().bg(THEME.palette.accent_danger)
+            Style::default().bold().bg(THEME.palette.foe)
         } else {
             Style::default()
         };
@@ -198,16 +198,11 @@ const DEFAULT_STYLE: &Style = &Style::new();
 
 fn render_tile(tile: Tile) -> (char, Style) {
     match tile {
-        Tile::Spawn => ('S', Style::new().fg(THEME.palette.game_spawn)),
-        Tile::Wall => (' ', Style::new().bg(THEME.palette.game_wall_bg)),
+        Tile::Spawn => ('^', Style::new().fg(THEME.palette.important)),
+        Tile::Wall => (' ', Style::new().bg(THEME.palette.terrain)),
         Tile::Unknown => (' ', *DEFAULT_STYLE),
-        Tile::Empty => ('.', *DEFAULT_STYLE),
-        Tile::Pylon => (
-            '|',
-            Style::new()
-                .bg(THEME.palette.game_pylon_bg)
-                .fg(THEME.palette.game_pylon_fg),
-        ),
+        Tile::Empty => ('.', Style::new().fg(THEME.palette.terrain)),
+        Tile::Pylon => ('|', Style::new().fg(THEME.palette.important)),
     }
 }
 
@@ -244,7 +239,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
                     area.x + x as u16,
                     area.y + y as u16,
                     "o",
-                    THEME.styles.focus,
+                    THEME.palette.important,
                 );
             }
 
@@ -253,12 +248,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 let x = center_x + foe.x;
                 let y = center_y + foe.y;
 
-                buf.set_string(
-                    area.x + x as u16,
-                    area.y + y as u16,
-                    "¤",
-                    THEME.styles.danger,
-                );
+                buf.set_string(area.x + x as u16, area.y + y as u16, "¤", THEME.palette.foe);
             }
         }
 
@@ -266,7 +256,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
             area.x + center_x as u16,
             area.y + center_y as u16,
             "@",
-            Style::default(),
+            THEME.palette.avatar,
         );
     }
 }
@@ -296,9 +286,9 @@ impl<'a> Widget for SenseWidget<'a> {
         let [first, second] = layout.areas(area);
 
         let first_line_style = match (selected, active) {
-            (true, _) => THEME.styles.selection,
-            (_, true) => THEME.styles.active,
-            _ => THEME.styles.inactive,
+            (true, _) => THEME.palette.ui_selected,
+            (_, true) => THEME.palette.ui_highlight,
+            _ => THEME.palette.ui_disabled,
         };
 
         buf.set_string(
@@ -313,7 +303,7 @@ impl<'a> Widget for SenseWidget<'a> {
             .right_aligned()
             .render(first, buf);
 
-        let status = status.unwrap_or(Line::from("-").style(THEME.styles.inactive));
+        let status = status.unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
         status.right_aligned().render(second, buf);
     }
 }
@@ -356,16 +346,16 @@ impl<'a> Widget for SensesWidget<'a> {
         let info = self.info.and_then(|i| i.touch.as_ref());
         let status = info.map(|info| match (info.foes, info.orb) {
             (0, false) => Line::from("Nothing nearby"),
-            (1, false) => Line::from("I touched something!").style(THEME.styles.danger),
-            (n, false) => Line::from(format!("I touched {n} things!")).style(THEME.styles.danger),
-            (0, true) => Line::from("The orb is nearby!").style(THEME.styles.focus),
+            (1, false) => Line::from("I touched something!").style(THEME.palette.foe),
+            (n, false) => Line::from(format!("I touched {n} things!")).style(THEME.palette.foe),
+            (0, true) => Line::from("The orb is nearby!").style(THEME.palette.important),
             (1, true) => Line::from(vec![
-                Span::from("I touched something...").style(THEME.styles.danger),
-                Span::from(" And the orb!").style(THEME.styles.focus),
+                Span::from("I touched something...").style(THEME.palette.foe),
+                Span::from(" And the orb!").style(THEME.palette.important),
             ]),
             (n, true) => Line::from(vec![
-                Span::from(format!("I touched {n} things...")).style(THEME.styles.danger),
-                Span::from(" And the orb!").style(THEME.styles.focus),
+                Span::from(format!("I touched {n} things...")).style(THEME.palette.foe),
+                Span::from(" And the orb!").style(THEME.palette.important),
             ]),
         });
         let indicator = if sense { "(+)" } else { "(-)" };
@@ -388,13 +378,14 @@ impl<'a> Widget for SensesWidget<'a> {
         let info = self.info.and_then(|i| i.hearing.as_ref());
         let status = info.map(|str| match str.range {
             Some(range) => match range.get() {
-                1 => Line::from("The orb is buzzing nearby!").style(THEME.styles.focus),
-                2 => Line::from("The orb is buzzing somewhat close").style(THEME.styles.focus),
-                3 => Line::from("The orb is buzzing").style(THEME.styles.focus),
-                4 => Line::from("The orb is buzzing distantly").style(THEME.styles.focus),
-                5 => Line::from("The orb is buzzing in the far distance").style(THEME.styles.focus),
+                1 => Line::from("The orb is buzzing nearby!"),
+                2 => Line::from("The orb is buzzing somewhat close"),
+                3 => Line::from("The orb is buzzing"),
+                4 => Line::from("The orb is buzzing distantly"),
+                5 => Line::from("The orb is buzzing in the far distance"),
                 _ => unreachable!(),
-            },
+            }
+            .style(THEME.palette.important),
             None => Line::from("Nothing"),
         });
         let indicator = format!("({})", sense);
@@ -450,20 +441,20 @@ impl GameOverWidget {
         // Clear background
         for x in popup_area.x..popup_area.x + popup_area.width {
             for y in popup_area.y..popup_area.y + popup_area.height {
-                buf.set_string(x, y, " ", Style::default().bg(THEME.palette.popup_bg));
+                buf.set_string(x, y, " ", Style::default());
             }
         }
 
         let (title, color) = if gameover.win {
-            ("🎉 Victory! 🎉", THEME.palette.accent_success)
+            ("🎉 Victory! 🎉", THEME.palette.log_info)
         } else {
-            ("💀 Game Over 💀", THEME.palette.accent_danger)
+            ("💀 Game Over 💀", THEME.palette.log_grave)
         };
 
         let block = Block::default()
             .title(title)
             .borders(Borders::ALL)
-            .style(Style::default().bg(THEME.palette.popup_bg).fg(color));
+            .style(Style::default().fg(color));
 
         let inner = block.inner(popup_area);
         block.render(popup_area, buf);
@@ -480,9 +471,9 @@ impl GameOverWidget {
                 let y = inner.y + 2 + i as u16;
                 let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
                 let style = if i == 0 {
-                    Style::default().fg(THEME.palette.accent_warning)
+                    Style::default().fg(THEME.palette.important)
                 } else {
-                    Style::default().fg(THEME.palette.foreground_muted)
+                    Style::default().fg(THEME.palette.ui_disabled)
                 };
                 buf.set_string(x, y, line, style);
             }
@@ -509,11 +500,11 @@ impl GameOverWidget {
                 let y = inner.y + i as u16;
                 let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
                 let style = match i {
-                    0..=2 => Style::default().fg(THEME.palette.accent_info), // Stats
-                    4 => Style::default().fg(THEME.palette.foreground_primary), // Prompt
-                    6 => Style::default().fg(THEME.palette.foreground_secondary), // Name input
-                    8 => Style::default().fg(THEME.palette.foreground_muted), // Instructions
-                    _ => Style::default().fg(THEME.palette.foreground_primary),
+                    0..=2 => Style::default().fg(THEME.palette.important), // Stats
+                    4 => Style::default().fg(THEME.palette.ui_text),       // Prompt
+                    6 => Style::default().fg(THEME.palette.ui_text),       // Name input
+                    8 => Style::default().fg(THEME.palette.ui_text),       // Instructions
+                    _ => Style::default().fg(THEME.palette.ui_text),
                 };
                 buf.set_string(x, y, line, style);
             }
@@ -592,19 +583,16 @@ fn format_log(log: ClientLog) -> (&'static str, Style) {
     match log {
         ClientLog::Help => (
             "Press '?' for help",
-            Style::default().fg(THEME.palette.accent_info),
+            Style::default().fg(THEME.palette.log_info),
         ),
         ClientLog::NextStage => (
             "I have reached a higher reality.",
-            Style::default().fg(THEME.palette.accent_success),
+            Style::default().fg(THEME.palette.log_info),
         ),
-        ClientLog::Lost => (
-            "I am lost...",
-            Style::default().fg(THEME.palette.accent_danger),
-        ),
+        ClientLog::Lost => ("I am lost...", Style::default().fg(THEME.palette.log_grave)),
         ClientLog::Win => (
             "I am whole again!",
-            Style::default().fg(THEME.palette.accent_warning).bold(),
+            Style::default().fg(THEME.palette.log_info).bold(),
         ),
     }
 }

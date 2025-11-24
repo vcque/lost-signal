@@ -1,65 +1,54 @@
 use std::sync::LazyLock;
 
-use ratatui::style::{Color, Style, Stylize};
+use palette::Hsl;
+use ratatui::style::Color;
 
 pub struct Theme {
-    pub styles: ThemeStyles,
     pub palette: ThemePalette,
 }
 
-pub struct ThemeStyles {
-    pub active: Style,
-    pub inactive: Style,
-    pub selection: Style,
-    pub danger: Style,
-    pub focus: Style,
-}
-
 pub struct ThemePalette {
-    pub background_primary: Color,
-    pub foreground_primary: Color,
-    pub foreground_secondary: Color,
-    pub foreground_muted: Color,
-    pub foreground_dark: Color,
-    pub accent_success: Color,
-    pub accent_warning: Color,
-    pub accent_danger: Color,
-    pub accent_info: Color,
-    pub accent_focus: Color,
-    pub game_spawn: Color,
-    pub game_pylon_bg: Color,
-    pub game_pylon_fg: Color,
-    pub game_wall_bg: Color,
-    pub popup_bg: Color,
-    pub popup_fg: Color,
+    pub ui: Color,
+    pub ui_text: Color,
+    pub ui_highlight: Color,
+    pub ui_selected: Color,
+    pub ui_disabled: Color,
+
+    pub foe: Color,
+    pub terrain: Color,
+    pub terrain_unseen: Color,
+
+    pub important: Color,
+    pub avatar: Color,
+
+    pub log_minor: Color,
+    pub log_info: Color,
+    pub log_warn: Color,
+    pub log_grave: Color,
+
     pub page_info: Color,
 }
 
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
     palette: ThemePalette {
-        background_primary: Color::Black,
-        foreground_primary: Color::White,
-        foreground_secondary: Color::Yellow,
-        foreground_muted: Color::Gray,
-        foreground_dark: Color::DarkGray,
-        accent_success: Color::Green,
-        accent_warning: Color::Yellow,
-        accent_danger: Color::Red,
-        accent_info: Color::Cyan,
-        accent_focus: Color::LightYellow,
-        game_spawn: Color::LightYellow,
-        game_pylon_bg: Color::Gray,
-        game_pylon_fg: Color::LightBlue,
-        game_wall_bg: Color::Gray,
-        popup_bg: Color::Black,
-        popup_fg: Color::White,
+        foe: Color::from_hsl(Hsl::new(0.0, 1.0, 0.5)),
+        terrain: Color::from_hsl(Hsl::new(270.0, 1.0, 0.5)),
+        terrain_unseen: Color::from_hsl(Hsl::new(270.0, 1.0, 0.2)),
+
+        ui: Color::White,
+        ui_disabled: Color::from_hsl(Hsl::new(0.0, 0.0, 0.5)),
+        ui_text: Color::from_hsl(Hsl::new(0.0, 0.0, 0.8)),
+        ui_highlight: Color::White,
+        ui_selected: Color::Rgb(0, 255, 0),
+        avatar: Color::from_hsl(Hsl::new(220.0, 1.0, 0.5)),
+
+        important: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),
+
+        log_minor: Color::from_hsl(Hsl::new(0.0, 0.0, 0.8)),
+        log_info: Color::White,
+        log_warn: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),
+        log_grave: Color::from_hsl(Hsl::new(0.0, 1.0, 0.5)),
+
         page_info: Color::Gray,
-    },
-    styles: ThemeStyles {
-        active: Style::default(),
-        inactive: Style::default().fg(Color::Gray),
-        selection: Style::default().fg(Color::LightGreen).bold(),
-        danger: Style::default().fg(Color::Red),
-        focus: Style::default().fg(Color::LightYellow),
     },
 });

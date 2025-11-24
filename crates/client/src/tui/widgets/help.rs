@@ -159,7 +159,21 @@ impl HelpWidget {
     }
 
     fn page_3(&self) -> Paragraph<'_> {
-        Paragraph::new(vec![])
+        Paragraph::new(vec![
+            Line::from("Your steps echo through the corridors of this new reality as you ascend further. You can hear.").italic(),
+            Line::from(""),
+            Line::from("HEARING SENSE - cost: strength"),
+            Line::from("Detects the distance to noise sources. The orb is a noise source."),
+            Line::from("Strength (1, 2, 3, 4, 5) -> Distance in tiles: (3, 6, 10, 15, 21)"),
+            Line::from(""),
+            Line::from("STRENGTHENING SENSES"),
+            Line::from("Some senses can be strengthened beyond their basic level."),
+            Line::from("Shift + Left/Right to decrease/increase a sense's strength."),
+            Line::from("Higher strength levels cost more focus but provide better information."),
+            Line::from(""),
+            Line::from("A FICKLE ORB"),
+            Line::from("Beware: the orb is unpredictable and may sometimes relocate."),
+        ])
     }
 
     fn page_4(&self) -> Paragraph<'_> {

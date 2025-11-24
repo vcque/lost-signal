@@ -11,7 +11,7 @@ pub struct ThemeStyles {
     pub inactive: Style,
     pub selection: Style,
     pub danger: Style,
-    pub signal: Style,
+    pub focus: Style,
 }
 
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
@@ -20,6 +20,6 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
         inactive: Style::default().fg(Color::Gray),
         selection: Style::default().fg(Color::LightGreen).bold(),
         danger: Style::default().fg(Color::Red),
-        signal: Style::default().fg(Color::LightYellow),
+        focus: Style::default().fg(Color::LightYellow),
     },
 });

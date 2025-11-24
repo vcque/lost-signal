@@ -184,8 +184,7 @@ pub struct Avatar {
     pub id: AvatarId,
     pub stage: usize,
     pub position: Position,
-    /// Some kind of energy, it's called signal because that's the name of the game
-    pub signal: u8,
+    pub focus: u8,
     pub turns: Turn,
     /// This field is set when the player has won of lost
     pub gameover: Option<GameOver>,

@@ -76,19 +76,19 @@ impl GamePage {
         };
 
         let cost = game_state.senses.cost();
-        let signal = world
+        let focus = world
             .last_info()
             .and_then(|info| info.selfi.as_ref())
-            .map(|selfi| selfi.signal);
-        let cost_style = if signal.is_some_and(|s| s < cost) {
+            .map(|selfi| selfi.focus);
+        let cost_style = if focus.is_some_and(|s| s < cost) {
             Style::default().bold().bg(Color::Red)
         } else {
             Style::default()
         };
 
-        let signal_str = signal.map(|s| s.to_string()).unwrap_or("??".to_owned());
+        let focus_str = focus.map(|s| s.to_string()).unwrap_or("??".to_owned());
 
-        let title = Line::from(format!(" Senses - cost: {} / {} ", cost, signal_str))
+        let title = Line::from(format!(" Senses - cost: {} / {} ", cost, focus_str))
             .alignment(ratatui::layout::Alignment::Center);
 
         let senses_wigdet = Block::default()
@@ -237,7 +237,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
                     area.x + x as u16,
                     area.y + y as u16,
                     "¤",
-                    THEME.styles.signal,
+                    THEME.styles.focus,
                 );
             }
 
@@ -351,14 +351,14 @@ impl<'a> Widget for SensesWidget<'a> {
             (0, false) => Line::from("Nothing nearby"),
             (1, false) => Line::from("I touched something!").style(THEME.styles.danger),
             (n, false) => Line::from(format!("I touched {n} things!")).style(THEME.styles.danger),
-            (0, true) => Line::from("The orb is nearby!").style(THEME.styles.signal),
+            (0, true) => Line::from("The orb is nearby!").style(THEME.styles.focus),
             (1, true) => Line::from(vec![
                 Span::from("I touched something...").style(THEME.styles.danger),
-                Span::from(" And the orb!").style(THEME.styles.signal),
+                Span::from(" And the orb!").style(THEME.styles.focus),
             ]),
             (n, true) => Line::from(vec![
                 Span::from(format!("I touched {n} things...")).style(THEME.styles.danger),
-                Span::from(" And the orb!").style(THEME.styles.signal),
+                Span::from(" And the orb!").style(THEME.styles.focus),
             ]),
         });
         let indicator = if sense { "(+)" } else { "(-)" };
@@ -381,13 +381,11 @@ impl<'a> Widget for SensesWidget<'a> {
         let info = self.info.and_then(|i| i.hearing.as_ref());
         let status = info.map(|str| match str.range {
             Some(range) => match range.get() {
-                1 => Line::from("The orb is buzzing nearby!").style(THEME.styles.signal),
-                2 => Line::from("The orb is buzzing somewhat close").style(THEME.styles.signal),
-                3 => Line::from("The orb is buzzing").style(THEME.styles.signal),
-                4 => Line::from("The orb is buzzing distantly").style(THEME.styles.signal),
-                5 => {
-                    Line::from("The orb is buzzing in the far distance").style(THEME.styles.signal)
-                }
+                1 => Line::from("The orb is buzzing nearby!").style(THEME.styles.focus),
+                2 => Line::from("The orb is buzzing somewhat close").style(THEME.styles.focus),
+                3 => Line::from("The orb is buzzing").style(THEME.styles.focus),
+                4 => Line::from("The orb is buzzing distantly").style(THEME.styles.focus),
+                5 => Line::from("The orb is buzzing in the far distance").style(THEME.styles.focus),
                 _ => unreachable!(),
             },
             None => Line::from("Nothing"),

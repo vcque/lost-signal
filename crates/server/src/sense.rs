@@ -79,7 +79,7 @@ fn gather_touch(avatar: &Avatar, stage: &Stage) -> TouchInfo {
 
 fn gather_self(avatar: &Avatar) -> SelfInfo {
     SelfInfo {
-        signal: avatar.signal,
+        focus: avatar.focus,
         stage: avatar.stage as u8,
         turn: avatar.turns,
     }

@@ -31,7 +31,7 @@ impl Game {
                 id: avatar_id,
                 stage: 0,
                 position: spawn_position(world.stages.first().unwrap(), avatar_id),
-                signal: 100,
+                focus: 100,
                 turns: 0,
                 gameover: None,
             },
@@ -89,8 +89,8 @@ pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
         let additional_senses = enact_action(world, &cmd.action, &mut avatar);
         all_senses.push(additional_senses);
         let cost = cmd.senses.cost();
-        if avatar.signal >= cost {
-            avatar.signal -= cost;
+        if avatar.focus >= cost {
+            avatar.focus -= cost;
             all_senses.push(cmd.senses.clone());
         }
 
@@ -130,7 +130,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
     if *action == Action::Spawn {
         let stage = world.stages.get(avatar.stage).unwrap();
         avatar.position = spawn_position(stage, avatar.id);
-        avatar.signal = 100;
+        avatar.focus = 100;
         result.sight = BoundedU8::const_new::<3>();
         return result;
     }
@@ -169,14 +169,14 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
     }
 
     if let Some(stage) = world.stages.get(avatar.stage) {
-        // If pylon is adjacent, recharges signal
+        // If pylon is adjacent, recharges focus
         for x in -1..2 {
             for y in -1..2 {
                 let offset = Offset { x, y };
                 let position = avatar.position + offset;
                 let tile = stage.tiles.grid[position.into()];
                 if matches!(tile, Tile::Pylon) {
-                    avatar.signal = 100;
+                    avatar.focus = 100;
                 }
             }
         }

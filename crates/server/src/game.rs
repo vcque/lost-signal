@@ -148,15 +148,6 @@ fn enact_foes(world: &mut World) {
 fn enact_turn(world: &mut World, action: &Action, avatar: &mut Avatar) -> Senses {
     let mut result = Senses::default();
 
-    // Specific spawn action
-    if *action == Action::Spawn {
-        let stage = world.stages.get(avatar.stage).unwrap();
-        avatar.position = spawn_position(stage, avatar.id);
-        avatar.focus = 100;
-        result.sight = BoundedU8::const_new::<3>();
-        return result;
-    }
-
     let Some(stage) = world.stages.get_mut(avatar.stage) else {
         return result;
     };
@@ -184,7 +175,12 @@ fn enact_turn(world: &mut World, action: &Action, avatar: &mut Avatar) -> Senses
                 }
             }
         }
-        Action::Spawn => unreachable!("Spawn case has already been handled."),
+        Action::Spawn => {
+            let stage = world.stages.get(avatar.stage).unwrap();
+            avatar.position = spawn_position(stage, avatar.id);
+            avatar.focus = 100;
+            return result;
+        }
         Action::Wait => {
             // NOOP
         }

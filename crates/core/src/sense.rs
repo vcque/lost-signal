@@ -22,7 +22,7 @@ impl Senses {
             result += 1;
         }
         if self.sight > 0 {
-            result += 1;
+            result += 2;
             result += self.sight;
         }
         result += self.hearing;

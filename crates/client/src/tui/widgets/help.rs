@@ -2,12 +2,12 @@ use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Rect},
     style::{Color, Style, Stylize},
-    text::Line,
+    text::{Line, Span},
     widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap},
 };
 
 use crate::{
-    tui::utils::center,
+    tui::{THEME, utils::center},
     tui_adapter::{Event, KeyCode},
 };
 
@@ -151,6 +151,11 @@ impl HelpWidget {
             Line::from("SELECTING A SENSE"),
             Line::from("Shift + Up/Down to select a sense that you can then enable/disable."),
             Line::from(""),
+            Line::from(vec![
+                Span::from("NEW FOE: Mind Snare "), Span::from("¤").style(THEME.styles.danger).bold()]),
+            Line::from("An immobile predator populating the most remote realities, where unsuspecting victims don't have the senses to easily detect them."),
+            Line::from("It feeds on its victim Self, forcing them to witness it until they are no more."),
+            Line::from(""),
             Line::from("THE ORB"),
             Line::from("The orb is a passageway between two realities. Grab it to climb further up."),
             Line::from(""),
@@ -177,6 +182,17 @@ impl HelpWidget {
     }
 
     fn page_4(&self) -> Paragraph<'_> {
-        Paragraph::new(vec![])
+        Paragraph::new(vec![
+            Line::from("Light at last. The most powerful of the senses. You can see.").italic(),
+            Line::from(""),
+            Line::from("SIGHT SENSE - cost: 2 + strength"),
+            Line::from("Shows your surrounding up to $strength distance."),
+            Line::from("Shows the orb and foes in your field of view."),
+            Line::from(""),
+            Line::from("A SHY ORB"),
+            Line::from(
+                "The orb has a hard time bearing the gaze of others and will relocate if seen.",
+            ),
+        ])
     }
 }

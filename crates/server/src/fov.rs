@@ -1,4 +1,4 @@
-use losig_core::types::{Offset, Position, Tiles};
+use losig_core::types::{Offset, Position, Tile, Tiles};
 
 type F = fraction::Fraction;
 
@@ -136,4 +136,14 @@ pub fn fov(viewer: Position, radius: usize, tiles: &Tiles) -> Tiles {
     }
 
     result
+}
+
+/// viewer and viewed are interchangeable as the algorithm is symmetric
+pub fn can_see(tiles: &Tiles, viewer: Position, viewed: Position) -> bool {
+    let radius = viewer.dist(&viewed);
+
+    let visible_tiles = fov(viewer, radius, tiles);
+    let position = visible_tiles.center() + (viewer - viewed);
+
+    visible_tiles.grid[position.into()] != Tile::Unknown
 }

@@ -7,7 +7,7 @@ use losig_core::{
 };
 
 use crate::{
-    sense,
+    fov, sense,
     services::Services,
     world::{Stage, World},
     ws_server::{Recipient, ServerMessageWithRecipient},
@@ -48,7 +48,12 @@ impl Game {
         }
 
         let senses = enact_tick(world, &command);
-        let info = senses.and_then(|s| gather_info(world, command.avatar_id, &s));
+        let info = senses
+            .as_ref()
+            .and_then(|s| gather_info(world, command.avatar_id, s));
+
+        enact_post_info(world, senses.as_ref(), &command);
+
         let Some(avatar) = world.find_avatar(avatar_id) else {
             warn!("Couldn't find avatar #{avatar_id} after enacting turn");
             return;
@@ -86,7 +91,7 @@ pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
 
     if let Some(mut avatar) = avatar {
         avatar.turns += 1; // Increment turn count
-        let additional_senses = enact_action(world, &cmd.action, &mut avatar);
+        let additional_senses = enact_turn(world, &cmd.action, &mut avatar);
         all_senses.push(additional_senses);
         let cost = cmd.senses.cost();
         if avatar.focus >= cost {
@@ -103,6 +108,23 @@ pub fn enact_tick(world: &mut World, cmd: &CommandMessage) -> Option<Senses> {
     all_senses
         .into_iter()
         .reduce(|acc, senses| acc.merge(senses))
+}
+
+fn enact_post_info(
+    world: &mut World,
+    senses: Option<&Senses>,
+    command: &CommandMessage,
+) -> Option<()> {
+    let avatar = world.find_avatar(command.avatar_id)?;
+    let stage = avatar.stage;
+    let position = avatar.position;
+
+    let stage = world.stages.get_mut(stage)?;
+
+    if senses?.sight > 0 {
+        shy_orb(senses?.sight.get(), position, stage);
+    }
+    Some(())
 }
 
 fn spawn_position(stage: &Stage, avatar_id: AvatarId) -> Position {
@@ -123,7 +145,7 @@ fn enact_foes(world: &mut World) {
     }
 }
 
-fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Senses {
+fn enact_turn(world: &mut World, action: &Action, avatar: &mut Avatar) -> Senses {
     let mut result = Senses::default();
 
     // Specific spawn action
@@ -155,7 +177,7 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
                     // Player has won all stages
                     avatar.gameover = Some(GameOver::new(avatar, true));
                 } else {
-                    avatar.stage += 1; // Crashes the server when the player wins
+                    avatar.stage += 1;
                     if let Some(stage) = world.stages.get(avatar.stage) {
                         avatar.position = spawn_position(stage, avatar.id);
                     }
@@ -183,6 +205,19 @@ fn enact_action(world: &mut World, action: &Action, avatar: &mut Avatar) -> Sens
     };
 
     result
+}
+
+/// Check if the orb is seen and move it if it is
+fn shy_orb(sight_strength: u8, position: Position, stage: &mut Stage) {
+    let dist = position.dist(&stage.orb);
+
+    if dist > sight_strength as usize {
+        return;
+    }
+
+    if fov::can_see(&stage.tiles, position, stage.orb) {
+        stage.move_orb();
+    }
 }
 
 fn gather_info(world: &World, avatar_id: AvatarId, senses: &Senses) -> Option<SensesInfo> {

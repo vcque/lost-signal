@@ -13,7 +13,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use crate::{services::Services, world::World};
+use crate::{services::Services, world::AsyncWorld};
 
 pub struct GameTui {
     services: Services,
@@ -92,8 +92,7 @@ impl GameTui {
 
     fn render_game_view(&self, area: Rect, buf: &mut Buffer) {
         let world = self.services.world.lock().unwrap();
-        let game_title = format!("Game View - Turn {}", world.tick);
-        let borders = Block::default().borders(Borders::all()).title(game_title);
+        let borders = Block::default().borders(Borders::all()).title("Game View");
 
         let inner = borders.inner(area);
         borders.render(area, buf);
@@ -131,13 +130,11 @@ impl GameTui {
                 );
             }
         }
+        let state = stage.last_state();
 
         // Convert from world ref to view ref
         let offset = -offset;
-        for avatar in world.avatars.values() {
-            if avatar.stage != stage_id {
-                continue;
-            }
+        for avatar in state.avatars.iter() {
             let position = avatar.position;
 
             let Position { x, y } = position + offset;
@@ -149,7 +146,7 @@ impl GameTui {
             );
         }
 
-        let Position { x, y } = stage.orb + offset;
+        let Position { x, y } = state.orb + offset;
 
         if (0..area.width).contains(&(x as u16)) && (0..area.height).contains(&(y as u16)) {
             buf.set_string(
@@ -160,7 +157,7 @@ impl GameTui {
             );
         }
 
-        for foe in stage.foes.iter() {
+        for foe in state.foes.iter() {
             let position = foe.position;
             let Position { x, y } = position + offset;
             if (0..area.width).contains(&(x as u16)) && (0..area.height).contains(&(y as u16)) {
@@ -174,13 +171,8 @@ impl GameTui {
         }
     }
 
-    fn get_view_center(&self, world: &World) -> (usize, Position) {
-        // Center on first avatar if exists, otherwise center of map
-        if let Some(avatar) = world.avatars.values().next() {
-            (avatar.stage, avatar.position)
-        } else {
-            let stage = world.stages.first().unwrap();
-            (0, stage.tiles.center())
-        }
+    fn get_view_center(&self, world: &AsyncWorld) -> (usize, Position) {
+        let stage = world.stages.first().unwrap();
+        (0, stage.tiles.center())
     }
 }

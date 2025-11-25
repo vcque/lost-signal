@@ -24,14 +24,17 @@ impl Dispatch {
 
     pub fn run(self) {
         spawn(move || {
-            let game = Game::new(self.services.clone());
+            let mut game = Game::new(self.services.clone());
+
             while let Ok(msg) = self.cm_rx.recv() {
                 match msg.content {
                     ClientMessageContent::Start(aid) => {
                         game.new_player(aid);
                     }
                     ClientMessageContent::Command(cmd) => {
-                        game.enact(cmd);
+                        if let Err(e) = game.player_command(cmd) {
+                            error!("Error while using command: {e}");
+                        }
                     }
                     ClientMessageContent::Leaderboard => {
                         // Send current leaderboard to requesting client
@@ -50,12 +53,8 @@ impl Dispatch {
                     ClientMessageContent::LeaderboardSubmit(avatar_id, name) => {
                         // Get avatar stats
                         let mut world = self.services.world.lock().unwrap();
-                        if let Some(gameover) = world
-                            .avatars
-                            .get(&avatar_id)
-                            .and_then(|a| a.gameover.as_ref())
-                        {
-                            let entry = LeaderboardEntry::new(name, gameover);
+                        if let Some(gameover) = world.retire_avatar(avatar_id) {
+                            let entry = LeaderboardEntry::new(name, &gameover);
                             {
                                 let mut leaderboard = self.services.leaderboard.lock().unwrap();
                                 leaderboard.add(entry);
@@ -70,8 +69,6 @@ impl Dispatch {
                             if let Err(e) = self.services.sender.send(message) {
                                 error!("Failed to broadcast leaderboard update: {}", e);
                             }
-
-                            world.avatars.remove(&avatar_id);
                         }
                     }
                 }

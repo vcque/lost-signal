@@ -1,3 +1,4 @@
+use crate::world::AsyncWorld;
 use crate::ws_server::ServerMessageWithRecipient;
 
 use std::sync::mpsc::Sender;
@@ -12,7 +13,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Services {
-    pub world: Arc<Mutex<World>>,
+    pub world: Arc<Mutex<AsyncWorld>>,
     pub leaderboard: Arc<Mutex<Leaderboard>>,
     pub sender: Sender<ServerMessageWithRecipient>,
 }
@@ -24,7 +25,7 @@ impl Services {
         sender: Sender<ServerMessageWithRecipient>,
     ) -> Self {
         Services {
-            world: Arc::new(Mutex::new(world)),
+            world: Arc::new(Mutex::new(AsyncWorld::new(world.stages.clone()))),
             leaderboard: Arc::new(Mutex::new(leaderboard)),
             sender,
         }

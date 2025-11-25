@@ -185,6 +185,9 @@ pub struct Avatar {
     pub stage: usize,
     pub position: Position,
     pub focus: u8,
+
+    /// flag to represent an avatar which could not pay the cost of its senses
+    pub tired: bool,
     pub turns: Turn,
     /// This field is set when the player has won of lost
     pub gameover: Option<GameOver>,

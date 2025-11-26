@@ -208,6 +208,13 @@ impl Foe {
             Self::Simple(pos, _) => *pos,
         }
     }
+
+    pub fn alive(&self) -> bool {
+        match self {
+            Self::MindSnare(_) => true,
+            Self::Simple(_, hp) => *hp > 0,
+        }
+    }
 }
 
 #[derive(Default, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]

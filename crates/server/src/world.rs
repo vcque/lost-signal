@@ -11,7 +11,7 @@ use losig_core::{
     types::{Action, Avatar, AvatarId, Foe, GameOver, Offset, Position, Tile, Tiles, Turn},
 };
 
-use crate::{fov, sense::gather};
+use crate::{foes, fov, sense::gather};
 
 #[derive(Debug, Clone)]
 pub struct World {
@@ -132,7 +132,7 @@ impl AsyncStage {
         }: Stage,
     ) -> Self {
         let head_turn: Turn = 0;
-        let avatars = vec![];
+        let avatars = Default::default();
         let state = StageState { foes, orb, avatars };
         let mut states = BTreeMap::<Turn, StageState>::new();
         states.insert(head_turn, state);
@@ -292,20 +292,35 @@ impl AsyncStage {
     /// Apply the turn of each avatar
     fn update_commands(&self, state: &mut StageState, diff: &StageDiff) {
         for (aid, StageAvatarDiff { action, senses }) in diff.diff_by_avatar.iter() {
-            let Some(avatar) = state.avatars.iter_mut().find(|a| a.id == *aid) else {
+            let Some(avatar) = state.avatars.get(aid) else {
                 continue;
             };
+            let mut avatar = avatar.clone();
 
             match action {
                 Action::Move(dir) => {
                     let next_pos = avatar.position.move_once(*dir);
 
                     let tile = self.tiles.grid[next_pos.into()];
-                    if tile.can_travel() {
+
+                    // temporary code for simulating battle
+                    let mut attack = false;
+                    if let Some(Foe::Simple(_, hp)) = state.find_foe(next_pos) {
+                        *hp -= 1;
+                        attack = true;
+                    }
+                    state.foes.retain(|f| f.alive());
+
+                    if !attack && tile.can_travel() {
                         avatar.position = next_pos;
                     }
                 }
-                Action::Spawn => {}
+                Action::Spawn => {
+                    let spawn_position = self.find_spawns();
+                    avatar.position = spawn_position[avatar.id as usize % spawn_position.len()];
+                    avatar.hp = 10;
+                    avatar.focus = 100;
+                }
                 _ => {}
             }
 
@@ -337,18 +352,18 @@ impl AsyncStage {
                     }
                 }
             } // Pylon effect
+
+            state.avatars.insert(*aid, avatar);
         }
     }
 
     /// Apply the turn of each foe
     fn update_foes(&self, state: &mut StageState) {
         // Foes are static for now
-        for foe in state.foes.iter() {
-            for avatar in state.avatars.iter_mut() {
-                if foe.position() == avatar.position {
-                    avatar.gameover = Some(GameOver::new(avatar, false));
-                }
-            }
+        for i in 0..state.foes.len() {
+            let foe = state.foes[i].clone();
+            let mutator = foes::act(&foe, self, state);
+            mutator(&mut state.foes[i]);
         }
     }
 
@@ -360,7 +375,7 @@ impl AsyncStage {
 
         let mut avatar = avatar.clone();
         avatar.position = position;
-        state.avatars.push(avatar);
+        state.avatars.insert(aid, avatar);
     }
 
     pub fn find_spawns(&self) -> Vec<Position> {
@@ -383,7 +398,7 @@ impl AsyncStage {
 pub struct StageState {
     pub foes: Vec<Foe>,
     pub orb: Position,
-    pub avatars: Vec<Avatar>,
+    pub avatars: BTreeMap<AvatarId, Avatar>,
 }
 
 impl StageState {
@@ -394,8 +409,12 @@ impl StageState {
         let mut stage = Stage::new(stage.tiles.clone(), stage.orb_spawns.clone(), foes);
         stage.orb = orb;
 
-        let avatar = avatars.into_iter().find(|a| a.id == aid).unwrap();
+        let avatar = avatars[&aid].clone();
         (avatar, stage)
+    }
+
+    fn find_foe(&mut self, position: Position) -> Option<&mut Foe> {
+        self.foes.iter_mut().find(|f| f.position() == position)
     }
 }
 

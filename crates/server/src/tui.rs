@@ -134,7 +134,7 @@ impl GameTui {
 
         // Convert from world ref to view ref
         let offset = -offset;
-        for avatar in state.avatars.iter() {
+        for avatar in state.avatars.values() {
             let position = avatar.position;
 
             let Position { x, y } = position + offset;

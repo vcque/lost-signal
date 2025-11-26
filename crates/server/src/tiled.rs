@@ -171,6 +171,19 @@ pub fn load_world() -> Result<World> {
     Ok(World::new(stages))
 }
 
+pub fn load_arena() -> Result<World> {
+    let mut loader = Loader::with_reader(AssetsReader {});
+
+    let stages = ["arena"]
+        .iter()
+        .map(|st| loader.load_tmx_map(st))
+        .filter_map(|r| r.ok())
+        .filter_map(|m| Stage::try_from(&m).ok())
+        .collect();
+
+    Ok(World::new(stages))
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -178,6 +191,10 @@ mod tests {
 
     #[test]
     fn load_world_test() {
-        assert!(load_world().is_ok());
+        let world = load_arena();
+        assert!(world.is_ok());
+
+        let world = world.unwrap();
+        assert!(world.stages.len() > 0);
     }
 }

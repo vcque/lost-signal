@@ -45,7 +45,7 @@ impl GamePage {
     ) {
         let [world_a, log_a, _senses_a] = Self::layout(area);
         let world = &services.state.world;
-        state.game.stage = world.stage;
+        state.game.stage = 5; // TODO: fix this
         state.game.help.next_page(world.stage);
 
         let world_widget = WorldViewWidget { world };

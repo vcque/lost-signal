@@ -344,7 +344,7 @@ impl AsyncStage {
         // Foes are static for now
         for foe in state.foes.iter() {
             for avatar in state.avatars.iter_mut() {
-                if foe.position == avatar.position {
+                if foe.position() == avatar.position {
                     avatar.gameover = Some(GameOver::new(avatar, false));
                 }
             }

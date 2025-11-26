@@ -41,7 +41,7 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage) -> SightInfo {
 
     let center = tiles.center();
     for foe in &stage.foes {
-        let offset = foe.position - avatar.position;
+        let offset = foe.position() - avatar.position;
         let fov_position = center + offset;
 
         if tiles.get(fov_position) == Tile::Empty {
@@ -65,7 +65,7 @@ fn gather_touch(avatar: &Avatar, stage: &Stage) -> TouchInfo {
 
     let mut foes = 0;
     for foe in &stage.foes {
-        if foe.position.dist(&avatar.position) <= 1 {
+        if foe.position().dist(&avatar.position) <= 1 {
             foes += 1;
         }
     }

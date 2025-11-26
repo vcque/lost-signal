@@ -194,8 +194,19 @@ pub struct Avatar {
 }
 
 #[derive(Debug, Clone)]
-pub struct Foe {
-    pub position: Position,
+pub enum Foe {
+    /// Some kind of trap
+    MindSnare(Position),
+    /// Classic mob with hp and attack on sight for testing purpose
+    Simple(Position, u8),
+}
+impl Foe {
+    pub fn position(&self) -> Position {
+        match self {
+            Self::MindSnare(pos) => *pos,
+            Self::Simple(pos, _) => *pos,
+        }
+    }
 }
 
 #[derive(Default, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]

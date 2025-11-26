@@ -28,10 +28,12 @@ const STAGES: &[(&str, &[u8])] = include_stages![
     "tuto_touch",
     "tuto_hearing",
     "tuto_sight",
-    "tuto_end"
+    "tuto_end",
+    "arena",
 ];
 
-const FOE_ID: u32 = 1;
+const MINDSNARE_ID: u32 = 1;
+const SIMPLE_FOE_ID: u32 = 6;
 const SPAWN_ID: u32 = 2;
 const ORB_ID: u32 = 3;
 const WALL_ID: u32 = 4;
@@ -141,12 +143,14 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
             let Some(tile) = layer.get_tile(x as i32, y as i32) else {
                 continue;
             };
-            if tile.id() == FOE_ID {
-                let position = Position {
-                    x: x as usize,
-                    y: y as usize,
-                };
-                results.push(Foe { position });
+            let position = Position {
+                x: x as usize,
+                y: y as usize,
+            };
+            if tile.id() == MINDSNARE_ID {
+                results.push(Foe::MindSnare(position));
+            } else if tile.id() == SIMPLE_FOE_ID {
+                results.push(Foe::Simple(position, 4));
             }
         }
     }

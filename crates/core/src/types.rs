@@ -193,6 +193,11 @@ pub struct Avatar {
     /// This field is set when the player has won of lost
     pub gameover: Option<GameOver>,
 }
+impl Avatar {
+    pub fn is_dead(&self) -> bool {
+        self.hp == 0
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Foe {
@@ -259,23 +264,30 @@ impl Tiles {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GameOver {
-    pub win: bool,
+    pub status: GameOverStatus,
     pub stage: u8,
     pub turns: Turn,
     pub score: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub enum GameOverStatus {
+    Win,
+    MaybeDead,
+    Dead,
+}
+
 impl GameOver {
-    pub fn new(avatar: &Avatar, win: bool) -> Self {
+    pub fn new(avatar: &Avatar, status: GameOverStatus) -> Self {
         let mut score: u64 = (avatar.stage as u64 + 1) * 100;
         score = score.saturating_sub(avatar.turns);
         score *= 100;
-        if win {
+        if status == GameOverStatus::Win {
             score *= 2;
         }
 
         Self {
-            win,
+            status,
             stage: (avatar.stage + 1) as u8,
             turns: avatar.turns,
             score,

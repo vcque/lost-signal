@@ -1,4 +1,8 @@
-use losig_core::{leaderboard::Leaderboard, sense::Senses, types::Action};
+use losig_core::{
+    leaderboard::Leaderboard,
+    sense::Senses,
+    types::{Action, GameOverStatus},
+};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
@@ -150,7 +154,7 @@ impl<'a> Widget for LeaderboardWidget<'a> {
                 let row = Row::new(vec![
                     Cell::from(rank.to_string()),
                     Cell::from(entry.name.clone()),
-                    Cell::from(if entry.gameover.win {
+                    Cell::from(if entry.gameover.status == GameOverStatus::Win {
                         "WIN".to_owned()
                     } else {
                         entry.gameover.stage.to_string()

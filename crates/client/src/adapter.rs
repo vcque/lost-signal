@@ -36,6 +36,9 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
                     ServerMessage::GameOver(gom) => {
                         state.gameover = Some(gom);
                     }
+                    ServerMessage::RevertGameOver(savior) => {
+                        state.gameover = None;
+                    }
                 }
             });
         }

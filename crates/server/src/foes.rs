@@ -1,4 +1,4 @@
-use losig_core::types::{Foe, GameOver, Position};
+use losig_core::types::{Foe, Position};
 
 use crate::world::{Stage, StageState};
 
@@ -7,7 +7,7 @@ pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(
         Foe::MindSnare(pos) => {
             for avatar in state.avatars.values_mut() {
                 if *pos == avatar.position {
-                    avatar.gameover = Some(GameOver::new(avatar, false));
+                    avatar.hp = avatar.hp.saturating_sub(3);
                 }
             }
         }

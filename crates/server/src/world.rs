@@ -8,7 +8,10 @@ use grid::Grid;
 use log::{debug, info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
-    types::{Action, Avatar, AvatarId, Foe, GameOver, Offset, Position, Tile, Tiles, Turn},
+    types::{
+        Action, Avatar, AvatarId, Foe, GameOver, GameOverStatus, Offset, Position, Tile, Tiles,
+        Turn,
+    },
 };
 
 use crate::{foes, fov, sense::gather};
@@ -74,12 +77,12 @@ impl World {
         aid: AvatarId,
         action: Action,
         senses: Senses,
-    ) -> Option<SensesInfo> {
+    ) -> Option<CommandResult> {
         let stage_id = *self.stage_id_by_avatar_id.get(&aid)?;
         let stage = &mut self.stages[stage_id];
 
         match stage.add_command(aid, action, senses) {
-            Ok(info) => Some(info),
+            Ok(result) => Some(result),
             Err(e) => {
                 warn!("Error applying command: {e}");
                 None
@@ -102,6 +105,9 @@ pub struct Stage {
     avatar_turns: BTreeMap<AvatarId, Turn>,
     states: BTreeMap<Turn, StageState>,
     diffs: Vec<StageDiff>,
+
+    /// Tracker of maybe dead avatars. We need to notify the player when they revive... Or not
+    limbo: BTreeSet<AvatarId>,
 }
 
 impl Stage {
@@ -122,6 +128,7 @@ impl Stage {
             head_turn,
             avatar_turns: Default::default(),
             states,
+            limbo: Default::default(),
             diffs: vec![StageDiff::default()],
         }
     }
@@ -142,7 +149,7 @@ impl Stage {
         self.rollback_from(self.head_turn);
     }
 
-    fn add_command(&mut self, aid: u32, action: Action, senses: Senses) -> Result<SensesInfo> {
+    fn add_command(&mut self, aid: u32, action: Action, senses: Senses) -> Result<CommandResult> {
         let turn = self
             .avatar_turns
             .get(&aid)
@@ -175,13 +182,20 @@ impl Stage {
         self.rollback_from(turn - 1);
         self.clean_history();
 
+        let (gameovers, gameovers_reverted) = self.check_limbo();
+
         // Apply senses
-        self.gather_info(aid)
+        let senses_info = self.gather_info(aid)?;
+
+        Ok(CommandResult {
+            gameovers,
+            gameovers_reverted,
+            senses_info,
+        })
     }
 
     /// Recomputes the states from the given turn and forward
     fn rollback_from(&mut self, turn: Turn) -> Option<()> {
-        debug!("Rolling back from {turn}");
         // Get the previous state available
         let (turn, state) = self
             .states
@@ -189,13 +203,10 @@ impl Stage {
             .next_back()?;
 
         let turn = *turn;
-        debug!("found state at turn {turn}");
         let mut state = state.clone();
 
         let mut turns_to_save = self.avatar_turns.values().copied().collect::<BTreeSet<_>>();
         turns_to_save.insert(self.head_turn);
-        debug!("Avatars turns: {:?}", self.avatar_turns);
-        debug!("Turns to save {turns_to_save:?}");
         self.states.retain(|key, _| *key <= turn);
 
         for turn in (turn + 1)..(self.head_turn + 1) {
@@ -203,7 +214,6 @@ impl Stage {
             let diff = &self.diffs[index];
             self.update(&mut state, diff);
             if turns_to_save.contains(&turn) {
-                debug!("Saving state at turn {turn}");
                 self.states.insert(turn, state.clone());
             }
         }
@@ -278,6 +288,11 @@ impl Stage {
             let Some(avatar) = state.avatars.get(aid) else {
                 continue;
             };
+
+            if avatar.is_dead() {
+                continue;
+            }
+
             let mut avatar = avatar.clone();
 
             match action {
@@ -375,6 +390,53 @@ impl Stage {
             })
             .collect()
     }
+
+    /// Returns deaths, maybedeaths and reverted deaths
+    fn check_limbo(&mut self) -> (Vec<(AvatarId, GameOver)>, Vec<AvatarId>) {
+        let mut gameovers = Vec::new();
+        let mut gameovers_reverted = Vec::new();
+
+        // Sort avatars by turn (earliest to latest)
+        let mut avatars_by_turn: Vec<_> = self.avatar_turns.iter().map(|(a, b)| (*a, *b)).collect();
+        avatars_by_turn.sort_by_key(|(_, turn)| *turn);
+
+        let mut has_earlier_alive = false;
+        for (aid, turn) in avatars_by_turn {
+            let Some(state) = self.states.get(&turn) else {
+                continue;
+            };
+
+            let Some(avatar) = state.avatars.get(&aid) else {
+                continue;
+            };
+
+            let in_limbo = self.limbo.contains(&aid);
+
+            if avatar.is_dead() {
+                if has_earlier_alive {
+                    // Uncertain death - earlier avatars might save them
+                    self.limbo.insert(aid);
+                    if !in_limbo {
+                        gameovers.push((aid, GameOver::new(avatar, GameOverStatus::MaybeDead)));
+                    }
+                } else {
+                    // Can't be saved
+                    self.limbo.remove(&aid);
+                    self.avatar_turns.remove(&aid);
+                    gameovers.push((aid, GameOver::new(avatar, GameOverStatus::Dead)));
+                }
+            } else {
+                if in_limbo {
+                    // Avatar is alive and was in limbo - death was reverted
+                    self.limbo.remove(&aid);
+                    gameovers_reverted.push(aid);
+                }
+                has_earlier_alive = true;
+            }
+        }
+
+        (gameovers, gameovers_reverted)
+    }
 }
 
 /// State of a stage for a given turn.
@@ -402,6 +464,14 @@ struct StageDiff {
 struct StageAvatarDiff {
     action: Action,
     senses: Senses,
+}
+
+/// Info returned by add_command. Game over data might concern other players as they can be saved
+/// by another player.
+pub struct CommandResult {
+    pub gameovers: Vec<(AvatarId, GameOver)>,
+    pub gameovers_reverted: Vec<AvatarId>,
+    pub senses_info: SensesInfo,
 }
 
 // TODO: make it deterministic

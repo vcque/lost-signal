@@ -71,6 +71,9 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
 
     let mut allies = vec![];
     for ally in state.avatars.values() {
+        if ally.is_dead() {
+            continue;
+        }
         let offset = ally.position - avatar.position;
         let fov_position = center + offset;
         if !tiles.get(fov_position).opaque() {

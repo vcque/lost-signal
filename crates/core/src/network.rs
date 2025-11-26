@@ -47,4 +47,5 @@ pub enum ServerMessage {
     Leaderboard(Leaderboard),
     Turn(TurnResultMessage),
     GameOver(GameOverMessage),
+    RevertGameOver(AvatarId),
 }

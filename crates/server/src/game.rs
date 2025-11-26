@@ -33,23 +33,41 @@ impl Game {
         }: CommandMessage,
     ) -> Result<()> {
         let mut world = self.services.world.lock().unwrap();
-        let info = world.add_command(avatar_id, action, senses);
+        let result = world.add_command(avatar_id, action, senses);
 
-        if let Some(info) = info {
+        if let Some(result) = result {
+            // Send turn result with senses info
             let msg = TurnResultMessage {
                 avatar_id,
                 turn,
                 stage: 0, // TODO: to update when changing lvls is implemented
-                info,
+                info: result.senses_info,
             };
             let msg = ServerMessageWithRecipient {
                 recipient: Recipient::Single(avatar_id),
                 message: ServerMessage::Turn(msg),
             };
             self.services.sender.send(msg).unwrap();
+
+            // Send gameover messages
+            for (aid, gameover) in result.gameovers {
+                let msg = ServerMessageWithRecipient {
+                    recipient: Recipient::Single(aid),
+                    message: ServerMessage::GameOver(gameover),
+                };
+                self.services.sender.send(msg).unwrap();
+            }
+
+            // Send revert gameover messages
+            for aid in result.gameovers_reverted {
+                let msg = ServerMessageWithRecipient {
+                    recipient: Recipient::Single(aid),
+                    message: ServerMessage::RevertGameOver(avatar_id),
+                };
+                self.services.sender.send(msg).unwrap();
+            }
         }
 
         Ok(())
     }
 }
-

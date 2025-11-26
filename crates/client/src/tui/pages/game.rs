@@ -1,11 +1,11 @@
 use losig_core::{
     sense::{SenseStrength, Senses, SensesInfo},
-    types::{Action, Direction, GameOver, Offset, Tile},
+    types::{Action, Direction, GameOver, GameOverStatus, Offset, Tile},
 };
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{Style, Stylize},
+    style::{Color, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Widget},
 };
@@ -497,10 +497,10 @@ impl GameOverWidget {
             }
         }
 
-        let (title, color) = if gameover.win {
-            ("🎉 Victory! 🎉", THEME.palette.log_info)
-        } else {
-            ("💀 Game Over 💀", THEME.palette.log_grave)
+        let (title, color) = match gameover.status {
+            GameOverStatus::Win => ("🎉 Victory! 🎉", THEME.palette.log_info),
+            GameOverStatus::MaybeDead => ("¿? Game Over ¿?", Color::Cyan),
+            GameOverStatus::Dead => ("💀 Game Over 💀", THEME.palette.log_grave),
         };
 
         let block = Block::default()

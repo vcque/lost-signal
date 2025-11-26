@@ -67,6 +67,7 @@ pub struct SightInfo {
     pub tiles: Tiles,
     pub foes: Vec<Offset>,
     pub orb: Option<Offset>,
+    pub allies: Vec<Offset>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]

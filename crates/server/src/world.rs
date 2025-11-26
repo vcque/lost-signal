@@ -14,17 +14,6 @@ use losig_core::{
 use crate::{foes, fov, sense::gather};
 
 #[derive(Debug, Clone)]
-pub struct World {
-    pub stages: Vec<Stage>,
-}
-
-impl World {
-    pub fn new(stages: Vec<Stage>) -> World {
-        World { stages }
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct Stage {
     pub tiles: Tiles,
     pub orb_spawns: Grid<bool>,
@@ -162,6 +151,7 @@ impl AsyncStage {
         self.avatar_turns.insert(aid, self.head_turn);
         self.rollback_from(self.head_turn);
     }
+
     fn add_command(&mut self, aid: u32, action: Action, senses: Senses) -> Result<SensesInfo> {
         let turn = self
             .avatar_turns
@@ -192,7 +182,7 @@ impl AsyncStage {
             .diff_by_avatar
             .insert(aid, avatar_diff);
 
-        self.rollback_from(turn);
+        self.rollback_from(turn - 1);
         self.clean_history();
 
         // Apply senses
@@ -258,9 +248,12 @@ impl AsyncStage {
             .ok_or_else(|| anyhow!("Cound not find state"))?
             .clone();
 
+        debug!("Gathering info for {aid} at turn {turn}");
+
         // 3. apply actions of the next turn for avatars (not foes)
         let diff_index = self.diff_index(*turn);
         if let Some(next_diff) = self.diffs.get(diff_index + 1) {
+            debug!("Applying diff {next_diff:?}");
             self.update_commands(&mut state, next_diff);
         }
 
@@ -271,9 +264,9 @@ impl AsyncStage {
             .map(|d| &d.senses);
 
         if let Some(senses) = senses {
-            let (avatar, stage) = state.into_sync(self, aid);
+            let avatar = &state.avatars[&aid];
             if !avatar.tired {
-                return Ok(gather(senses, &avatar, &stage));
+                return Ok(gather(senses, avatar, self, &state));
             }
         }
         Ok(Default::default())
@@ -402,34 +395,22 @@ pub struct StageState {
 }
 
 impl StageState {
-    /// Convert to sync. Is not ideal as it clones the states. Will change once the sync version is
-    /// removed
-    fn into_sync(self, stage: &AsyncStage, aid: AvatarId) -> (Avatar, Stage) {
-        let Self { foes, orb, avatars } = self;
-        let mut stage = Stage::new(stage.tiles.clone(), stage.orb_spawns.clone(), foes);
-        stage.orb = orb;
-
-        let avatar = avatars[&aid].clone();
-        (avatar, stage)
-    }
-
     fn find_foe(&mut self, position: Position) -> Option<&mut Foe> {
         self.foes.iter_mut().find(|f| f.position() == position)
     }
 }
 
 /// What's needed to recompute a stage state
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 struct StageDiff {
     diff_by_avatar: BTreeMap<AvatarId, StageAvatarDiff>,
     new_avatar: Option<Avatar>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct StageAvatarDiff {
     action: Action,
     senses: Senses,
-    // TODO: should we also save info gathered?
 }
 
 // TODO: make it deterministic

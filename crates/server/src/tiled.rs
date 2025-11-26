@@ -7,7 +7,7 @@ use grid::Grid;
 use losig_core::types::{Foe, Position, Tile, Tiles};
 use tiled::{Layer, Loader};
 
-use crate::world::{Stage, World};
+use crate::world::{AsyncWorld, Stage};
 
 struct AssetsReader {}
 
@@ -158,7 +158,7 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
     Ok(results)
 }
 
-pub fn load_world() -> Result<World> {
+pub fn load_world() -> Result<AsyncWorld> {
     let mut loader = Loader::with_reader(AssetsReader {});
 
     let stages = STAGES
@@ -168,10 +168,10 @@ pub fn load_world() -> Result<World> {
         .filter_map(|m| Stage::try_from(&m).ok())
         .collect();
 
-    Ok(World::new(stages))
+    Ok(AsyncWorld::new(stages))
 }
 
-pub fn load_arena() -> Result<World> {
+pub fn load_arena() -> Result<AsyncWorld> {
     let mut loader = Loader::with_reader(AssetsReader {});
 
     let stages = ["arena"]
@@ -181,7 +181,7 @@ pub fn load_arena() -> Result<World> {
         .filter_map(|m| Stage::try_from(&m).ok())
         .collect();
 
-    Ok(World::new(stages))
+    Ok(AsyncWorld::new(stages))
 }
 
 #[cfg(test)]

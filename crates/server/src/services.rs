@@ -5,8 +5,6 @@ use std::sync::mpsc::Sender;
 
 use losig_core::leaderboard::Leaderboard;
 
-use crate::world::World;
-
 use std::sync::Mutex;
 
 use std::sync::Arc;
@@ -20,12 +18,12 @@ pub struct Services {
 
 impl Services {
     pub(crate) fn new(
-        world: World,
+        world: AsyncWorld,
         leaderboard: Leaderboard,
         sender: Sender<ServerMessageWithRecipient>,
     ) -> Self {
         Services {
-            world: Arc::new(Mutex::new(AsyncWorld::new(world.stages.clone()))),
+            world: Arc::new(Mutex::new(world)),
             leaderboard: Arc::new(Mutex::new(leaderboard)),
             sender,
         }

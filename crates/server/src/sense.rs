@@ -4,23 +4,36 @@ use losig_core::{
     types::{Avatar, Tile},
 };
 
-use crate::{fov, world::Stage};
+use crate::{
+    fov,
+    world::{AsyncStage, StageState},
+};
 
-pub fn gather(senses: &Senses, avatar: &Avatar, stage: &Stage) -> SensesInfo {
+pub fn gather(
+    senses: &Senses,
+    avatar: &Avatar,
+    async_stage: &AsyncStage,
+    state: &StageState,
+) -> SensesInfo {
     SensesInfo {
         selfi: try_gather(senses.selfs, |_| gather_self(avatar)),
-        touch: try_gather(senses.touch, |_| gather_touch(avatar, stage)),
+        touch: try_gather(senses.touch, |_| gather_touch(avatar, async_stage, state)),
         sight: try_gather(senses.sight, |strength| {
-            gather_sight(strength.get(), avatar, stage)
+            gather_sight(strength.get(), avatar, async_stage, state)
         }),
         hearing: try_gather(senses.hearing, |strength| {
-            gather_hearing(strength.get(), avatar, stage)
+            gather_hearing(strength.get(), avatar, async_stage, state)
         }),
     }
 }
 
-fn gather_hearing(strength: u8, avatar: &Avatar, stage: &Stage) -> HearingInfo {
-    let dist = avatar.position.dist(&stage.orb) as u8;
+fn gather_hearing(
+    strength: u8,
+    avatar: &Avatar,
+    _async_stage: &AsyncStage,
+    state: &StageState,
+) -> HearingInfo {
+    let dist = avatar.position.dist(&state.orb) as u8;
 
     for s in 1..(strength + 1) {
         if let Some(range) = HearingInfo::dist(s)
@@ -35,12 +48,17 @@ fn gather_hearing(strength: u8, avatar: &Avatar, stage: &Stage) -> HearingInfo {
     HearingInfo { range: None }
 }
 
-fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage) -> SightInfo {
-    let tiles = fov::fov(avatar.position, strength.into(), &stage.tiles);
+fn gather_sight(
+    strength: u8,
+    avatar: &Avatar,
+    async_stage: &AsyncStage,
+    state: &StageState,
+) -> SightInfo {
+    let tiles = fov::fov(avatar.position, strength.into(), &async_stage.tiles);
     let mut foes = vec![];
 
     let center = tiles.center();
-    for foe in &stage.foes {
+    for foe in &state.foes {
         let offset = foe.position() - avatar.position;
         let fov_position = center + offset;
 
@@ -49,22 +67,36 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage) -> SightInfo {
         }
     }
 
-    let offset = stage.orb - avatar.position;
+    let offset = state.orb - avatar.position;
     let fov_position = center + offset;
     let orb = match tiles.get(fov_position) {
         Tile::Empty => Some(offset),
         _ => None,
     };
 
-    SightInfo { tiles, foes, orb }
+    let mut allies = vec![];
+    for ally in state.avatars.values() {
+        let offset = ally.position - avatar.position;
+        let fov_position = center + offset;
+        if !tiles.get(fov_position).opaque() {
+            allies.push(offset);
+        }
+    }
+
+    SightInfo {
+        tiles,
+        foes,
+        orb,
+        allies,
+    }
 }
 
-fn gather_touch(avatar: &Avatar, stage: &Stage) -> TouchInfo {
+fn gather_touch(avatar: &Avatar, async_stage: &AsyncStage, state: &StageState) -> TouchInfo {
     // TODO: use a method to copy Tiles into another
-    let tiles = fov::fov(avatar.position, 1, &stage.tiles);
+    let tiles = fov::fov(avatar.position, 1, &async_stage.tiles);
 
     let mut foes = 0;
-    for foe in &stage.foes {
+    for foe in &state.foes {
         if foe.position().dist(&avatar.position) <= 1 {
             foes += 1;
         }
@@ -73,7 +105,7 @@ fn gather_touch(avatar: &Avatar, stage: &Stage) -> TouchInfo {
     TouchInfo {
         tiles,
         foes,
-        orb: stage.orb.dist(&avatar.position) <= 1,
+        orb: state.orb.dist(&avatar.position) <= 1,
     }
 }
 

@@ -268,6 +268,19 @@ impl<'a> Widget for WorldViewWidget<'a> {
 
                 buf.set_string(area.x + x as u16, area.y + y as u16, "¤", THEME.palette.foe);
             }
+
+            // Show the foes
+            for ally in &sight.allies {
+                let x = center_x + ally.x;
+                let y = center_y + ally.y;
+
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    "@",
+                    THEME.palette.ally,
+                );
+            }
         }
 
         let neigboring_foes = last_info

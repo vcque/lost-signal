@@ -15,6 +15,7 @@ pub struct ThemePalette {
     pub ui_disabled: Color,
 
     pub foe: Color,
+    pub ally: Color,
     pub terrain: Color,
     pub terrain_unseen: Color,
 
@@ -32,6 +33,7 @@ pub struct ThemePalette {
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
     palette: ThemePalette {
         foe: Color::from_hsl(Hsl::new(0.0, 1.0, 0.5)),
+        ally: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),
         terrain: Color::from_hsl(Hsl::new(270.0, 1.0, 0.5)),
         terrain_unseen: Color::from_hsl(Hsl::new(270.0, 0.0, 0.1)),
 

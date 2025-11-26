@@ -358,7 +358,13 @@ impl<'a> Widget for SensesWidget<'a> {
 
         let sense = self.senses.selfs;
         let info = self.info.and_then(|i| i.selfi.as_ref());
-        let status = info.map(|_| Line::from("I exist"));
+        let status = info.map(|i| {
+            Line::from(vec![
+                Span::from(format!("HP: {:2}", i.hp)),
+                Span::from("   "),
+                Span::from(format!("Focus: {:3}", i.focus)),
+            ])
+        });
 
         let indicator = if sense { "(+)" } else { "(-)" };
 

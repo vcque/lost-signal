@@ -72,6 +72,7 @@ impl AsyncWorld {
             id: aid,
             stage: 0,
             position: Default::default(),
+            hp: 10,
             focus: 100,
             turns: 0,
             tired: false,

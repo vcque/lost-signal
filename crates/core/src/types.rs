@@ -184,6 +184,7 @@ pub struct Avatar {
     pub id: AvatarId,
     pub stage: usize,
     pub position: Position,
+    pub hp: u8,
     pub focus: u8,
 
     /// flag to represent an avatar which could not pay the cost of its senses

@@ -6,13 +6,13 @@ use losig_core::{
 
 use crate::{
     fov,
-    world::{AsyncStage, StageState},
+    world::{Stage, StageState},
 };
 
 pub fn gather(
     senses: &Senses,
     avatar: &Avatar,
-    async_stage: &AsyncStage,
+    async_stage: &Stage,
     state: &StageState,
 ) -> SensesInfo {
     SensesInfo {
@@ -30,7 +30,7 @@ pub fn gather(
 fn gather_hearing(
     strength: u8,
     avatar: &Avatar,
-    _async_stage: &AsyncStage,
+    _async_stage: &Stage,
     state: &StageState,
 ) -> HearingInfo {
     let dist = avatar.position.dist(&state.orb) as u8;
@@ -48,13 +48,8 @@ fn gather_hearing(
     HearingInfo { range: None }
 }
 
-fn gather_sight(
-    strength: u8,
-    avatar: &Avatar,
-    async_stage: &AsyncStage,
-    state: &StageState,
-) -> SightInfo {
-    let tiles = fov::fov(avatar.position, strength.into(), &async_stage.tiles);
+fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState) -> SightInfo {
+    let tiles = fov::fov(avatar.position, strength.into(), &stage.template.tiles);
     let mut foes = vec![];
 
     let center = tiles.center();
@@ -91,9 +86,8 @@ fn gather_sight(
     }
 }
 
-fn gather_touch(avatar: &Avatar, async_stage: &AsyncStage, state: &StageState) -> TouchInfo {
-    // TODO: use a method to copy Tiles into another
-    let tiles = fov::fov(avatar.position, 1, &async_stage.tiles);
+fn gather_touch(avatar: &Avatar, async_stage: &Stage, state: &StageState) -> TouchInfo {
+    let tiles = fov::fov(avatar.position, 1, &async_stage.template.tiles);
 
     let mut foes = 0;
     for foe in &state.foes {

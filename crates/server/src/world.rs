@@ -13,42 +13,36 @@ use losig_core::{
 
 use crate::{foes, fov, sense::gather};
 
+/// Data of a stage that can not change with time or action players
 #[derive(Debug, Clone)]
-pub struct Stage {
+pub struct StageTemplate {
+    pub id: String,
     pub tiles: Tiles,
     pub orb_spawns: Grid<bool>,
     pub foes: Vec<Foe>,
-    pub orb: Position,
 }
 
-impl Stage {
-    pub fn new(tiles: Tiles, orb_spawns: Grid<bool>, foes: Vec<Foe>) -> Self {
-        let mut new = Self {
+impl StageTemplate {
+    pub fn new(id: String, tiles: Tiles, orb_spawns: Grid<bool>, foes: Vec<Foe>) -> Self {
+        Self {
+            id,
             tiles,
             foes,
             orb_spawns,
-            orb: Position::default(),
-        };
-
-        new.move_orb();
-        new
-    }
-
-    pub fn move_orb(&mut self) {
-        self.orb = orb_spawn(&self.orb_spawns);
+        }
     }
 }
 
-pub struct AsyncWorld {
+pub struct World {
     pub stage_id_by_avatar_id: BTreeMap<AvatarId, usize>,
-    pub stages: Vec<AsyncStage>,
+    pub stages: Vec<Stage>,
 }
 
-impl AsyncWorld {
-    pub fn new(stages: Vec<Stage>) -> Self {
-        AsyncWorld {
+impl World {
+    pub fn new(stages: Vec<StageTemplate>) -> Self {
+        World {
             stage_id_by_avatar_id: Default::default(),
-            stages: stages.into_iter().map(AsyncStage::new).collect(),
+            stages: stages.into_iter().map(Stage::new).collect(),
         }
     }
 
@@ -95,12 +89,11 @@ impl AsyncWorld {
 }
 
 /// Stage that can handle async actions from players
-pub struct AsyncStage {
+pub struct Stage {
     /*
      * Static stage info
      */
-    pub tiles: Tiles,
-    pub orb_spawns: Grid<bool>,
+    pub template: StageTemplate,
 
     /*
      * Rollback handling
@@ -111,24 +104,21 @@ pub struct AsyncStage {
     diffs: Vec<StageDiff>,
 }
 
-impl AsyncStage {
-    pub fn new(
-        Stage {
-            tiles,
-            orb_spawns,
-            foes,
-            orb,
-        }: Stage,
-    ) -> Self {
+impl Stage {
+    pub fn new(stage: StageTemplate) -> Self {
         let head_turn: Turn = 0;
         let avatars = Default::default();
-        let state = StageState { foes, orb, avatars };
+
+        let state = StageState {
+            foes: stage.foes.clone(),
+            orb: orb_spawn(&stage.orb_spawns),
+            avatars,
+        };
         let mut states = BTreeMap::<Turn, StageState>::new();
         states.insert(head_turn, state);
 
         Self {
-            tiles,
-            orb_spawns,
+            template: stage,
             head_turn,
             avatar_turns: Default::default(),
             states,
@@ -294,7 +284,7 @@ impl AsyncStage {
                 Action::Move(dir) => {
                     let next_pos = avatar.position.move_once(*dir);
 
-                    let tile = self.tiles.grid[next_pos.into()];
+                    let tile = self.template.tiles.grid[next_pos.into()];
 
                     // temporary code for simulating battle
                     let mut attack = false;
@@ -330,7 +320,7 @@ impl AsyncStage {
             }
 
             // Orb in sight
-            if fov::can_see(&self.tiles, avatar.position, state.orb) {
+            if fov::can_see(&self.template.tiles, avatar.position, state.orb) {
                 // TODO: excite orb -> move next turn
             }
 
@@ -339,7 +329,7 @@ impl AsyncStage {
                 for y in -1..2 {
                     let offset = Offset { x, y };
                     let position = avatar.position + offset;
-                    let tile = self.tiles.grid[position.into()];
+                    let tile = self.template.tiles.grid[position.into()];
                     if matches!(tile, Tile::Pylon) {
                         avatar.focus = 100;
                     }
@@ -372,7 +362,8 @@ impl AsyncStage {
     }
 
     pub fn find_spawns(&self) -> Vec<Position> {
-        self.tiles
+        self.template
+            .tiles
             .grid
             .indexed_iter()
             .filter_map(|((x, y), t)| {

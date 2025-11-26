@@ -7,7 +7,7 @@ use grid::Grid;
 use losig_core::types::{Foe, Position, Tile, Tiles};
 use tiled::{Layer, Loader};
 
-use crate::world::{AsyncWorld, Stage};
+use crate::world::{StageTemplate, World};
 
 struct AssetsReader {}
 
@@ -87,32 +87,29 @@ fn convert_tiled(value: &tiled::TileLayer) -> Result<Tiles> {
     Ok(result)
 }
 
-impl TryFrom<&tiled::Map> for Stage {
-    type Error = anyhow::Error;
+fn convert_map(id: String, value: &tiled::Map) -> Result<StageTemplate> {
+    let terrain_layer = value
+        .layers()
+        .find(|l| l.name == "Terrain")
+        .and_then(Layer::as_tile_layer)
+        .ok_or(anyhow!("No terrain layer"))?;
+    let foes_layer = value
+        .layers()
+        .find(|l| l.name == "Foes")
+        .and_then(Layer::as_tile_layer)
+        .ok_or(anyhow!("No foes layer"))?;
+    let orb_layer = value
+        .layers()
+        .find(|l| l.name == "Orb")
+        .and_then(Layer::as_tile_layer)
+        .ok_or(anyhow!("No Orb layer"))?;
 
-    fn try_from(value: &tiled::Map) -> Result<Self, Self::Error> {
-        let terrain_layer = value
-            .layers()
-            .find(|l| l.name == "Terrain")
-            .and_then(Layer::as_tile_layer)
-            .ok_or(anyhow!("No terrain layer"))?;
-        let foes_layer = value
-            .layers()
-            .find(|l| l.name == "Foes")
-            .and_then(Layer::as_tile_layer)
-            .ok_or(anyhow!("No foes layer"))?;
-        let orb_layer = value
-            .layers()
-            .find(|l| l.name == "Orb")
-            .and_then(Layer::as_tile_layer)
-            .ok_or(anyhow!("No Orb layer"))?;
-
-        Ok(Stage::new(
-            convert_tiled(&terrain_layer)?,
-            get_orb_spawns(&orb_layer)?,
-            get_foes(&foes_layer)?,
-        ))
-    }
+    Ok(StageTemplate::new(
+        id,
+        convert_tiled(&terrain_layer)?,
+        get_orb_spawns(&orb_layer)?,
+        get_foes(&foes_layer)?,
+    ))
 }
 
 fn get_orb_spawns(layer: &tiled::TileLayer) -> Result<Grid<bool>> {
@@ -158,30 +155,31 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
     Ok(results)
 }
 
-pub fn load_world() -> Result<AsyncWorld> {
-    let mut loader = Loader::with_reader(AssetsReader {});
-
-    let stages = STAGES
+pub fn load_tutorial() -> Result<World> {
+    let tutos: Vec<&str> = STAGES
         .iter()
-        .map(|st| loader.load_tmx_map(st.0))
-        .filter_map(|r| r.ok())
-        .filter_map(|m| Stage::try_from(&m).ok())
+        .map(|stage| stage.0)
+        .filter(|id| id.starts_with("tuto"))
         .collect();
 
-    Ok(AsyncWorld::new(stages))
+    load_world(&tutos)
 }
 
-pub fn load_arena() -> Result<AsyncWorld> {
+pub fn load_arena() -> Result<World> {
+    load_world(&["arena"])
+}
+
+pub fn load_world(stage_ids: &[&str]) -> Result<World> {
+    let mut stages = vec![];
     let mut loader = Loader::with_reader(AssetsReader {});
 
-    let stages = ["arena"]
-        .iter()
-        .map(|st| loader.load_tmx_map(st))
-        .filter_map(|r| r.ok())
-        .filter_map(|m| Stage::try_from(&m).ok())
-        .collect();
+    for id in stage_ids {
+        let map = loader.load_tmx_map(id)?;
+        let stage = convert_map(id.to_string(), &map)?;
+        stages.push(stage);
+    }
 
-    Ok(AsyncWorld::new(stages))
+    Ok(World::new(stages))
 }
 
 #[cfg(test)]

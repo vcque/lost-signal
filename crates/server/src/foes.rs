@@ -1,8 +1,8 @@
 use losig_core::types::{Foe, GameOver, Position};
 
-use crate::world::{AsyncStage, StageState};
+use crate::world::{Stage, StageState};
 
-pub fn act(foe: &Foe, _stage: &AsyncStage, state: &mut StageState) -> Box<dyn FnOnce(&mut Foe)> {
+pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(&mut Foe)> {
     match foe {
         Foe::MindSnare(pos) => {
             for avatar in state.avatars.values_mut() {

@@ -13,7 +13,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget},
 };
 
-use crate::{services::Services, world::AsyncWorld};
+use crate::{services::Services, world::World};
 
 pub struct GameTui {
     services: Services,
@@ -107,7 +107,7 @@ impl GameTui {
         let offset = viewer.as_offset() - area_offset;
 
         let stage = world.stages.get(stage_id).unwrap();
-        let tiles = &stage.tiles;
+        let tiles = &stage.template.tiles;
         for x in 0..area.width as usize {
             for y in 0..area.height as usize {
                 let pos = Position { x, y };
@@ -171,8 +171,8 @@ impl GameTui {
         }
     }
 
-    fn get_view_center(&self, world: &AsyncWorld) -> (usize, Position) {
+    fn get_view_center(&self, world: &World) -> (usize, Position) {
         let stage = world.stages.first().unwrap();
-        (0, stage.tiles.center())
+        (0, stage.template.tiles.center())
     }
 }

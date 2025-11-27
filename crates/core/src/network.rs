@@ -46,6 +46,7 @@ pub enum ClientMessageContent {
     Command(CommandMessage),
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Serialize, Deserialize)]
 pub enum ServerMessage {
     Leaderboard(Leaderboard),

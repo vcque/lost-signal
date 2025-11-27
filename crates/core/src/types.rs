@@ -183,9 +183,11 @@ impl Tile {
 }
 
 pub type Turn = u64;
+pub type StageTurn = u64;
+
 pub type AvatarId = u32;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Avatar {
     pub id: AvatarId,
     pub stage: usize,
@@ -196,7 +198,10 @@ pub struct Avatar {
     /// flag to represent an avatar which could not pay the cost of its senses
     pub tired: bool,
     pub turns: Turn,
+
+    pub logs: Vec<(StageTurn, GameLogEvent)>,
 }
+
 impl Avatar {
     pub fn is_dead(&self) -> bool {
         self.hp == 0
@@ -303,4 +308,24 @@ impl GameOver {
             score,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum GameLogEvent {
+    Attack { from: Target, to: Target },
+    StageUp(Target),
+    Defeated { from: Target, to: Target },
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum Target {
+    Foe(FoeId),
+    You,
+    OtherPlayer,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub enum FoeId {
+    MindSnare,
+    Simple,
 }

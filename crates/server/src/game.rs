@@ -45,6 +45,7 @@ impl Game {
                 stage: 0, // TODO: to update when changing lvls is implemented
                 action: result.action,
                 info: result.senses_info,
+                logs: Default::default(),
             };
             let msg = ServerMessageWithRecipient {
                 recipient: Recipient::Single(avatar_id),

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     leaderboard::Leaderboard,
     sense::{Senses, SensesInfo},
-    types::{AvatarId, ClientAction, GameOver, ServerAction, Turn},
+    types::{AvatarId, ClientAction, GameLogEvent, GameOver, ServerAction, StageTurn, Turn},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,6 +27,7 @@ pub struct TurnResultMessage {
     pub stage: u8,
     pub info: SensesInfo,
     pub action: ServerAction,
+    pub logs: GameLogsMessage,
 }
 
 pub struct LimboMessage {}
@@ -54,4 +55,13 @@ pub enum ServerMessage {
     Turn(TurnResultMessage),
     GameOver(GameOverMessage),
     Limbo { averted: bool },
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct GameLogsMessage {
+    /// From wich stage turn the game logs has been sent
+    from: StageTurn,
+
+    /// Logs computed from server. Ordered incr by stage turn
+    logs: Vec<(StageTurn, GameLogEvent)>,
 }

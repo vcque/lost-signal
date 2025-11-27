@@ -2,6 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
+use log::debug;
 use losig_core::{
     leaderboard::Leaderboard,
     network::{ClientMessage, ClientMessageContent, ServerMessage},
@@ -34,6 +35,7 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
                         state.leaderboard = lb;
                     }
                     ServerMessage::GameOver(gom) => {
+                        debug!("Gameover received {:?}", gom);
                         state.gameover = Some(gom);
                     }
                     ServerMessage::Limbo { averted } => {

@@ -73,6 +73,7 @@ impl WorldView {
             stage,
             info,
             action,
+            logs: _,
         } = turn_result;
 
         let diff = turn.abs_diff(self.turn);

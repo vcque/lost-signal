@@ -64,6 +64,7 @@ impl World {
             focus: 100,
             turns: 0,
             tired: false,
+            logs: Default::default(),
         };
 
         stage.add_avatar(avatar);
@@ -503,7 +504,7 @@ impl StageState {
 }
 
 /// What's needed to recompute a stage state
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 struct StageDiff {
     diff_by_avatar: BTreeMap<AvatarId, StageAvatarDiff>,
     new_avatar: Option<Avatar>,

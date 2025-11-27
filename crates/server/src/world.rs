@@ -5,16 +5,16 @@ use std::{
 
 use anyhow::{Result, anyhow};
 use grid::Grid;
-use log::{info, warn};
+use log::{debug, info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
-        Action, Avatar, AvatarId, Foe, GameOver, GameOverStatus, Offset, Position, Tile, Tiles,
-        Turn,
+        Avatar, AvatarId, ClientAction, Foe, GameOver, GameOverStatus, Offset, Position,
+        ServerAction, Tile, Tiles, Turn,
     },
 };
 
-use crate::{foes, fov, sense::gather};
+use crate::{action, foes, fov, sense::gather};
 
 /// Data of a stage that can not change with time or action players
 #[derive(Debug, Clone)]
@@ -83,7 +83,7 @@ impl World {
     pub fn add_command(
         &mut self,
         aid: AvatarId,
-        action: Action,
+        action: ClientAction,
         senses: Senses,
     ) -> Option<CommandResult> {
         let stage_id = *self.stage_id_by_avatar_id.get(&aid)?;
@@ -151,8 +151,10 @@ impl Stage {
 
     pub fn state_for(&self, aid: AvatarId) -> Option<StageState> {
         let tracker = self.avatar_trackers.get(&aid)?;
+        debug!("has tracker");
 
         let mut state = self.states.get(&tracker.turn)?.clone();
+        debug!("has state");
 
         // 3. apply actions of the next turn for avatars (not foes)
         let diff_index = self.diff_index(tracker.turn);
@@ -185,7 +187,14 @@ impl Stage {
         avatar.cloned()
     }
 
-    fn add_command(&mut self, aid: u32, action: Action, senses: Senses) -> Result<CommandResult> {
+    fn add_command(
+        &mut self,
+        aid: u32,
+        action: ClientAction,
+        senses: Senses,
+    ) -> Result<CommandResult> {
+        let action = action::convert_client(action, self, aid);
+
         let tracker = self
             .avatar_trackers
             .get_mut(&aid)
@@ -206,6 +215,7 @@ impl Stage {
         // Add the diff to the turn
         let turn_diff = self.head_turn - tracker.turn;
         let index = self.diffs.len() - 1 - turn_diff as usize;
+        let stage_turn = tracker.turn;
 
         let avatar_diff = StageAvatarDiff {
             action,
@@ -216,8 +226,6 @@ impl Stage {
             .ok_or_else(|| anyhow!("Incoherent difflist: no index {index}"))?
             .diff_by_avatar
             .insert(aid, avatar_diff);
-
-        let stage_turn = tracker.turn;
 
         self.rollback_from(stage_turn);
 
@@ -233,6 +241,7 @@ impl Stage {
             stage_turn,
             limbos,
             senses_info,
+            action,
         })
     }
 
@@ -305,7 +314,14 @@ impl Stage {
 
     /// Apply the turn of each avatar
     fn update_commands(&self, state: &mut StageState, diff: &StageDiff) {
-        for (aid, StageAvatarDiff { action, senses }) in diff.diff_by_avatar.iter() {
+        for (
+            aid,
+            StageAvatarDiff {
+                action: player_action,
+                senses,
+            },
+        ) in diff.diff_by_avatar.iter()
+        {
             let Some(avatar) = state.avatars.get(aid) else {
                 continue;
             };
@@ -316,32 +332,8 @@ impl Stage {
 
             let mut avatar = avatar.clone();
 
-            match action {
-                Action::Move(dir) => {
-                    let next_pos = avatar.position.move_once(*dir);
-
-                    let tile = self.template.tiles.grid[next_pos.into()];
-
-                    // temporary code for simulating battle
-                    let mut attack = false;
-                    if let Some(Foe::Simple(_, hp)) = state.find_foe(next_pos) {
-                        *hp -= 1;
-                        attack = true;
-                    }
-                    state.foes.retain(|f| f.alive());
-
-                    if !attack && tile.can_travel() {
-                        avatar.position = next_pos;
-                    }
-                }
-                Action::Spawn => {
-                    let spawn_position = self.find_spawns();
-                    avatar.position = spawn_position[avatar.id as usize % spawn_position.len()];
-                    avatar.hp = 10;
-                    avatar.focus = 100;
-                }
-                _ => {}
-            }
+            // Execute the action
+            action::act(player_action, &mut avatar, state, self);
 
             // Orb on tile
             if avatar.position == state.orb {
@@ -350,9 +342,9 @@ impl Stage {
 
             // Sense cost
             let cost = senses.cost();
-            avatar.tired = avatar.focus <= cost;
+            avatar.tired = avatar.focus < cost;
             if !avatar.tired {
-                avatar.focus -= cost;
+                avatar.focus = avatar.focus.saturating_sub(cost);
             }
 
             // Orb in sight
@@ -365,12 +357,12 @@ impl Stage {
                 for y in -1..2 {
                     let offset = Offset { x, y };
                     let position = avatar.position + offset;
-                    let tile = self.template.tiles.grid[position.into()];
+                    let tile = self.template.tiles.get(position);
                     if matches!(tile, Tile::Pylon) {
                         avatar.focus = 100;
                     }
                 }
-            } // Pylon effect
+            }
 
             state.avatars.insert(*aid, avatar);
         }
@@ -502,8 +494,11 @@ pub struct StageState {
 }
 
 impl StageState {
-    fn find_foe(&mut self, position: Position) -> Option<&mut Foe> {
-        self.foes.iter_mut().find(|f| f.position() == position)
+    pub fn find_foe(&self, position: Position) -> Option<(usize, &Foe)> {
+        self.foes
+            .iter()
+            .enumerate()
+            .find(|(_, f)| f.position() == position)
     }
 }
 
@@ -516,7 +511,7 @@ struct StageDiff {
 
 #[derive(Clone, Debug)]
 struct StageAvatarDiff {
-    action: Action,
+    action: ServerAction,
     senses: Senses,
 }
 
@@ -527,6 +522,7 @@ pub struct CommandResult {
     pub stage_turn: Turn,
     pub limbos: Vec<Limbo>,
     pub senses_info: SensesInfo,
+    pub action: ServerAction,
 }
 
 // TODO: make it deterministic

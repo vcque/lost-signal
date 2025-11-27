@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     leaderboard::Leaderboard,
     sense::{Senses, SensesInfo},
-    types::{Action, AvatarId, GameOver, Turn},
+    types::{AvatarId, ClientAction, GameOver, ServerAction, Turn},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -12,7 +12,7 @@ pub struct CommandMessage {
     /// The avatar's turn. Used to keep track of which response corresponds to which command
     pub turn: Turn,
     /// Action the avatar takes this tick
-    pub action: Action,
+    pub action: ClientAction,
     /// Info then avatar wants to gather this tick
     pub senses: Senses,
 }
@@ -26,6 +26,7 @@ pub struct TurnResultMessage {
     pub stage_turn: Turn,
     pub stage: u8,
     pub info: SensesInfo,
+    pub action: ServerAction,
 }
 
 pub struct LimboMessage {}

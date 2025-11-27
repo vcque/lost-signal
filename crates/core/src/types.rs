@@ -8,16 +8,22 @@ use serde::{Deserialize, Serialize};
 * A command is an input that (often) leads to a modification of the game state.
 */
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub enum Action {
+pub enum ClientAction {
     Spawn,
-    Move(Direction),
+    MoveOrAttack(Direction),
     Wait,
 }
 
-impl Action {
-    pub fn allow_broken(&self) -> bool {
-        matches!(self, Action::Spawn)
-    }
+/**
+* The actions the server has computed from the client request.
+*/
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub enum ServerAction {
+    Spawn,
+    Wait,
+    Move(Position),
+    /// foe id, should stay server side though
+    Attack(usize),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -66,7 +72,7 @@ impl Neg for Offset {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default, Serialize, Deserialize)]
 pub struct Position {
     pub x: usize,
     pub y: usize,
@@ -216,6 +222,13 @@ impl Foe {
         match self {
             Self::MindSnare(_) => true,
             Self::Simple(_, hp) => *hp > 0,
+        }
+    }
+
+    pub fn can_be_attacked(&self) -> bool {
+        match self {
+            Foe::MindSnare(_) => false,
+            Foe::Simple(_, hp) => *hp > 0,
         }
     }
 }

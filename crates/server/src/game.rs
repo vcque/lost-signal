@@ -43,6 +43,7 @@ impl Game {
                 turn,
                 stage_turn: result.stage_turn,
                 stage: 0, // TODO: to update when changing lvls is implemented
+                action: result.action,
                 info: result.senses_info,
             };
             let msg = ServerMessageWithRecipient {

@@ -2,6 +2,7 @@ use losig_core::leaderboard::Leaderboard;
 
 use crate::{dispatch::Dispatch, services::Services, tui::GameTui, ws_server::WsServer};
 
+mod action;
 mod command;
 mod dispatch;
 mod foes;

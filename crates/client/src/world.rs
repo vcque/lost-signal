@@ -1,8 +1,8 @@
-use log::warn;
+use log::{debug, warn};
 use losig_core::{
     network::TurnResultMessage,
     sense::SensesInfo,
-    types::{Action, Offset, Position, Tile, Tiles, Turn},
+    types::{ClientAction, Offset, Position, ServerAction, Tile, Tiles, Turn},
 };
 
 use crate::logs::{ClientLog, GameLogs};
@@ -43,13 +43,14 @@ impl WorldView {
         }
     }
 
-    pub fn act(&mut self, action: &Action) {
-        if matches!(action, Action::Spawn) {
+    pub fn act(&mut self, action: &ClientAction) {
+        if matches!(action, ClientAction::Spawn) {
             self.clear();
         }
 
         let history = WorldHistory {
             action: *action,
+            server_action: None,
             info: None,
         };
         self.current_state.update(&history);
@@ -71,6 +72,7 @@ impl WorldView {
             turn,
             stage,
             info,
+            action,
         } = turn_result;
 
         let diff = turn.abs_diff(self.turn);
@@ -86,6 +88,7 @@ impl WorldView {
             i if self.history.len() > i as usize => {
                 let index = self.history.len() - i as usize - 1;
                 self.history[index].info = Some(info);
+                self.history[index].server_action = Some(action);
                 self.rebuild_current_state();
             }
             _ => {
@@ -131,7 +134,8 @@ impl Default for WorldView {
 
 #[derive(Debug, Clone)]
 struct WorldHistory {
-    action: Action,
+    action: ClientAction,
+    server_action: Option<ServerAction>,
     info: Option<SensesInfo>,
 }
 
@@ -165,7 +169,7 @@ impl WorldState {
     }
 
     fn update(&mut self, history: &WorldHistory) {
-        self.update_action(&history.action);
+        self.update_action(&history.action, history.server_action.as_ref());
 
         if let Some(ref info) = history.info {
             if let Some(ref info) = info.sight {
@@ -178,19 +182,23 @@ impl WorldState {
         }
     }
 
-    fn update_action(&mut self, action: &Action) {
+    fn update_action(&mut self, action: &ClientAction, server_action: Option<&ServerAction>) {
+        debug!("{server_action:?}");
+
         match action {
-            Action::Move(dir) => {
-                let new_pos = self.position + dir.offset();
-                let tile = self.tile_at(new_pos);
-                if tile.can_travel() {
-                    self.position = new_pos;
-                }
-            }
-            Action::Spawn => {
+            ClientAction::Spawn => {
                 // Spawning actually cleans up the state
             }
-            Action::Wait => {}
+            ClientAction::MoveOrAttack(dir) => {
+                if matches!(server_action, None | Some(ServerAction::Move(_))) {
+                    let new_pos = self.position + dir.offset();
+                    let tile = self.tile_at(new_pos);
+                    if tile.can_travel() {
+                        self.position = new_pos;
+                    }
+                }
+            }
+            ClientAction::Wait => {}
         }
     }
 

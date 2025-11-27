@@ -1,7 +1,7 @@
 use losig_core::{
     network::{ClientMessage, ClientMessageContent, CommandMessage},
     sense::Senses,
-    types::Action,
+    types::ClientAction,
 };
 use ratatui::Frame;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -52,7 +52,7 @@ pub struct InputServices<'a> {
 }
 
 impl<'a> InputServices<'a> {
-    pub fn act(&mut self, action: Action, senses: Senses) {
+    pub fn act(&mut self, action: ClientAction, senses: Senses) {
         self.state.world.act(&action);
         let avatar_id = self.state.avatar_id;
         self.client.send(ClientMessage {

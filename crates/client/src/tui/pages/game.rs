@@ -1,6 +1,6 @@
 use losig_core::{
     sense::{SenseStrength, Senses, SensesInfo},
-    types::{Action, Direction, GameOver, GameOverStatus, Offset, Tile},
+    types::{ClientAction, Direction, GameOver, GameOverStatus, Offset, Tile},
 };
 use ratatui::{
     buffer::Buffer,
@@ -177,23 +177,31 @@ impl GamePage {
 
         let action = match key.code {
             KeyCode::Up | KeyCode::Char('8') | KeyCode::Char('k') => {
-                Some(Action::Move(Direction::Up))
+                Some(ClientAction::MoveOrAttack(Direction::Up))
             }
             KeyCode::Down | KeyCode::Char('2') | KeyCode::Char('j') => {
-                Some(Action::Move(Direction::Down))
+                Some(ClientAction::MoveOrAttack(Direction::Down))
             }
             KeyCode::Left | KeyCode::Char('4') | KeyCode::Char('h') => {
-                Some(Action::Move(Direction::Left))
+                Some(ClientAction::MoveOrAttack(Direction::Left))
             }
             KeyCode::Right | KeyCode::Char('6') | KeyCode::Char('l') => {
-                Some(Action::Move(Direction::Right))
+                Some(ClientAction::MoveOrAttack(Direction::Right))
             }
-            KeyCode::Char('7') | KeyCode::Char('y') => Some(Action::Move(Direction::UpLeft)),
-            KeyCode::Char('9') | KeyCode::Char('u') => Some(Action::Move(Direction::UpRight)),
-            KeyCode::Char('1') | KeyCode::Char('b') => Some(Action::Move(Direction::DownLeft)),
-            KeyCode::Char('3') | KeyCode::Char('n') => Some(Action::Move(Direction::DownRight)),
-            KeyCode::Char('5') | KeyCode::Char(' ') => Some(Action::Wait),
-            KeyCode::Char('r') => Some(Action::Spawn),
+            KeyCode::Char('7') | KeyCode::Char('y') => {
+                Some(ClientAction::MoveOrAttack(Direction::UpLeft))
+            }
+            KeyCode::Char('9') | KeyCode::Char('u') => {
+                Some(ClientAction::MoveOrAttack(Direction::UpRight))
+            }
+            KeyCode::Char('1') | KeyCode::Char('b') => {
+                Some(ClientAction::MoveOrAttack(Direction::DownLeft))
+            }
+            KeyCode::Char('3') | KeyCode::Char('n') => {
+                Some(ClientAction::MoveOrAttack(Direction::DownRight))
+            }
+            KeyCode::Char('5') | KeyCode::Char(' ') => Some(ClientAction::Wait),
+            KeyCode::Char('r') => Some(ClientAction::Spawn),
             KeyCode::Char('?') => {
                 game_state.help.open = true;
                 return true;

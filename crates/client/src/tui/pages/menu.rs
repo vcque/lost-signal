@@ -1,7 +1,7 @@
 use losig_core::{
     leaderboard::Leaderboard,
     sense::Senses,
-    types::{Action, GameOverStatus},
+    types::{ClientAction, GameOverStatus},
 };
 use ratatui::{
     buffer::Buffer,
@@ -62,7 +62,7 @@ impl MenuPage {
                             services.new_game();
                         }
                         MenuOption::Continue => {
-                            services.act(Action::Spawn, Senses::default());
+                            services.act(ClientAction::Spawn, Senses::default());
                         }
                     }
                     state.page = PageSelection::Game;

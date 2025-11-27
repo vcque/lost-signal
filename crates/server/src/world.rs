@@ -8,7 +8,10 @@ use grid::Grid;
 use log::{info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
-    types::{Action, Avatar, AvatarId, Foe, GameOver, Offset, Position, Tile, Tiles, Turn},
+    types::{
+        Action, Avatar, AvatarId, Foe, GameOver, GameOverStatus, Offset, Position, Tile, Tiles,
+        Turn,
+    },
 };
 
 use crate::{foes, fov, sense::gather};
@@ -36,6 +39,7 @@ impl StageTemplate {
 pub struct World {
     pub stage_id_by_avatar_id: BTreeMap<AvatarId, usize>,
     pub stages: Vec<Stage>,
+    pub morgue: BTreeMap<AvatarId, Avatar>,
 }
 
 impl World {
@@ -43,6 +47,7 @@ impl World {
         World {
             stage_id_by_avatar_id: Default::default(),
             stages: stages.into_iter().map(Stage::new).collect(),
+            morgue: Default::default(),
         }
     }
 
@@ -64,8 +69,15 @@ impl World {
         stage.add_avatar(avatar);
     }
 
-    pub fn retire_avatar(&mut self, _aid: AvatarId) -> Option<GameOver> {
-        None
+    pub fn retire_avatar(&mut self, aid: AvatarId) -> Option<GameOver> {
+        if let Some(avatar) = self.morgue.remove(&aid) {
+            return Some(GameOver::new(&avatar, GameOverStatus::Dead));
+        }
+
+        let stage_id = self.stage_id_by_avatar_id.get(&aid)?;
+        let avatar = self.stages.get_mut(*stage_id)?.retire_avatar(aid)?;
+
+        Some(GameOver::new(&avatar, GameOverStatus::Dead))
     }
 
     pub fn add_command(
@@ -78,7 +90,15 @@ impl World {
         let stage = &mut self.stages[stage_id];
 
         match stage.add_command(aid, action, senses) {
-            Ok(result) => Some(result),
+            Ok(result) => {
+                for status in &result.limbos {
+                    if let Limbo::Dead(avatar) = status {
+                        self.morgue.insert(avatar.id, avatar.clone());
+                        self.stage_id_by_avatar_id.remove(&avatar.id);
+                    }
+                }
+                Some(result)
+            }
             Err(e) => {
                 warn!("Error applying command: {e}");
                 None
@@ -154,6 +174,15 @@ impl Stage {
         self.avatar_trackers
             .insert(aid, AvatarTracker::new(self.head_turn));
         self.rollback_from(self.head_turn);
+    }
+
+    fn retire_avatar(&mut self, aid: AvatarId) -> Option<Avatar> {
+        let state = self.state_for(aid)?;
+        let avatar = state.avatars.get(&aid);
+
+        self.avatar_trackers.remove(&aid);
+
+        avatar.cloned()
     }
 
     fn add_command(&mut self, aid: u32, action: Action, senses: Senses) -> Result<CommandResult> {

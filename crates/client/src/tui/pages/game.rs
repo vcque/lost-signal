@@ -110,13 +110,9 @@ impl GamePage {
 
         if let Some(gameover) = &services.state.gameover {
             GameOverWidget {}.render(area, buf, gameover, &mut state.you_win);
-        }
-
-        if state.limbo.open {
+        } else if state.limbo.open {
             LimboWidget {}.render(area, buf, state.limbo.averted, &mut state.limbo);
-        }
-
-        if state.game.help.open {
+        } else if state.game.help.open {
             HelpWidget.render(area, buf, &state.game.help);
         }
     }
@@ -127,6 +123,11 @@ impl GamePage {
         state: &mut TuiState,
         mut services: InputServices,
     ) -> bool {
+        if let Some(gameover) = services.state.gameover.clone()
+            && (GameOverWidget {}).on_event(event, &mut state.you_win, &mut services, &gameover)
+        {
+            return true;
+        }
         // If limbo is visible, let LimboWidget handle the event
         if state.limbo.open {
             return LimboWidget {}.on_event(event, &mut state.limbo, &mut services);
@@ -140,12 +141,6 @@ impl GamePage {
         let Event::Key(key) = event else {
             return false;
         };
-
-        if let Some(gameover) = services.state.gameover.clone()
-            && (GameOverWidget {}).on_event(event, &mut state.you_win, &mut services, &gameover)
-        {
-            return true;
-        }
 
         let game_state = &mut state.game;
         if key.modifiers.shift {

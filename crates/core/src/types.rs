@@ -190,8 +190,6 @@ pub struct Avatar {
     /// flag to represent an avatar which could not pay the cost of its senses
     pub tired: bool,
     pub turns: Turn,
-    /// This field is set when the player has won of lost
-    pub gameover: Option<GameOver>,
 }
 impl Avatar {
     pub fn is_dead(&self) -> bool {
@@ -273,7 +271,6 @@ pub struct GameOver {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum GameOverStatus {
     Win,
-    MaybeDead,
     Dead,
 }
 

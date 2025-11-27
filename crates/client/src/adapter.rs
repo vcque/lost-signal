@@ -36,8 +36,8 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
                     ServerMessage::GameOver(gom) => {
                         state.gameover = Some(gom);
                     }
-                    ServerMessage::RevertGameOver(savior) => {
-                        state.gameover = None;
+                    ServerMessage::Limbo { averted } => {
+                        state.limbo = Some(averted);
                     }
                 }
             });
@@ -81,6 +81,7 @@ pub trait TuiAdapter {
 pub struct SharedState {
     pub avatar_id: AvatarId,
     pub gameover: Option<GameOver>,
+    pub limbo: Option<bool>,
     pub leaderboard: Leaderboard,
     pub world: WorldView,
 }
@@ -90,6 +91,7 @@ impl SharedState {
         Self {
             avatar_id,
             gameover: None,
+            limbo: None,
             leaderboard: Leaderboard::new(),
             world: WorldView::new(),
         }

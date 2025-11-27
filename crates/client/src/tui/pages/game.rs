@@ -13,8 +13,8 @@ use ratatui::{
 use crate::{
     logs::{ClientLog, GameLog},
     tui::{
-        InputServices, RenderServices, THEME, YouWinState,
-        state::TuiState,
+        GameOverState, InputServices, RenderServices, THEME,
+        state::{LimboState, TuiState},
         utils::center,
         widgets::{block_wrap::BlockWrap, help::HelpWidget},
     },
@@ -102,8 +102,18 @@ impl GamePage {
             .wrap(senses_widget);
         senses_wigdet.render(_senses_a, buf);
 
+        // Check for limbo state from server
+        if let Some(averted) = services.state.limbo {
+            state.limbo.open = true;
+            state.limbo.averted = averted;
+        }
+
         if let Some(gameover) = &services.state.gameover {
             GameOverWidget {}.render(area, buf, gameover, &mut state.you_win);
+        }
+
+        if state.limbo.open {
+            LimboWidget {}.render(area, buf, state.limbo.averted, &mut state.limbo);
         }
 
         if state.game.help.open {
@@ -117,6 +127,11 @@ impl GamePage {
         state: &mut TuiState,
         mut services: InputServices,
     ) -> bool {
+        // If limbo is visible, let LimboWidget handle the event
+        if state.limbo.open {
+            return LimboWidget {}.on_event(event, &mut state.limbo, &mut services);
+        }
+
         // If help is visible, let HelpWidget handle the event
         if state.game.help.open {
             return HelpWidget.on_event(event, &mut state.game.help);
@@ -126,11 +141,10 @@ impl GamePage {
             return false;
         };
 
-        if services.state.gameover.is_some()
-            && (GameOverWidget {}).on_event(event, &mut state.you_win, &mut services)
-        {
-            return true;
-        }
+        if let Some(gameover) = services.state.gameover.clone()
+            && (GameOverWidget {}).on_event(event, &mut state.you_win, &mut services, &gameover) {
+                return true;
+            }
 
         let game_state = &mut state.game;
         if key.modifiers.shift {
@@ -479,7 +493,7 @@ impl GameOverWidget {
         area: Rect,
         buf: &mut Buffer,
         gameover: &GameOver,
-        state: &mut YouWinState,
+        state: &mut GameOverState,
     ) {
         let popup_width = 50;
         let popup_height = 10;
@@ -499,7 +513,6 @@ impl GameOverWidget {
 
         let (title, color) = match gameover.status {
             GameOverStatus::Win => ("🎉 Victory! 🎉", THEME.palette.log_info),
-            GameOverStatus::MaybeDead => ("¿? Game Over ¿?", Color::Cyan),
             GameOverStatus::Dead => ("💀 Game Over 💀", THEME.palette.log_grave),
         };
 
@@ -565,8 +578,9 @@ impl GameOverWidget {
     fn on_event(
         self,
         event: &Event,
-        state: &mut YouWinState,
+        state: &mut GameOverState,
         services: &mut InputServices,
+        _gameover: &GameOver,
     ) -> bool {
         // Handle YouWin events
         let you_win = state;
@@ -601,6 +615,88 @@ impl GameOverWidget {
         };
 
         true
+    }
+}
+
+struct LimboWidget {}
+
+impl LimboWidget {
+    pub fn render(self, area: Rect, buf: &mut Buffer, averted: bool, _state: &mut LimboState) {
+        let popup_width = 50;
+        let popup_height = 10;
+
+        let popup_area = center(
+            area,
+            Constraint::Length(popup_width),
+            Constraint::Length(popup_height),
+        );
+
+        // Clear background
+        for x in popup_area.x..popup_area.x + popup_area.width {
+            for y in popup_area.y..popup_area.y + popup_area.height {
+                buf.set_string(x, y, " ", Style::default());
+            }
+        }
+
+        let (title, color, lines) = if averted {
+            (
+                "✨ Saved ✨",
+                THEME.palette.log_info,
+                vec![
+                    "Another player saved you!",
+                    "",
+                    "(Press any key to continue)",
+                ],
+            )
+        } else {
+            (
+                "Incapacited",
+                Color::Cyan,
+                vec![
+                    "You have died...",
+                    "",
+                    "You are now in limbo, waiting for",
+                    "another player to save you.",
+                    "",
+                    "If no one saves you, the game is over.",
+                ],
+            )
+        };
+
+        let block = Block::default()
+            .title(title)
+            .borders(Borders::ALL)
+            .style(Style::default().fg(color));
+
+        let inner = block.inner(popup_area);
+        block.render(popup_area, buf);
+
+        for (i, line) in lines.iter().enumerate() {
+            let y = inner.y + 1 + i as u16;
+            let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
+            let style = if i == 0 {
+                Style::default().fg(THEME.palette.important)
+            } else {
+                Style::default().fg(THEME.palette.ui_text)
+            };
+            buf.set_string(x, y, line, style);
+        }
+    }
+
+    fn on_event(
+        self,
+        _event: &Event,
+        state: &mut LimboState,
+        services: &mut InputServices,
+    ) -> bool {
+        if state.averted {
+            // Any key dismisses the popup
+            state.open = false;
+            services.clear_limbo();
+            true
+        } else {
+            false
+        }
     }
 }
 

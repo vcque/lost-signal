@@ -130,6 +130,7 @@ fn get_orb_spawns(layer: &tiled::TileLayer) -> Result<Grid<bool>> {
     Ok(grid)
 }
 
+/// TODO: get foe templates instead of foes
 fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
     let mut results = vec![];
     let width = layer.width().ok_or(anyhow!("no width"))?;

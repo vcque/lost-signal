@@ -6,7 +6,8 @@ use crate::tui::widgets::help::HelpState;
 pub struct TuiState {
     pub menu: MenuState,
     pub game: GameState,
-    pub you_win: YouWinState,
+    pub you_win: GameOverState,
+    pub limbo: LimboState,
     pub page: PageSelection,
     pub should_exit: bool,
 }
@@ -63,8 +64,14 @@ impl GameState {
 }
 
 #[derive(Debug, Default)]
-pub struct YouWinState {
+pub struct GameOverState {
     pub open: bool,
     pub name: String,
     pub sent: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct LimboState {
+    pub open: bool,
+    pub averted: bool,
 }

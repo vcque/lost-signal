@@ -10,7 +10,7 @@ use crate::{
     adapter::{Client, SharedState},
     tui::{
         pages::{GamePage, MenuPage},
-        state::{GameState, MenuState, PageSelection, TuiState, YouWinState},
+        state::{GameOverState, GameState, LimboState, MenuState, PageSelection, TuiState},
     },
     tui_adapter::Event,
 };
@@ -79,6 +79,14 @@ impl<'a> InputServices<'a> {
             content: ClientMessageContent::Start(self.state.avatar_id),
         });
     }
+
+    pub fn clear_gameover(&mut self) {
+        self.state.gameover = None;
+    }
+
+    pub fn clear_limbo(&mut self) {
+        self.state.limbo = None;
+    }
 }
 
 impl GameTui {
@@ -91,7 +99,8 @@ impl GameTui {
             state: TuiState {
                 menu: MenuState::default(),
                 game: GameState::default(),
-                you_win: YouWinState::default(),
+                you_win: GameOverState::default(),
+                limbo: LimboState::default(),
                 page: PageSelection::Menu,
                 should_exit: false,
             },

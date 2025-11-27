@@ -92,8 +92,8 @@ impl WorldView {
         }
 
         if self.current_state.incoherent {
-            self.clear();
-            self.logs.add(turn, ClientLog::Lost);
+            // self.clear();
+            // self.logs.add(turn, ClientLog::Lost);
         }
     }
 

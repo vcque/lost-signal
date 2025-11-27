@@ -5,13 +5,10 @@ use std::{
 
 use anyhow::{Result, anyhow};
 use grid::Grid;
-use log::{debug, info, warn};
+use log::{info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
-    types::{
-        Action, Avatar, AvatarId, Foe, GameOver, GameOverStatus, Offset, Position, Tile, Tiles,
-        Turn,
-    },
+    types::{Action, Avatar, AvatarId, Foe, GameOver, Offset, Position, Tile, Tiles, Turn},
 };
 
 use crate::{foes, fov, sense::gather};
@@ -62,7 +59,6 @@ impl World {
             focus: 100,
             turns: 0,
             tired: false,
-            gameover: None,
         };
 
         stage.add_avatar(avatar);
@@ -102,12 +98,9 @@ pub struct Stage {
      * Rollback handling
      */
     head_turn: Turn,
-    avatar_turns: BTreeMap<AvatarId, Turn>,
+    avatar_trackers: BTreeMap<AvatarId, AvatarTracker>,
     states: BTreeMap<Turn, StageState>,
     diffs: Vec<StageDiff>,
-
-    /// Tracker of maybe dead avatars. We need to notify the player when they revive... Or not
-    limbo: BTreeSet<AvatarId>,
 }
 
 impl Stage {
@@ -126,15 +119,28 @@ impl Stage {
         Self {
             template: stage,
             head_turn,
-            avatar_turns: Default::default(),
+            avatar_trackers: Default::default(),
             states,
-            limbo: Default::default(),
             diffs: vec![StageDiff::default()],
         }
     }
 
     pub fn last_state(&self) -> &StageState {
         self.states.last_key_value().unwrap().1
+    }
+
+    pub fn state_for(&self, aid: AvatarId) -> Option<StageState> {
+        let tracker = self.avatar_trackers.get(&aid)?;
+
+        let mut state = self.states.get(&tracker.turn)?.clone();
+
+        // 3. apply actions of the next turn for avatars (not foes)
+        let diff_index = self.diff_index(tracker.turn);
+        if let Some(next_diff) = self.diffs.get(diff_index + 1) {
+            self.update_commands(&mut state, next_diff);
+        }
+
+        Some(state)
     }
 
     fn add_avatar(&mut self, avatar: Avatar) {
@@ -145,22 +151,22 @@ impl Stage {
             new_avatar: Some(avatar),
         });
 
-        self.avatar_turns.insert(aid, self.head_turn);
+        self.avatar_trackers
+            .insert(aid, AvatarTracker::new(self.head_turn));
         self.rollback_from(self.head_turn);
     }
 
     fn add_command(&mut self, aid: u32, action: Action, senses: Senses) -> Result<CommandResult> {
-        let turn = self
-            .avatar_turns
-            .get(&aid)
+        let tracker = self
+            .avatar_trackers
+            .get_mut(&aid)
             .ok_or_else(|| anyhow!("Could not find turn"))?;
 
         // Next turn
-        let turn = turn + 1;
-        self.avatar_turns.insert(aid, turn);
+        tracker.turn += 1;
 
         // Add a new item to the list if at the head of the difflist
-        if turn > self.head_turn {
+        if tracker.turn > self.head_turn {
             self.head_turn += 1;
             self.diffs.push(StageDiff {
                 diff_by_avatar: Default::default(),
@@ -169,27 +175,33 @@ impl Stage {
         }
 
         // Add the diff to the turn
-        let turn_diff = self.head_turn - turn;
+        let turn_diff = self.head_turn - tracker.turn;
         let index = self.diffs.len() - 1 - turn_diff as usize;
 
-        let avatar_diff = StageAvatarDiff { action, senses };
+        let avatar_diff = StageAvatarDiff {
+            action,
+            senses: senses.clone(),
+        };
         self.diffs
             .get_mut(index)
             .ok_or_else(|| anyhow!("Incoherent difflist: no index {index}"))?
             .diff_by_avatar
             .insert(aid, avatar_diff);
 
-        self.rollback_from(turn - 1);
-        self.clean_history();
+        let rollback_turn = tracker.turn;
 
-        let (gameovers, gameovers_reverted) = self.check_limbo();
+        self.rollback_from(rollback_turn);
 
         // Apply senses
-        let senses_info = self.gather_info(aid)?;
+        let senses_info = self.gather_info(aid, &senses)?;
+
+        // Limbo handling
+        let limbos = self.handle_limbo();
+
+        self.clean_history();
 
         Ok(CommandResult {
-            gameovers,
-            gameovers_reverted,
+            limbos,
             senses_info,
         })
     }
@@ -199,13 +211,18 @@ impl Stage {
         // Get the previous state available
         let (turn, state) = self
             .states
-            .range((Bound::Unbounded, Bound::Included(turn)))
+            .range((Bound::Unbounded, Bound::Excluded(turn)))
             .next_back()?;
 
         let turn = *turn;
         let mut state = state.clone();
 
-        let mut turns_to_save = self.avatar_turns.values().copied().collect::<BTreeSet<_>>();
+        let mut turns_to_save = self
+            .avatar_trackers
+            .values()
+            .map(|tr| tr.turn)
+            .collect::<BTreeSet<_>>();
+
         turns_to_save.insert(self.head_turn);
         self.states.retain(|key, _| *key <= turn);
 
@@ -227,47 +244,21 @@ impl Stage {
 
     /// Remove old states that are no more used: e.g. turns older than the earliest avatar turn
     fn clean_history(&mut self) {
-        let Some(oldest_turn) = self.avatar_turns.values().min() else {
-            return;
-        };
-
-        let index = self.diff_index(*oldest_turn);
-        self.diffs.drain(0..index);
-    }
-    fn gather_info(&self, aid: AvatarId) -> Result<SensesInfo> {
-        // 1. retrieve turn
-        let turn = self
-            .avatar_turns
-            .get(&aid)
-            .ok_or_else(|| anyhow!("Could not find turn"))?;
-
-        // 2. retrieve state
-        let mut state = self
-            .states
-            .get(turn)
-            .ok_or_else(|| anyhow!("Cound not find state"))?
-            .clone();
-
-        debug!("Gathering info for {aid} at turn {turn}");
-
-        // 3. apply actions of the next turn for avatars (not foes)
-        let diff_index = self.diff_index(*turn);
-        if let Some(next_diff) = self.diffs.get(diff_index + 1) {
-            debug!("Applying diff {next_diff:?}");
-            self.update_commands(&mut state, next_diff);
+        if let Some(oldest_turn) = self.avatar_trackers.values().map(|tr| tr.turn).min() {
+            let index = self.diff_index(oldest_turn);
+            self.diffs.drain(0..index);
+        } else {
+            // TODO: reset the stage when no one is there
         }
+    }
+    fn gather_info(&self, aid: AvatarId, senses: &Senses) -> Result<SensesInfo> {
+        let state = self
+            .state_for(aid)
+            .ok_or_else(|| anyhow!("Could not find state for {aid}"))?;
 
-        // 4. use the senses for this
-        let senses = self.diffs[diff_index]
-            .diff_by_avatar
-            .get(&aid)
-            .map(|d| &d.senses);
-
-        if let Some(senses) = senses {
-            let avatar = &state.avatars[&aid];
-            if !avatar.tired {
-                return Ok(gather(senses, avatar, self, &state));
-            }
+        let avatar = &state.avatars[&aid];
+        if !avatar.tired {
+            return Ok(gather(senses, avatar, self, &state));
         }
         Ok(Default::default())
     }
@@ -391,52 +382,85 @@ impl Stage {
             .collect()
     }
 
-    /// Returns deaths, maybedeaths and reverted deaths
-    fn check_limbo(&mut self) -> (Vec<(AvatarId, GameOver)>, Vec<AvatarId>) {
-        let mut gameovers = Vec::new();
-        let mut gameovers_reverted = Vec::new();
+    fn handle_limbo(&mut self) -> Vec<Limbo> {
+        let statuses = self.limbo_check();
+        for status in statuses.iter() {
+            match status {
+                Limbo::Dead(avatar) => {
+                    self.avatar_trackers.remove(&avatar.id);
+                }
+                &Limbo::MaybeDead(aid) => {
+                    self.avatar_trackers.get_mut(&aid).unwrap().limbo = true;
+                }
+                &Limbo::Averted(aid) => {
+                    self.avatar_trackers.get_mut(&aid).unwrap().limbo = false;
+                }
+            }
+        }
 
+        statuses
+    }
+
+    /// Returns deaths, maybedeaths and reverted deaths
+    fn limbo_check(&mut self) -> Vec<Limbo> {
         // Sort avatars by turn (earliest to latest)
-        let mut avatars_by_turn: Vec<_> = self.avatar_turns.iter().map(|(a, b)| (*a, *b)).collect();
-        avatars_by_turn.sort_by_key(|(_, turn)| *turn);
+        let mut aid_n_trackers: Vec<_> =
+            self.avatar_trackers.iter().map(|(a, b)| (*a, b)).collect();
+        aid_n_trackers.sort_by_key(|(_, tr)| tr.turn);
 
         let mut has_earlier_alive = false;
-        for (aid, turn) in avatars_by_turn {
-            let Some(state) = self.states.get(&turn) else {
+        let mut results = vec![];
+
+        for (aid, tracker) in aid_n_trackers {
+            let Some(state) = self.states.get(&tracker.turn) else {
+                warn!("Tracker of {aid} has no state!");
                 continue;
             };
 
             let Some(avatar) = state.avatars.get(&aid) else {
+                warn!("State of {aid} tracker has no corresponding avatar!");
                 continue;
             };
 
-            let in_limbo = self.limbo.contains(&aid);
+            let in_limbo = tracker.limbo;
+            let dead = avatar.is_dead();
+            let status = match (has_earlier_alive, in_limbo, avatar.is_dead()) {
+                (false, _, true) => Some(Limbo::Dead(avatar.clone())),
+                (_, true, false) => Some(Limbo::Averted(aid)),
+                (true, false, true) => Some(Limbo::MaybeDead(aid)),
+                _ => None, // If state does not change, do not notify
+            };
 
-            if avatar.is_dead() {
-                if has_earlier_alive {
-                    // Uncertain death - earlier avatars might save them
-                    self.limbo.insert(aid);
-                    if !in_limbo {
-                        gameovers.push((aid, GameOver::new(avatar, GameOverStatus::MaybeDead)));
-                    }
-                } else {
-                    // Can't be saved
-                    self.limbo.remove(&aid);
-                    self.avatar_turns.remove(&aid);
-                    gameovers.push((aid, GameOver::new(avatar, GameOverStatus::Dead)));
-                }
-            } else {
-                if in_limbo {
-                    // Avatar is alive and was in limbo - death was reverted
-                    self.limbo.remove(&aid);
-                    gameovers_reverted.push(aid);
-                }
+            if !dead {
                 has_earlier_alive = true;
             }
-        }
 
-        (gameovers, gameovers_reverted)
+            if let Some(status) = status {
+                results.push(status);
+            }
+        }
+        results
     }
+}
+
+#[derive(Clone)]
+struct AvatarTracker {
+    turn: Turn,
+    /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
+    /// cancelation/confirmation
+    limbo: bool,
+}
+
+impl AvatarTracker {
+    fn new(turn: Turn) -> Self {
+        Self { turn, limbo: false }
+    }
+}
+
+pub enum Limbo {
+    Dead(Avatar),
+    MaybeDead(AvatarId),
+    Averted(AvatarId),
 }
 
 /// State of a stage for a given turn.
@@ -469,8 +493,7 @@ struct StageAvatarDiff {
 /// Info returned by add_command. Game over data might concern other players as they can be saved
 /// by another player.
 pub struct CommandResult {
-    pub gameovers: Vec<(AvatarId, GameOver)>,
-    pub gameovers_reverted: Vec<AvatarId>,
+    pub limbos: Vec<Limbo>,
     pub senses_info: SensesInfo,
 }
 

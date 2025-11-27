@@ -19,12 +19,14 @@ pub struct CommandMessage {
 
 #[derive(Serialize, Deserialize)]
 pub struct TurnResultMessage {
-    /// The avatar's turn. Used to Keep track of which resposne corresponds to which command
     pub avatar_id: AvatarId,
+    /// The avatar's turn. Used to Keep track of which response corresponds to which command
     pub turn: Turn,
     pub stage: u8,
     pub info: SensesInfo,
 }
+
+pub struct LimboMessage {}
 
 pub type GameOverMessage = GameOver;
 
@@ -47,5 +49,5 @@ pub enum ServerMessage {
     Leaderboard(Leaderboard),
     Turn(TurnResultMessage),
     GameOver(GameOverMessage),
-    RevertGameOver(AvatarId),
+    Limbo { averted: bool },
 }

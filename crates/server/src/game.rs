@@ -1,11 +1,12 @@
 use anyhow::Result;
 use losig_core::{
     network::{CommandMessage, ServerMessage, TurnResultMessage},
-    types::AvatarId,
+    types::{AvatarId, GameOver, GameOverStatus},
 };
 
 use crate::{
     services::Services,
+    world::Limbo,
     ws_server::{Recipient, ServerMessageWithRecipient},
 };
 
@@ -49,22 +50,33 @@ impl Game {
             };
             self.services.sender.send(msg).unwrap();
 
-            // Send gameover messages
-            for (aid, gameover) in result.gameovers {
-                let msg = ServerMessageWithRecipient {
-                    recipient: Recipient::Single(aid),
-                    message: ServerMessage::GameOver(gameover),
-                };
-                self.services.sender.send(msg).unwrap();
-            }
-
-            // Send revert gameover messages
-            for aid in result.gameovers_reverted {
-                let msg = ServerMessageWithRecipient {
-                    recipient: Recipient::Single(aid),
-                    message: ServerMessage::RevertGameOver(avatar_id),
-                };
-                self.services.sender.send(msg).unwrap();
+            for limbo in result.limbos {
+                match limbo {
+                    Limbo::Dead(avatar) => {
+                        let msg = ServerMessageWithRecipient {
+                            recipient: Recipient::Single(avatar.id),
+                            message: ServerMessage::GameOver(GameOver::new(
+                                &avatar,
+                                GameOverStatus::Dead,
+                            )),
+                        };
+                        self.services.sender.send(msg).unwrap();
+                    }
+                    Limbo::Averted(aid) => {
+                        let msg = ServerMessageWithRecipient {
+                            recipient: Recipient::Single(aid),
+                            message: ServerMessage::Limbo { averted: true },
+                        };
+                        self.services.sender.send(msg).unwrap();
+                    }
+                    Limbo::MaybeDead(aid) => {
+                        let msg = ServerMessageWithRecipient {
+                            recipient: Recipient::Single(aid),
+                            message: ServerMessage::Limbo { averted: false },
+                        };
+                        self.services.sender.send(msg).unwrap();
+                    }
+                }
             }
         }
 

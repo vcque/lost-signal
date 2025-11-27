@@ -23,6 +23,7 @@ pub struct WorldView {
     past_state: WorldState,
     pub current_state: WorldState,
     pub logs: GameLogs,
+    pub stage_turn: Turn,
 }
 
 impl WorldView {
@@ -34,6 +35,7 @@ impl WorldView {
             winner: false,
             stage: 0,
             turn: 1,
+            stage_turn: 1,
             history: vec![],
             past_state: WorldState::default(),
             current_state: WorldState::default(),
@@ -65,6 +67,7 @@ impl WorldView {
     pub fn update(&mut self, turn_result: TurnResultMessage) {
         let TurnResultMessage {
             avatar_id: _,
+            stage_turn,
             turn,
             stage,
             info,
@@ -91,10 +94,7 @@ impl WorldView {
             }
         }
 
-        if self.current_state.incoherent {
-            // self.clear();
-            // self.logs.add(turn, ClientLog::Lost);
-        }
+        self.stage_turn = stage_turn;
     }
 
     /// Resets the world. Mostly after a respawn or a goal reached.

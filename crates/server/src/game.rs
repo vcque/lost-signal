@@ -41,6 +41,7 @@ impl Game {
             let msg = TurnResultMessage {
                 avatar_id,
                 turn,
+                stage_turn: result.stage_turn,
                 stage: 0, // TODO: to update when changing lvls is implemented
                 info: result.senses_info,
             };

@@ -22,6 +22,8 @@ pub struct TurnResultMessage {
     pub avatar_id: AvatarId,
     /// The avatar's turn. Used to Keep track of which response corresponds to which command
     pub turn: Turn,
+    /// The stage turn, interesting info to know where people are relative to each other
+    pub stage_turn: Turn,
     pub stage: u8,
     pub info: SensesInfo,
 }

@@ -53,7 +53,7 @@ impl GamePage {
         let world_title = Line::from(Span::raw(format!(
             "World - stage {} - turn {}",
             world.stage + 1,
-            world.turn
+            world.stage_turn
         )));
 
         Block::default()
@@ -142,9 +142,10 @@ impl GamePage {
         };
 
         if let Some(gameover) = services.state.gameover.clone()
-            && (GameOverWidget {}).on_event(event, &mut state.you_win, &mut services, &gameover) {
-                return true;
-            }
+            && (GameOverWidget {}).on_event(event, &mut state.you_win, &mut services, &gameover)
+        {
+            return true;
+        }
 
         let game_state = &mut state.game;
         if key.modifiers.shift {

@@ -217,9 +217,9 @@ impl Stage {
             .diff_by_avatar
             .insert(aid, avatar_diff);
 
-        let rollback_turn = tracker.turn;
+        let stage_turn = tracker.turn;
 
-        self.rollback_from(rollback_turn);
+        self.rollback_from(stage_turn);
 
         // Apply senses
         let senses_info = self.gather_info(aid, &senses)?;
@@ -230,6 +230,7 @@ impl Stage {
         self.clean_history();
 
         Ok(CommandResult {
+            stage_turn,
             limbos,
             senses_info,
         })
@@ -522,6 +523,8 @@ struct StageAvatarDiff {
 /// Info returned by add_command. Game over data might concern other players as they can be saved
 /// by another player.
 pub struct CommandResult {
+    /// Stage turn
+    pub stage_turn: Turn,
     pub limbos: Vec<Limbo>,
     pub senses_info: SensesInfo,
 }

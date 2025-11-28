@@ -294,7 +294,12 @@ impl Stage {
             let index = self.diff_index(oldest_turn);
             self.diffs.drain(0..index);
         } else {
-            // TODO: reset the stage when no one is there
+            info!(
+                "Stage {} is reset because it has no more player",
+                self.template.id
+            );
+
+            *self = Self::new(self.template.clone());
         }
     }
 
@@ -470,7 +475,8 @@ impl Stage {
                     // Get senses from the diff at this turn
                     let turn_diff = self.head_turn - tracker.turn;
                     let index = self.diffs.len() - 1 - turn_diff as usize;
-                    let senses = self.diffs
+                    let senses = self
+                        .diffs
                         .get(index)
                         .and_then(|diff| diff.diff_by_avatar.get(&aid))
                         .map(|avatar_diff| &avatar_diff.senses)

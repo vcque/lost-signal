@@ -109,6 +109,10 @@ fn format_log(log: &LogEvent) -> (&'static str, Style) {
                 ),
                 _ => ("Defeated!", Style::default()),
             },
+            GameLogEvent::OrbSeen => (
+                "The orb glitches as you gaze upon it!",
+                Style::default().fg(THEME.palette.important),
+            ),
             GameLogEvent::Spawn => ("Respawned", Style::default().fg(THEME.palette.ui_text)),
         },
     }

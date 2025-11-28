@@ -33,7 +33,7 @@ fn gather_hearing(
     _async_stage: &Stage,
     state: &StageState,
 ) -> HearingInfo {
-    let dist = avatar.position.dist(&state.orb) as u8;
+    let dist = avatar.position.dist(&state.orb.position) as u8;
 
     for s in 1..(strength + 1) {
         if let Some(range) = HearingInfo::dist(s)
@@ -62,7 +62,7 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
         }
     }
 
-    let offset = state.orb - avatar.position;
+    let offset = state.orb.position - avatar.position;
     let fov_position = center + offset;
     let orb = match tiles.get(fov_position) {
         Tile::Empty => Some(offset),
@@ -102,7 +102,7 @@ fn gather_touch(avatar: &Avatar, async_stage: &Stage, state: &StageState) -> Tou
     TouchInfo {
         tiles,
         foes,
-        orb: state.orb.dist(&avatar.position) <= 1,
+        orb: state.orb.position.dist(&avatar.position) <= 1,
     }
 }
 

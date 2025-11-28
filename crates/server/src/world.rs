@@ -5,11 +5,11 @@ use std::{
 
 use anyhow::{Result, anyhow};
 use grid::Grid;
-use log::{debug, info, warn};
+use log::{info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, AvatarId, ClientAction, Foe, GameLogEvent, GameOver, GameOverStatus, Offset,
+        Avatar, AvatarId, ClientAction, Foe, GameLogEvent, GameOver, GameOverStatus, Offset, Orb,
         Position, ServerAction, StageTurn, Tile, Tiles, Turn,
     },
 };
@@ -114,6 +114,7 @@ pub struct Stage {
      * Static stage info
      */
     pub template: StageTemplate,
+    seed: u64,
 
     /*
      * Rollback handling
@@ -128,23 +129,28 @@ impl Stage {
     pub fn new(stage: StageTemplate) -> Self {
         let head_turn: Turn = 0;
         let avatars = Default::default();
+        let seed: u64 = rand::random();
+
+        let mut new = Self {
+            template: stage,
+            seed,
+            head_turn,
+            avatar_trackers: Default::default(),
+            states: Default::default(),
+            diffs: vec![StageDiff::default()],
+        };
 
         let state = StageState {
             turn: head_turn,
-            foes: stage.foes.clone(),
-            orb: orb_spawn(&stage.orb_spawns),
+            foes: new.template.foes.clone(),
+            orb: Orb {
+                position: orb_spawn(&new, head_turn),
+                excited: false,
+            },
             avatars,
         };
-        let mut states = BTreeMap::<Turn, StageState>::new();
-        states.insert(head_turn, state);
-
-        Self {
-            template: stage,
-            head_turn,
-            avatar_trackers: Default::default(),
-            states,
-            diffs: vec![StageDiff::default()],
-        }
+        new.states.insert(head_turn, state);
+        new
     }
 
     pub fn last_state(&self) -> &StageState {
@@ -235,7 +241,6 @@ impl Stage {
         // Apply senses
         let senses_info = self.gather_info(aid, &senses)?;
         let logs = self.avatar_logs(aid)?;
-        debug!("{logs:?}");
 
         // Limbo handling
         let limbos = self.handle_limbo();
@@ -326,6 +331,12 @@ impl Stage {
 
     /// Update a state based on the diff
     fn update(&self, state: &mut StageState, diff: &StageDiff) {
+        // Turn init
+        if state.orb.excited {
+            state.orb.position = orb_spawn(self, state.turn);
+            state.orb.excited = false;
+        }
+
         self.update_commands(state, diff);
         self.update_foes(state);
 
@@ -359,8 +370,9 @@ impl Stage {
             action::act(player_action, &mut avatar, state, self);
 
             // Orb on tile
-            if avatar.position == state.orb {
-                // TODO: move orb
+            if avatar.position == state.orb.position {
+                state.orb.position = orb_spawn(self, state.turn);
+                // TODO: move the avatar to another lvl?
             }
 
             // Sense cost
@@ -371,9 +383,16 @@ impl Stage {
             }
 
             // Orb in sight
-            if fov::can_see(&self.template.tiles, avatar.position, state.orb) {
-                // TODO: excite orb -> move next turn
-            }
+            if !avatar.tired
+                && fov::can_see(
+                    &self.template.tiles,
+                    avatar.position,
+                    state.orb.position,
+                    senses.sight.get(),
+                ) {
+                    state.orb.excited = true;
+                    avatar.logs.push((state.turn, GameLogEvent::OrbSeen));
+                }
 
             // If pylon is adjacent, recharges focus
             for x in -1..2 {
@@ -527,7 +546,7 @@ pub enum Limbo {
 pub struct StageState {
     pub turn: StageTurn,
     pub foes: Vec<Foe>,
-    pub orb: Position,
+    pub orb: Orb,
     pub avatars: BTreeMap<AvatarId, Avatar>,
 }
 
@@ -565,9 +584,10 @@ pub struct CommandResult {
     pub logs: Vec<(StageTurn, GameLogEvent)>,
 }
 
-// TODO: make it deterministic
-fn orb_spawn(spawns: &Grid<bool>) -> Position {
-    let spawns: Vec<Position> = spawns
+fn orb_spawn(stage: &Stage, stage_turn: StageTurn) -> Position {
+    let spawns: Vec<Position> = stage
+        .template
+        .orb_spawns
         .indexed_iter()
         .filter(|(_, val)| **val)
         .map(|(pos, _)| Position::from(pos))
@@ -577,6 +597,13 @@ fn orb_spawn(spawns: &Grid<bool>) -> Position {
         warn!("Couldn't find a spawn point for lvl");
         return Default::default();
     }
-    let i = rand::random_range(0..spawns.len());
+
+    // Deterministic random selection based on seed and stage_turn
+    // Using a simple hash combination
+    let hash = stage
+        .seed
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(stage_turn);
+    let i = (hash as usize) % spawns.len();
     spawns[i]
 }

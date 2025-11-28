@@ -146,7 +146,7 @@ impl GameTui {
             );
         }
 
-        let Position { x, y } = state.orb + offset;
+        let Position { x, y } = state.orb.position + offset;
 
         if (0..area.width).contains(&(x as u16)) && (0..area.height).contains(&(y as u16)) {
             buf.set_string(

@@ -139,8 +139,11 @@ pub fn fov(viewer: Position, radius: usize, tiles: &Tiles) -> Tiles {
 }
 
 /// viewer and viewed are interchangeable as the algorithm is symmetric
-pub fn can_see(tiles: &Tiles, viewer: Position, viewed: Position) -> bool {
+pub fn can_see(tiles: &Tiles, viewer: Position, viewed: Position, max_dist: u8) -> bool {
     let radius = viewer.dist(&viewed);
+    if radius > max_dist as usize {
+        return false;
+    }
 
     let visible_tiles = fov(viewer, radius, tiles);
     let position = visible_tiles.center() + (viewer - viewed);

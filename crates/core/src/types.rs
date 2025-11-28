@@ -238,6 +238,13 @@ impl Foe {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct Orb {
+    pub position: Position,
+    /// If excited, it will change position next turn
+    pub excited: bool,
+}
+
 #[derive(Default, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
 pub struct Tiles {
     pub grid: Grid<Tile>,
@@ -316,6 +323,7 @@ pub enum GameLogEvent {
     StageUp(Target),
     Defeated { from: Target, to: Target },
     Spawn,
+    OrbSeen,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]

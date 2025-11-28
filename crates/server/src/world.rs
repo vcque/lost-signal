@@ -432,7 +432,7 @@ impl Stage {
                 &Limbo::MaybeDead(aid) => {
                     self.avatar_trackers.get_mut(&aid).unwrap().limbo = true;
                 }
-                &Limbo::Averted(aid) => {
+                &Limbo::Averted(aid, _) => {
                     self.avatar_trackers.get_mut(&aid).unwrap().limbo = false;
                 }
             }
@@ -466,7 +466,20 @@ impl Stage {
             let dead = avatar.is_dead();
             let status = match (has_earlier_alive, in_limbo, avatar.is_dead()) {
                 (false, _, true) => Some(Limbo::Dead(avatar.clone())),
-                (_, true, false) => Some(Limbo::Averted(aid)),
+                (_, true, false) => {
+                    // Get senses from the diff at this turn
+                    let turn_diff = self.head_turn - tracker.turn;
+                    let index = self.diffs.len() - 1 - turn_diff as usize;
+                    let senses = self.diffs
+                        .get(index)
+                        .and_then(|diff| diff.diff_by_avatar.get(&aid))
+                        .map(|avatar_diff| &avatar_diff.senses)
+                        .cloned()
+                        .unwrap_or_default();
+
+                    let senses_info = self.gather_info(aid, &senses).unwrap_or_default();
+                    Some(Limbo::Averted(aid, senses_info))
+                }
                 (true, false, true) => Some(Limbo::MaybeDead(aid)),
                 _ => None, // If state does not change, do not notify
             };
@@ -500,7 +513,7 @@ impl AvatarTracker {
 pub enum Limbo {
     Dead(Avatar),
     MaybeDead(AvatarId),
-    Averted(AvatarId),
+    Averted(AvatarId, SensesInfo),
 }
 
 /// State of a stage for a given turn.

@@ -68,17 +68,23 @@ impl Game {
                         };
                         self.services.sender.send(msg).unwrap();
                     }
-                    Limbo::Averted(aid) => {
+                    Limbo::Averted(aid, senses_info) => {
                         let msg = ServerMessageWithRecipient {
                             recipient: Recipient::Single(aid),
-                            message: ServerMessage::Limbo { averted: true },
+                            message: ServerMessage::Limbo {
+                                averted: true,
+                                senses_info: Some(senses_info),
+                            },
                         };
                         self.services.sender.send(msg).unwrap();
                     }
                     Limbo::MaybeDead(aid) => {
                         let msg = ServerMessageWithRecipient {
                             recipient: Recipient::Single(aid),
-                            message: ServerMessage::Limbo { averted: false },
+                            message: ServerMessage::Limbo {
+                                averted: false,
+                                senses_info: None,
+                            },
                         };
                         self.services.sender.send(msg).unwrap();
                     }

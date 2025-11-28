@@ -120,6 +120,14 @@ impl WorldView {
         self.history.last().and_then(|h| h.info.as_ref())
     }
 
+    pub fn update_on_averted(&mut self, info: SensesInfo) {
+        // Add the averted info to the last history entry if it exists
+        if let Some(last) = self.history.last_mut() {
+            last.info = Some(info);
+            self.rebuild_current_state();
+        }
+    }
+
     fn rebuild_current_state(&mut self) {
         // Should we take into account more recent terrain info ? It is static after all
         let mut state = self.past_state.clone();

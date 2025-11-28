@@ -54,7 +54,7 @@ pub enum ServerMessage {
     Leaderboard(Leaderboard),
     Turn(TurnResultMessage),
     GameOver(GameOverMessage),
-    Limbo { averted: bool },
+    Limbo { averted: bool, senses_info: Option<SensesInfo> },
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]

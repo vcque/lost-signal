@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::GameOver;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Leaderboard {
     entries: Vec<LeaderboardEntry>,
 }
@@ -29,7 +29,7 @@ impl Default for Leaderboard {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct LeaderboardEntry {
     pub name: String,
     pub gameover: GameOver,

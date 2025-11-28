@@ -11,12 +11,11 @@ use ratatui::{
 };
 
 use crate::{
-    logs::{ClientLog, GameLog},
     tui::{
         GameOverState, InputServices, RenderServices, THEME,
         state::{LimboState, TuiState},
         utils::center,
-        widgets::{block_wrap::BlockWrap, help::HelpWidget},
+        widgets::{block_wrap::BlockWrap, help::HelpWidget, logs::LogsWidget},
     },
     tui_adapter::{Event, KeyCode},
     world::WorldView,
@@ -64,6 +63,7 @@ impl GamePage {
 
         let logs_widget = LogsWidget {
             logs: world.logs.logs(),
+            current_turn: world.turn,
         };
         Block::default()
             .borders(Borders::ALL)
@@ -704,47 +704,3 @@ impl LimboWidget {
     }
 }
 
-struct LogsWidget<'a> {
-    logs: &'a [GameLog],
-}
-
-impl<'a> Widget for LogsWidget<'a> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let max_lines = area.height as usize;
-        let logs_to_show = self.logs.iter().rev().take(max_lines);
-
-        for (i, log) in logs_to_show.enumerate() {
-            if i >= max_lines {
-                break;
-            }
-
-            let y = area.y + i as u16;
-            let (message, message_style) = format_log(log.log);
-            let turn_text = format!("turn {}: ", log.turn);
-
-            // Render turn text with default style
-            buf.set_string(area.x, y, &turn_text, Style::default());
-
-            // Render message with styled text
-            buf.set_string(area.x + turn_text.len() as u16, y, message, message_style);
-        }
-    }
-}
-
-fn format_log(log: ClientLog) -> (&'static str, Style) {
-    match log {
-        ClientLog::Help => (
-            "Press '?' for help",
-            Style::default().fg(THEME.palette.log_info),
-        ),
-        ClientLog::NextStage => (
-            "I have reached a higher reality.",
-            Style::default().fg(THEME.palette.log_info),
-        ),
-        ClientLog::Lost => ("I am lost...", Style::default().fg(THEME.palette.log_grave)),
-        ClientLog::Win => (
-            "I am whole again!",
-            Style::default().fg(THEME.palette.log_info).bold(),
-        ),
-    }
-}

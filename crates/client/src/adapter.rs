@@ -27,6 +27,7 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
             let state = shared_state.clone();
             callback = Box::new(move |msg: ServerMessage| {
                 let mut state = state.lock().unwrap();
+                debug!("msg received: {msg:?}");
                 match msg {
                     ServerMessage::Turn(tr) => {
                         state.world.update(tr);

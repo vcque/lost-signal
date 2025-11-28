@@ -1,6 +1,6 @@
 use anyhow::Result;
 use losig_core::{
-    network::{CommandMessage, ServerMessage, TurnResultMessage},
+    network::{CommandMessage, GameLogsMessage, ServerMessage, TurnResultMessage},
     types::{AvatarId, GameOver, GameOverStatus},
 };
 
@@ -45,7 +45,10 @@ impl Game {
                 stage: 0, // TODO: to update when changing lvls is implemented
                 action: result.action,
                 info: result.senses_info,
-                logs: Default::default(),
+                logs: GameLogsMessage {
+                    from: 0,
+                    logs: result.logs,
+                },
             };
             let msg = ServerMessageWithRecipient {
                 recipient: Recipient::Single(avatar_id),

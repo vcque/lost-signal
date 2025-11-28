@@ -1,4 +1,4 @@
-use log::{debug, warn};
+use log::warn;
 use losig_core::{
     network::TurnResultMessage,
     sense::SensesInfo,
@@ -73,18 +73,22 @@ impl WorldView {
             stage,
             info,
             action,
-            logs: _,
+            logs,
         } = turn_result;
 
         let diff = turn.abs_diff(self.turn);
+        let turn_diff = (turn as i64) - (stage_turn as i64);
+
         // Update global info
         if diff == 0 {
             if self.stage != stage {
-                self.logs.add(turn, ClientLog::NextStage);
                 self.clear();
             }
             self.stage = stage;
         }
+
+        // Merge server logs
+        self.logs.merge(logs, self.turn, turn_diff);
         match diff {
             i if self.history.len() > i as usize => {
                 let index = self.history.len() - i as usize - 1;
@@ -184,8 +188,6 @@ impl WorldState {
     }
 
     fn update_action(&mut self, action: &ClientAction, server_action: Option<&ServerAction>) {
-        debug!("{server_action:?}");
-
         match action {
             ClientAction::Spawn => {
                 // Spawning actually cleans up the state

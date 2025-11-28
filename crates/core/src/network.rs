@@ -17,7 +17,7 @@ pub struct CommandMessage {
     pub senses: Senses,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TurnResultMessage {
     pub avatar_id: AvatarId,
     /// The avatar's turn. Used to Keep track of which response corresponds to which command
@@ -49,7 +49,7 @@ pub enum ClientMessageContent {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum ServerMessage {
     Leaderboard(Leaderboard),
     Turn(TurnResultMessage),
@@ -57,11 +57,11 @@ pub enum ServerMessage {
     Limbo { averted: bool },
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct GameLogsMessage {
     /// From wich stage turn the game logs has been sent
-    from: StageTurn,
+    pub from: StageTurn,
 
     /// Logs computed from server. Ordered incr by stage turn
-    logs: Vec<(StageTurn, GameLogEvent)>,
+    pub logs: Vec<(StageTurn, GameLogEvent)>,
 }

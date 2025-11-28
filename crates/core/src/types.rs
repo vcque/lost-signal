@@ -310,21 +310,22 @@ impl GameOver {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 pub enum GameLogEvent {
     Attack { from: Target, to: Target },
     StageUp(Target),
     Defeated { from: Target, to: Target },
+    Spawn,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 pub enum Target {
     Foe(FoeId),
     You,
     OtherPlayer,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 pub enum FoeId {
     MindSnare,
     Simple,

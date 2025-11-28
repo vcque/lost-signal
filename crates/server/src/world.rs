@@ -9,8 +9,8 @@ use log::{debug, info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, AvatarId, ClientAction, Foe, GameOver, GameOverStatus, Offset, Position,
-        ServerAction, Tile, Tiles, Turn,
+        Avatar, AvatarId, ClientAction, Foe, GameLogEvent, GameOver, GameOverStatus, Offset,
+        Position, ServerAction, StageTurn, Tile, Tiles, Turn,
     },
 };
 
@@ -130,6 +130,7 @@ impl Stage {
         let avatars = Default::default();
 
         let state = StageState {
+            turn: head_turn,
             foes: stage.foes.clone(),
             orb: orb_spawn(&stage.orb_spawns),
             avatars,
@@ -150,14 +151,15 @@ impl Stage {
         self.states.last_key_value().unwrap().1
     }
 
+    pub fn tail_turn(&self) -> u64 {
+        self.head_turn + 1 - self.diffs.len() as u64
+    }
+
     pub fn state_for(&self, aid: AvatarId) -> Option<StageState> {
         let tracker = self.avatar_trackers.get(&aid)?;
-        debug!("has tracker");
 
         let mut state = self.states.get(&tracker.turn)?.clone();
-        debug!("has state");
 
-        // 3. apply actions of the next turn for avatars (not foes)
         let diff_index = self.diff_index(tracker.turn);
         if let Some(next_diff) = self.diffs.get(diff_index + 1) {
             self.update_commands(&mut state, next_diff);
@@ -232,6 +234,8 @@ impl Stage {
 
         // Apply senses
         let senses_info = self.gather_info(aid, &senses)?;
+        let logs = self.avatar_logs(aid)?;
+        debug!("{logs:?}");
 
         // Limbo handling
         let limbos = self.handle_limbo();
@@ -240,9 +244,11 @@ impl Stage {
 
         Ok(CommandResult {
             stage_turn,
+            stage_tail: self.tail_turn(),
             limbos,
             senses_info,
             action,
+            logs,
         })
     }
 
@@ -291,6 +297,7 @@ impl Stage {
             // TODO: reset the stage when no one is there
         }
     }
+
     fn gather_info(&self, aid: AvatarId, senses: &Senses) -> Result<SensesInfo> {
         let state = self
             .state_for(aid)
@@ -303,6 +310,15 @@ impl Stage {
         Ok(Default::default())
     }
 
+    fn avatar_logs(&self, aid: AvatarId) -> Result<Vec<(StageTurn, GameLogEvent)>> {
+        let state = self
+            .state_for(aid)
+            .ok_or_else(|| anyhow!("Could not find state for {aid}"))?;
+
+        let avatar = &state.avatars[&aid];
+        Ok(avatar.logs.clone())
+    }
+
     /// Update a state based on the diff
     fn update(&self, state: &mut StageState, diff: &StageDiff) {
         self.update_commands(state, diff);
@@ -311,6 +327,7 @@ impl Stage {
         if let Some(ref new_avatar) = diff.new_avatar {
             self.welcome_avatar(state, new_avatar);
         }
+        state.turn += 1;
     }
 
     /// Apply the turn of each avatar
@@ -489,6 +506,7 @@ pub enum Limbo {
 /// State of a stage for a given turn.
 #[derive(Clone)]
 pub struct StageState {
+    pub turn: StageTurn,
     pub foes: Vec<Foe>,
     pub orb: Position,
     pub avatars: BTreeMap<AvatarId, Avatar>,
@@ -520,10 +538,12 @@ struct StageAvatarDiff {
 /// by another player.
 pub struct CommandResult {
     /// Stage turn
-    pub stage_turn: Turn,
+    pub stage_turn: StageTurn,
+    pub stage_tail: StageTurn,
     pub limbos: Vec<Limbo>,
     pub senses_info: SensesInfo,
     pub action: ServerAction,
+    pub logs: Vec<(StageTurn, GameLogEvent)>,
 }
 
 // TODO: make it deterministic

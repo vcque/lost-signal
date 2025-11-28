@@ -1,4 +1,4 @@
-use losig_core::types::{Foe, Position};
+use losig_core::types::{Foe, FoeId, GameLogEvent, Position, Target};
 
 use crate::world::{Stage, StageState};
 
@@ -8,6 +8,13 @@ pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(
             for avatar in state.avatars.values_mut() {
                 if *pos == avatar.position {
                     avatar.hp = avatar.hp.saturating_sub(3);
+                    avatar.logs.push((
+                        state.turn,
+                        GameLogEvent::Attack {
+                            to: Target::You,
+                            from: Target::Foe(FoeId::MindSnare),
+                        },
+                    ));
                 }
             }
         }
@@ -25,6 +32,13 @@ pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(
                 if dist <= 1 {
                     // Attack: reduce avatar hp by 3
                     avatar.hp = avatar.hp.saturating_sub(3);
+                    avatar.logs.push((
+                        state.turn,
+                        GameLogEvent::Attack {
+                            to: Target::You,
+                            from: Target::Foe(FoeId::Simple),
+                        },
+                    ));
                 } else {
                     // Move toward avatar
                     let offset = avatar.position - *pos;

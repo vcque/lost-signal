@@ -6,7 +6,7 @@ use losig_core::{
 
 use crate::{
     fov,
-    world::{Stage, StageState},
+    stage::{Stage, StageState},
 };
 
 pub fn gather(

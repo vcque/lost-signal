@@ -3,7 +3,7 @@ use losig_core::types::{
     Target,
 };
 
-use crate::world::{Stage, StageState};
+use crate::stage::{Stage, StageState};
 
 /// Execute an action for an avatar
 pub fn act(action: &ServerAction, avatar: &mut Avatar, state: &mut StageState, stage: &Stage) {

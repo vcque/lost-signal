@@ -10,6 +10,7 @@ mod fov;
 mod game;
 mod sense;
 mod services;
+mod stage;
 mod tiled;
 mod tui;
 mod world;

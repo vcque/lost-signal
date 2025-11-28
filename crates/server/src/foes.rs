@@ -1,6 +1,6 @@
 use losig_core::types::{Foe, FoeId, GameLogEvent, Position, Target};
 
-use crate::world::{Stage, StageState};
+use crate::stage::{Stage, StageState};
 
 pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(&mut Foe)> {
     match foe {

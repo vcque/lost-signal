@@ -121,6 +121,11 @@ impl Position {
             .max()
             .unwrap()
     }
+
+    /// Manhattan distance
+    pub fn dist_manhattan(&self, other: &Self) -> usize {
+        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
+    }
 }
 
 impl Add<Offset> for Position {

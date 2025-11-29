@@ -432,7 +432,7 @@ impl Stage {
     fn timeline(&self) -> Timeline {
         Timeline {
             head: self.head_turn,
-            tail: self.head_turn - 1 - self.diffs.len() as u64,
+            tail: self.head_turn + 1 - self.diffs.len() as u64,
         }
     }
 

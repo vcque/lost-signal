@@ -25,14 +25,14 @@ impl TimelineWidget {
         let turn_span = Span::from(format!("turn {}: ", self.current));
 
         let mut timelines_spans: Vec<Span> = vec![turn_span];
-        let chars_before = self.current.saturating_sub(self.timeline.tail) / 10;
+        let chars_before = self.current.saturating_sub(self.timeline.tail).div_ceil(5);
 
         for i in (0..chars_before).rev() {
             timelines_spans.push(Span::from(" ").bg(tail_color(i)));
         }
 
         timelines_spans.push(Span::from("@").fg(Color::Black).bg(Color::White));
-        let chars_after = self.timeline.head.saturating_sub(self.current) / 10;
+        let chars_after = self.timeline.head.saturating_sub(self.current).div_ceil(5);
         for i in 0..chars_after {
             timelines_spans.push(Span::from(" ").bg(head_color(i)));
         }

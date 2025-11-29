@@ -24,6 +24,7 @@ pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(
             let avatar_opt = state
                 .avatars
                 .values_mut()
+                .filter(|avatar| !avatar.is_dead())
                 .map(|avatar| (avatar.position.dist(pos), avatar))
                 .filter(|(dist, _)| *dist < 5)
                 .min_by_key(|(dist, _)| *dist);

@@ -1,4 +1,5 @@
 use bounded_integer::BoundedU8;
+use log::debug;
 use losig_core::{
     sense::{HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, TouchInfo},
     types::{Avatar, Tile},
@@ -113,10 +114,12 @@ fn gather_self(avatar: &Avatar, tail_state: &StageState) -> SelfInfo {
         None => 10,
     };
 
+    let hp_max = hp_max.max(avatar.hp);
+    debug!("gathering info: {hp_max} at {}", tail_state.turn);
     SelfInfo {
         focus: avatar.focus,
         hp: avatar.hp,
-        hp_max: hp_max.max(avatar.hp),
+        hp_max,
         turn: avatar.turns,
     }
 }

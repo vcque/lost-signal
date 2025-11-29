@@ -50,7 +50,6 @@ pub struct SensesInfo {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SelfInfo {
     pub hp: u8,
-    /// The max hp the user could have if somehow it didn't get hurt
     pub hp_max: u8,
     pub focus: u8,
     pub turn: Turn,

@@ -783,6 +783,7 @@ name = "losig-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bounded-integer",
  "log",
  "losig-core",
  "palette",

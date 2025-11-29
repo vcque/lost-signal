@@ -1,12 +1,9 @@
-use losig_core::{
-    sense::{SenseStrength, Senses, SensesInfo},
-    types::{ClientAction, Direction, GameOver, GameOverStatus, Offset, Tile},
-};
+use losig_core::types::{ClientAction, Direction, GameOver, GameOverStatus, Offset, Tile};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     style::{Color, Style, Stylize},
-    text::{Line, Span},
+    text::Line,
     widgets::{Block, Borders, Widget},
 };
 
@@ -16,7 +13,8 @@ use crate::{
         state::{LimboState, TuiState},
         utils::center,
         widgets::{
-            block_wrap::BlockWrap, help::HelpWidget, logs::LogsWidget, timeline::TimelineWidget,
+            block_wrap::BlockWrap, help::HelpWidget, logs::LogsWidget, senses::SensesWidget,
+            timeline::TimelineWidget,
         },
     },
     tui_adapter::{Event, KeyCode},
@@ -319,170 +317,6 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 THEME.palette.avatar,
             );
         }
-    }
-}
-
-struct SenseWidget<'a> {
-    label: &'a str,
-    indicator: &'a str,
-    status: Option<Line<'a>>,
-    selected: bool,
-    active: bool,
-}
-
-impl<'a> Widget for SenseWidget<'a> {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-    where
-        Self: Sized,
-    {
-        let Self {
-            label,
-            indicator,
-            status,
-            active,
-            selected,
-        } = self;
-
-        let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
-        let [first, second] = layout.areas(area);
-
-        let first_line_style = match (selected, active) {
-            (true, _) => THEME.palette.ui_selected,
-            (_, true) => THEME.palette.ui_highlight,
-            _ => THEME.palette.ui_disabled,
-        };
-
-        buf.set_string(
-            first.x,
-            first.y,
-            ".".repeat(area.width as usize),
-            first_line_style,
-        );
-        Line::from(label).style(first_line_style).render(first, buf);
-        Line::from(indicator)
-            .style(first_line_style)
-            .right_aligned()
-            .render(first, buf);
-
-        let status = status.unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
-        status.right_aligned().render(second, buf);
-    }
-}
-
-struct SensesWidget<'a> {
-    senses: Senses,
-    info: Option<&'a SensesInfo>,
-    selection: usize,
-    max_sense: usize,
-}
-
-impl<'a> Widget for SensesWidget<'a> {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-    where
-        Self: Sized,
-    {
-        let rows = Layout::vertical([Constraint::Length(2); 4]).split(area);
-        let mut row_index = 0;
-
-        let sense = self.senses.selfs;
-        let info = self.info.and_then(|i| i.selfi.as_ref());
-        let status = info.map(|i| {
-            Line::from(vec![
-                Span::from(format!("HP: {:2}", i.hp)),
-                Span::from("   "),
-                Span::from(format!("Focus: {:3}", i.focus)),
-            ])
-        });
-
-        let indicator = if sense { "(+)" } else { "(-)" };
-
-        SenseWidget {
-            label: "Self",
-            indicator,
-            status,
-            selected: self.selection == row_index,
-            active: sense,
-        }
-        .render(rows[row_index], buf);
-        row_index += 1;
-        if self.max_sense < 1 {
-            return;
-        }
-
-        let sense = self.senses.touch;
-        let info = self.info.and_then(|i| i.touch.as_ref());
-        let status = info.map(|info| match (info.foes, info.orb) {
-            (0, false) => Line::from("Nothing nearby"),
-            (1, false) => Line::from("I touched something!").style(THEME.palette.foe),
-            (n, false) => Line::from(format!("I touched {n} things!")).style(THEME.palette.foe),
-            (0, true) => Line::from("The orb is nearby!").style(THEME.palette.important),
-            (1, true) => Line::from(vec![
-                Span::from("I touched something...").style(THEME.palette.foe),
-                Span::from(" And the orb!").style(THEME.palette.important),
-            ]),
-            (n, true) => Line::from(vec![
-                Span::from(format!("I touched {n} things...")).style(THEME.palette.foe),
-                Span::from(" And the orb!").style(THEME.palette.important),
-            ]),
-        });
-        let indicator = if sense { "(+)" } else { "(-)" };
-
-        SenseWidget {
-            label: "Touch",
-            indicator,
-            status,
-            selected: self.selection == row_index,
-            active: sense,
-        }
-        .render(rows[row_index], buf);
-        row_index += 1;
-
-        if self.max_sense < 2 {
-            return;
-        }
-
-        let sense = self.senses.hearing;
-        let info = self.info.and_then(|i| i.hearing.as_ref());
-        let status = info.map(|str| match str.range {
-            Some(range) => match range.get() {
-                1 => Line::from("The orb is buzzing nearby!"),
-                2 => Line::from("The orb is buzzing somewhat close"),
-                3 => Line::from("The orb is buzzing"),
-                4 => Line::from("The orb is buzzing distantly"),
-                5 => Line::from("The orb is buzzing in the far distance"),
-                _ => unreachable!(),
-            }
-            .style(THEME.palette.important),
-            None => Line::from("Nothing"),
-        });
-        let indicator = format!("({})", sense);
-
-        SenseWidget {
-            label: "Hearing",
-            indicator: indicator.as_str(),
-            status,
-            selected: self.selection == row_index,
-            active: !sense.is_min(),
-        }
-        .render(rows[row_index], buf);
-        row_index += 1;
-        if self.max_sense < 3 {
-            return;
-        }
-
-        let sense = self.senses.sight;
-        let info = self.info.and_then(|i| i.sight.as_ref());
-        let status = info.map(|_| Line::from("I see stuff"));
-        let indicator = format!("({})", sense);
-
-        SenseWidget {
-            label: "Sight",
-            indicator: indicator.as_str(),
-            status,
-            selected: self.selection == row_index,
-            active: !sense.is_min(),
-        }
-        .render(rows[row_index], buf);
     }
 }
 

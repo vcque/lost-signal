@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Result, anyhow};
-use log::{info, warn};
+use log::{debug, info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
@@ -69,7 +69,7 @@ impl Stage {
     }
 
     pub fn tail_state(&self) -> &StageState {
-        self.states.last_key_value().unwrap().1
+        self.states.first_key_value().unwrap().1
     }
 
     pub fn state_for(&self, aid: AvatarId) -> Option<StageState> {
@@ -191,8 +191,13 @@ impl Stage {
             .collect::<BTreeSet<_>>();
 
         turns_to_save.insert(self.head_turn);
-        self.states.retain(|key, _| *key <= turn);
+        debug!("states: {:?}", self.states.keys());
+        self.states.retain(|key, _| turns_to_save.contains(key));
 
+        debug!(
+            "states after retain turn <= {turn}: {:?}",
+            self.states.keys()
+        );
         for turn in (turn + 1)..(self.head_turn + 1) {
             let index = self.diff_index(turn);
             let diff = &self.diffs[index];
@@ -201,6 +206,8 @@ impl Stage {
                 self.states.insert(turn, state.clone());
             }
         }
+
+        debug!("keys at the end of rollback: {:?}", self.states.keys());
         Some(())
     }
 
@@ -214,6 +221,8 @@ impl Stage {
         if let Some(oldest_turn) = self.avatar_trackers.values().map(|tr| tr.turn).min() {
             let index = self.diff_index(oldest_turn);
             self.diffs.drain(0..index);
+            let tail = self.tail_turn();
+            self.states.retain(|key, _| *key >= tail);
         } else {
             info!(
                 "Stage {} is reset because it has no more player",

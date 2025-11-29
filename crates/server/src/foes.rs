@@ -32,7 +32,7 @@ pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(
             if let Some((dist, avatar)) = avatar_opt {
                 if dist <= 1 {
                     // Attack: reduce avatar hp by 3
-                    avatar.hp = avatar.hp.saturating_sub(3);
+                    avatar.hp = avatar.hp.saturating_sub(2);
                     avatar.logs.push((
                         state.turn,
                         GameLogEvent::Attack {

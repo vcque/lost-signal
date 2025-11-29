@@ -51,7 +51,6 @@ pub struct SensesInfo {
 pub struct SelfInfo {
     pub hp: u8,
     pub focus: u8,
-    pub stage: u8,
     pub turn: Turn,
 }
 

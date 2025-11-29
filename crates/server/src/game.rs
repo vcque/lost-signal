@@ -36,13 +36,13 @@ impl Game {
         let mut world = self.services.world.lock().unwrap();
         let result = world.add_command(avatar_id, action, senses);
 
-        if let Some(result) = result {
+        if let Ok(result) = result {
             // Send turn result with senses info
             let msg = TurnResultMessage {
                 avatar_id,
                 turn,
                 stage_turn: result.stage_turn,
-                stage: 0, // TODO: to update when changing lvls is implemented
+                stage: result.stage as u8,
                 action: result.action,
                 info: result.senses_info,
                 logs: GameLogsMessage {
@@ -64,6 +64,7 @@ impl Game {
                             message: ServerMessage::GameOver(GameOver::new(
                                 &avatar,
                                 GameOverStatus::Dead,
+                                result.stage,
                             )),
                         };
                         self.services.sender.send(msg).unwrap();

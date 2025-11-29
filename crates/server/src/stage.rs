@@ -9,11 +9,15 @@ use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
         Avatar, AvatarId, ClientAction, Foe, GameLogEvent, Offset, Orb, Position, ServerAction,
-        StageTurn, Tile, Turn,
+        StageTurn, Tile, Transition, Turn,
     },
 };
 
-use crate::{action, foes, fov, sense::gather, world::{CommandResult, Limbo, StageTemplate}};
+use crate::{
+    action, foes, fov,
+    sense::gather,
+    world::{Limbo, StageTemplate},
+};
 
 /// Stage that can handle async actions from players
 pub struct Stage {
@@ -60,25 +64,13 @@ impl Stage {
         new
     }
 
-    pub fn last_state(&self) -> &StageState {
+    pub fn head_state(&self) -> &StageState {
         self.states.last_key_value().unwrap().1
-    }
-
-    pub fn tail_turn(&self) -> u64 {
-        self.head_turn + 1 - self.diffs.len() as u64
     }
 
     pub fn state_for(&self, aid: AvatarId) -> Option<StageState> {
         let tracker = self.avatar_trackers.get(&aid)?;
-
-        let mut state = self.states.get(&tracker.turn)?.clone();
-
-        let diff_index = self.diff_index(tracker.turn);
-        if let Some(next_diff) = self.diffs.get(diff_index + 1) {
-            self.update_commands(&mut state, next_diff);
-        }
-
-        Some(state)
+        Some(self.states.get(&tracker.turn)?.clone())
     }
 
     pub fn add_avatar(&mut self, avatar: Avatar) {
@@ -94,21 +86,21 @@ impl Stage {
         self.rollback_from(self.head_turn);
     }
 
-    pub fn retire_avatar(&mut self, aid: AvatarId) -> Option<Avatar> {
+    pub fn remove_avatar(&mut self, aid: AvatarId) -> Option<Avatar> {
         let state = self.state_for(aid)?;
         let avatar = state.avatars.get(&aid);
 
         self.avatar_trackers.remove(&aid);
-
+        self.clean_history();
         avatar.cloned()
     }
 
     pub fn add_command(
         &mut self,
-        aid: u32,
+        aid: AvatarId,
         action: ClientAction,
         senses: Senses,
-    ) -> Result<CommandResult> {
+    ) -> Result<StageCommandResult> {
         let action = action::convert_client(action, self, aid);
 
         let tracker = self
@@ -128,39 +120,51 @@ impl Stage {
             });
         }
 
-        // Add the diff to the turn
-        let turn_diff = self.head_turn - tracker.turn;
-        let index = self.diffs.len() - 1 - turn_diff as usize;
-        let stage_turn = tracker.turn;
+        let stage_turn = tracker.turn; // ends mutable borrow
+
+        let diff_index = self.diff_index(stage_turn);
 
         let avatar_diff = StageAvatarDiff {
             action,
             senses: senses.clone(),
         };
         self.diffs
-            .get_mut(index)
-            .ok_or_else(|| anyhow!("Incoherent difflist: no index {index}"))?
+            .get_mut(diff_index)
+            .ok_or_else(|| anyhow!("Incoherent difflist: no index {diff_index}"))?
             .diff_by_avatar
             .insert(aid, avatar_diff);
 
         self.rollback_from(stage_turn);
 
-        // Apply senses
-        let senses_info = self.gather_info(aid, &senses)?;
-        let logs = self.avatar_logs(aid)?;
+        // fetch state for aid
+        let state = self
+            .state_for(aid)
+            .ok_or_else(|| anyhow!("Couldn't find state at {aid}"))?;
+        let avatar = state
+            .avatars
+            .get(&aid)
+            .cloned()
+            .ok_or_else(|| anyhow!("Couldn't find avatar at {aid}"))?;
+
+        let senses_info = if avatar.tired {
+            SensesInfo::default()
+        } else {
+            gather(&senses, &avatar, self, &state)
+        };
+        let logs = avatar.logs;
 
         // Limbo handling
         let limbos = self.handle_limbo();
 
         self.clean_history();
 
-        Ok(CommandResult {
+        Ok(StageCommandResult {
             stage_turn,
-            stage_tail: self.tail_turn(),
             limbos,
+            logs,
             senses_info,
             action,
-            logs,
+            transition: avatar.transition,
         })
     }
 
@@ -187,7 +191,7 @@ impl Stage {
         for turn in (turn + 1)..(self.head_turn + 1) {
             let index = self.diff_index(turn);
             let diff = &self.diffs[index];
-            self.update(&mut state, diff);
+            self.enact_turn(&mut state, diff);
             if turns_to_save.contains(&turn) {
                 self.states.insert(turn, state.clone());
             }
@@ -227,25 +231,16 @@ impl Stage {
         Ok(Default::default())
     }
 
-    fn avatar_logs(&self, aid: AvatarId) -> Result<Vec<(StageTurn, GameLogEvent)>> {
-        let state = self
-            .state_for(aid)
-            .ok_or_else(|| anyhow!("Could not find state for {aid}"))?;
-
-        let avatar = &state.avatars[&aid];
-        Ok(avatar.logs.clone())
-    }
-
     /// Update a state based on the diff
-    fn update(&self, state: &mut StageState, diff: &StageDiff) {
+    fn enact_turn(&self, state: &mut StageState, diff: &StageDiff) {
         // Turn init
         if state.orb.excited {
             state.orb.position = orb_spawn(self, state.turn);
             state.orb.excited = false;
         }
 
-        self.update_commands(state, diff);
-        self.update_foes(state);
+        self.enact_avatars(state, diff);
+        self.enact_foes(state);
 
         if let Some(ref new_avatar) = diff.new_avatar {
             self.welcome_avatar(state, new_avatar);
@@ -254,7 +249,7 @@ impl Stage {
     }
 
     /// Apply the turn of each avatar
-    fn update_commands(&self, state: &mut StageState, diff: &StageDiff) {
+    fn enact_avatars(&self, state: &mut StageState, diff: &StageDiff) {
         for (
             aid,
             StageAvatarDiff {
@@ -279,7 +274,7 @@ impl Stage {
             // Orb on tile
             if avatar.position == state.orb.position {
                 state.orb.position = orb_spawn(self, state.turn);
-                // TODO: move the avatar to another lvl?
+                avatar.transition = Some(Transition::Orb);
             }
 
             // Sense cost
@@ -296,10 +291,11 @@ impl Stage {
                     avatar.position,
                     state.orb.position,
                     senses.sight.get(),
-                ) {
-                    state.orb.excited = true;
-                    avatar.logs.push((state.turn, GameLogEvent::OrbSeen));
-                }
+                )
+            {
+                state.orb.excited = true;
+                avatar.logs.push((state.turn, GameLogEvent::OrbSeen));
+            }
 
             // If pylon is adjacent, recharges focus
             for x in -1..2 {
@@ -313,12 +309,13 @@ impl Stage {
                 }
             }
 
+            avatar.turns += 1;
             state.avatars.insert(*aid, avatar);
         }
     }
 
     /// Apply the turn of each foe
-    fn update_foes(&self, state: &mut StageState) {
+    fn enact_foes(&self, state: &mut StageState) {
         // Foes are static for now
         for i in 0..state.foes.len() {
             let foe = state.foes[i].clone();
@@ -353,7 +350,7 @@ impl Stage {
             .collect()
     }
 
-    fn handle_limbo(&mut self) -> Vec<Limbo> {
+    pub fn handle_limbo(&mut self) -> Vec<Limbo> {
         let statuses = self.limbo_check();
         for status in statuses.iter() {
             match status {
@@ -473,6 +470,15 @@ struct StageAvatarDiff {
     senses: Senses,
 }
 
+pub struct StageCommandResult {
+    pub stage_turn: StageTurn,
+    pub limbos: Vec<Limbo>,
+    pub senses_info: SensesInfo,
+    pub action: ServerAction,
+    pub logs: Vec<(StageTurn, GameLogEvent)>,
+    pub transition: Option<Transition>,
+}
+
 fn orb_spawn(stage: &Stage, stage_turn: StageTurn) -> Position {
     let spawns: Vec<Position> = stage
         .template
@@ -491,8 +497,8 @@ fn orb_spawn(stage: &Stage, stage_turn: StageTurn) -> Position {
     // Using a simple hash combination
     let hash = stage
         .seed
-        .wrapping_mul(6364136223846793005)
-        .wrapping_add(stage_turn);
+        .wrapping_add(stage_turn)
+        .wrapping_mul(6364136223846793005);
     let i = (hash as usize) % spawns.len();
     spawns[i]
 }

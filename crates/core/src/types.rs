@@ -190,7 +190,6 @@ pub type AvatarId = u32;
 #[derive(Clone)]
 pub struct Avatar {
     pub id: AvatarId,
-    pub stage: usize,
     pub position: Position,
     pub hp: u8,
     pub focus: u8,
@@ -199,12 +198,44 @@ pub struct Avatar {
     pub tired: bool,
     pub turns: Turn,
 
+    // TODO: should be elsewhere, will do for now
+    /// If a player turn set this flag to true on his avatar, he is transitioned according to it.
+    pub transition: Option<Transition>,
+
     pub logs: Vec<(StageTurn, GameLogEvent)>,
 }
 
+/// A transition is the move of an avatar from one stage to another.
+/// It can occur only on a player move and no more than once per turn.
+#[derive(Clone, Copy)]
+pub enum Transition {
+    /// Just go to the next stage
+    Orb,
+}
+
 impl Avatar {
+    pub fn new(id: AvatarId) -> Self {
+        Avatar {
+            id,
+            position: Position { x: 1, y: 1 },
+            hp: 10,
+            focus: 100,
+            tired: false,
+            turns: 1,
+            transition: None,
+            logs: vec![],
+        }
+    }
+
     pub fn is_dead(&self) -> bool {
         self.hp == 0
+    }
+
+    pub fn reset(&mut self) {
+        *self = Avatar {
+            turns: self.turns,
+            ..Self::new(self.id)
+        };
     }
 }
 
@@ -300,8 +331,8 @@ pub enum GameOverStatus {
 }
 
 impl GameOver {
-    pub fn new(avatar: &Avatar, status: GameOverStatus) -> Self {
-        let mut score: u64 = (avatar.stage as u64 + 1) * 100;
+    pub fn new(avatar: &Avatar, status: GameOverStatus, stage: usize) -> Self {
+        let mut score: u64 = (stage as u64 + 1) * 100;
         score = score.saturating_sub(avatar.turns);
         score *= 100;
         if status == GameOverStatus::Win {
@@ -310,7 +341,7 @@ impl GameOver {
 
         Self {
             status,
-            stage: (avatar.stage + 1) as u8,
+            stage: stage as u8,
             turns: avatar.turns,
             score,
         }

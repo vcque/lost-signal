@@ -110,7 +110,6 @@ fn gather_self(avatar: &Avatar) -> SelfInfo {
     SelfInfo {
         focus: avatar.focus,
         hp: avatar.hp,
-        stage: avatar.stage as u8,
         turn: avatar.turns,
     }
 }

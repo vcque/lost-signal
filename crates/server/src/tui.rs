@@ -130,7 +130,7 @@ impl GameTui {
                 );
             }
         }
-        let state = stage.last_state();
+        let state = stage.head_state();
 
         // Convert from world ref to view ref
         let offset = -offset;

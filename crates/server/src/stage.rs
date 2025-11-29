@@ -68,6 +68,10 @@ impl Stage {
         self.states.last_key_value().unwrap().1
     }
 
+    pub fn tail_state(&self) -> &StageState {
+        self.states.last_key_value().unwrap().1
+    }
+
     pub fn state_for(&self, aid: AvatarId) -> Option<StageState> {
         let tracker = self.avatar_trackers.get(&aid)?;
         Some(self.states.get(&tracker.turn)?.clone())
@@ -149,7 +153,7 @@ impl Stage {
         let senses_info = if avatar.tired {
             SensesInfo::default()
         } else {
-            gather(&senses, &avatar, self, &state)
+            gather(&senses, &avatar, self, &state, self.tail_state())
         };
         let logs = avatar.logs;
 
@@ -225,9 +229,11 @@ impl Stage {
             .state_for(aid)
             .ok_or_else(|| anyhow!("Could not find state for {aid}"))?;
 
+        let tail_state = self.tail_state();
+
         let avatar = &state.avatars[&aid];
         if !avatar.tired {
-            return Ok(gather(senses, avatar, self, &state));
+            return Ok(gather(senses, avatar, self, &state, tail_state));
         }
         Ok(Default::default())
     }
@@ -432,8 +438,12 @@ impl Stage {
     fn timeline(&self) -> Timeline {
         Timeline {
             head: self.head_turn,
-            tail: self.head_turn + 1 - self.diffs.len() as u64,
+            tail: self.tail_turn(),
         }
+    }
+
+    pub fn tail_turn(&self) -> StageTurn {
+        self.head_turn + 1 - self.diffs.len() as StageTurn
     }
 
     pub fn get_aids(&self) -> Vec<u32> {
@@ -443,7 +453,7 @@ impl Stage {
 
 #[derive(Clone)]
 struct AvatarTracker {
-    turn: Turn,
+    turn: StageTurn,
     /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
     /// cancelation/confirmation
     limbo: bool,

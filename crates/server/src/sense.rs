@@ -14,9 +14,10 @@ pub fn gather(
     avatar: &Avatar,
     async_stage: &Stage,
     state: &StageState,
+    tail_state: &StageState,
 ) -> SensesInfo {
     SensesInfo {
-        selfi: try_gather(senses.selfs, |_| gather_self(avatar)),
+        selfi: try_gather(senses.selfs, |_| gather_self(avatar, tail_state)),
         touch: try_gather(senses.touch, |_| gather_touch(avatar, async_stage, state)),
         sight: try_gather(senses.sight, |strength| {
             gather_sight(strength.get(), avatar, async_stage, state)
@@ -106,10 +107,16 @@ fn gather_touch(avatar: &Avatar, async_stage: &Stage, state: &StageState) -> Tou
     }
 }
 
-fn gather_self(avatar: &Avatar) -> SelfInfo {
+fn gather_self(avatar: &Avatar, tail_state: &StageState) -> SelfInfo {
+    let hp_max = match tail_state.avatars.get(&avatar.id) {
+        Some(avatar) => avatar.hp,
+        None => 10,
+    };
+
     SelfInfo {
         focus: avatar.focus,
         hp: avatar.hp,
+        hp_max: hp_max.max(avatar.hp),
         turn: avatar.turns,
     }
 }

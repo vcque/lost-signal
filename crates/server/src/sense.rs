@@ -76,7 +76,7 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
         }
         let offset = ally.position - avatar.position;
         let fov_position = center + offset;
-        if !tiles.get(fov_position).opaque() {
+        if tiles.get(fov_position) != Tile::Unknown {
             allies.push(offset);
         }
     }

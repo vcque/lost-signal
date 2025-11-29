@@ -62,10 +62,17 @@ pub struct TouchInfo {
     pub orb: bool,
 }
 
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub struct SightedFoe {
+    pub offset: Offset,
+    pub foe_id: FoeId,
+    pub alive: bool,
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SightInfo {
     pub tiles: Tiles,
-    pub foes: Vec<(Offset, FoeId)>,
+    pub foes: Vec<SightedFoe>,
     pub orb: Option<Offset>,
     pub allies: Vec<Offset>,
 }

@@ -41,8 +41,6 @@ fn act_attack(avatar: &mut Avatar, target_index: usize, state: &mut StageState) 
             },
         ));
     }
-
-    state.foes.retain(|f| f.alive());
 }
 
 pub fn convert_client(action: ClientAction, stage: &mut Stage, aid: AvatarId) -> ServerAction {

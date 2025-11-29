@@ -262,10 +262,11 @@ impl Foe {
     }
 
     pub fn can_be_attacked(&self) -> bool {
-        match self {
-            Foe::MindSnare(_) => false,
-            Foe::Simple(_, hp) => *hp > 0,
-        }
+        self.alive()
+            && match self {
+                Foe::MindSnare(_) => false,
+                Foe::Simple(_, _) => true,
+            }
     }
 
     pub fn foe_id(&self) -> FoeId {

@@ -276,18 +276,25 @@ impl<'a> Widget for WorldViewWidget<'a> {
 
             // Show the foes
             for foe in &sight.foes {
-                let x = center_x + foe.0.x;
-                let y = center_y + foe.0.y;
+                let x = center_x + foe.offset.x;
+                let y = center_y + foe.offset.y;
 
-                let char = match foe.1 {
+                let char = match foe.foe_id {
                     FoeId::Simple => "s",
                     FoeId::MindSnare => "¤",
                 };
+
+                let style = if foe.alive {
+                    Style::default().fg(THEME.palette.foe)
+                } else {
+                    Style::default().fg(THEME.palette.ui_disabled)
+                };
+
                 buf.set_string(
                     area.x + x as u16,
                     area.y + y as u16,
                     char,
-                    THEME.palette.foe,
+                    style,
                 );
             }
 

@@ -1,7 +1,7 @@
 use bounded_integer::BoundedU8;
 use log::debug;
 use losig_core::{
-    sense::{HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, TouchInfo},
+    sense::{HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightedFoe, SightInfo, TouchInfo},
     types::{Avatar, Tile},
 };
 
@@ -60,7 +60,11 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
         let fov_position = center + offset;
 
         if tiles.get(fov_position) == Tile::Empty {
-            foes.push((offset, foe.foe_id()));
+            foes.push(SightedFoe {
+                offset,
+                foe_id: foe.foe_id(),
+                alive: foe.alive(),
+            });
         }
     }
 

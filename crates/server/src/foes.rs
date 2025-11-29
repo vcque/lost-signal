@@ -3,6 +3,9 @@ use losig_core::types::{Foe, FoeId, GameLogEvent, Position, Target};
 use crate::stage::{Stage, StageState};
 
 pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(&mut Foe)> {
+    if !foe.alive() {
+        return Box::new(|_| {});
+    }
     match foe {
         Foe::MindSnare(pos) => {
             for avatar in state.avatars.values_mut() {

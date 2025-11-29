@@ -15,7 +15,9 @@ use crate::{
         GameOverState, InputServices, RenderServices, THEME,
         state::{LimboState, TuiState},
         utils::center,
-        widgets::{block_wrap::BlockWrap, help::HelpWidget, logs::LogsWidget},
+        widgets::{
+            block_wrap::BlockWrap, help::HelpWidget, logs::LogsWidget, timeline::TimelineWidget,
+        },
     },
     tui_adapter::{Event, KeyCode},
     world::WorldView,
@@ -48,16 +50,11 @@ impl GamePage {
         state.game.help.next_page(world.stage);
 
         let world_widget = WorldViewWidget { world };
-
-        let world_title = Line::from(Span::raw(format!(
-            "World - stage {} - turn {}",
-            world.stage + 1,
-            world.stage_turn
-        )));
+        let timeline = TimelineWidget::new(world);
 
         Block::default()
             .borders(Borders::ALL)
-            .title(world_title)
+            .title(timeline)
             .wrap(world_widget)
             .render(world_a, buf);
 
@@ -703,4 +700,3 @@ impl LimboWidget {
         }
     }
 }
-

@@ -30,6 +30,9 @@ pub struct ThemePalette {
     pub log_revision_bg: Color,
     pub log_revision_fg: Color,
 
+    pub timeline_tail: Hsl,
+    pub timeline_head: Hsl,
+
     pub page_info: Color,
 }
 
@@ -57,6 +60,8 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
         log_revision_bg: Color::Cyan,
         log_revision_fg: Color::Black,
 
+        timeline_tail: Hsl::new(180.0, 1.0, 0.5),
+        timeline_head: Hsl::new(40.0, 1.0, 0.5),
         page_info: Color::Gray,
     },
 });

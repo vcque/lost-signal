@@ -7,7 +7,7 @@ use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
         Avatar, AvatarId, ClientAction, Foe, GameLogEvent, GameOver, GameOverStatus, ServerAction,
-        StageTurn, Tiles, Transition,
+        StageTurn, Tiles, Timeline, Transition,
     },
 };
 
@@ -49,6 +49,7 @@ pub struct CommandResult {
     pub senses_info: SensesInfo,
     pub action: ServerAction,
     pub logs: Vec<(StageTurn, GameLogEvent)>,
+    pub timeline_updates: Vec<(u8, Timeline)>,
 }
 
 pub enum TransitionDestination {
@@ -113,16 +114,19 @@ impl World {
                 mut action,
                 mut logs,
                 transition,
+                timeline,
             }) => {
+                let mut timeline_updates = vec![(*stage_id as u8, timeline)];
                 if let Some(transition) = transition {
                     match self.handle_transition(aid, transition, senses) {
                         Ok((tr_stage_id, scr)) => {
                             action = scr.action;
                             senses_info = scr.senses_info;
                             logs = scr.logs;
-                            limbos.extend(scr.limbos);
                             *stage_id = tr_stage_id;
                             stage_turn = scr.stage_turn;
+                            limbos.extend(scr.limbos);
+                            timeline_updates.push((tr_stage_id as u8, scr.timeline));
                         }
                         Err(e) => error!("Error while handling transition: {e}"),
                     }
@@ -136,6 +140,7 @@ impl World {
                     senses_info,
                     action,
                     logs,
+                    timeline_updates,
                 };
 
                 Ok(result)
@@ -220,5 +225,11 @@ impl World {
                 Ok((stage_id, scr))
             }
         }
+    }
+    pub fn get_aids_for_stage(&self, stage: u8) -> Vec<AvatarId> {
+        self.stages
+            .get(stage as usize)
+            .map(|st| st.get_aids())
+            .unwrap_or_default()
     }
 }

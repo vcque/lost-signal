@@ -2,7 +2,7 @@ use log::warn;
 use losig_core::{
     network::TurnResultMessage,
     sense::SensesInfo,
-    types::{ClientAction, Offset, Position, ServerAction, Tile, Tiles, Turn},
+    types::{ClientAction, Offset, Position, ServerAction, StageTurn, Tile, Tiles, Timeline, Turn},
 };
 
 use crate::logs::{ClientLog, GameLogs};
@@ -23,7 +23,8 @@ pub struct WorldView {
     past_state: WorldState,
     pub current_state: WorldState,
     pub logs: GameLogs,
-    pub stage_turn: Turn,
+    pub stage_turn: StageTurn,
+    pub timeline: Timeline,
 }
 
 impl WorldView {
@@ -40,6 +41,7 @@ impl WorldView {
             past_state: WorldState::default(),
             current_state: WorldState::default(),
             logs,
+            timeline: Timeline { head: 1, tail: 1 },
         }
     }
 
@@ -136,6 +138,12 @@ impl WorldView {
         }
 
         self.current_state = state;
+    }
+
+    pub fn update_timeline(&mut self, stage: u8, timeline: Timeline) {
+        if self.stage == stage {
+            self.timeline = timeline;
+        }
     }
 }
 

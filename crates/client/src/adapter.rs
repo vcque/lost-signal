@@ -39,12 +39,17 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
                         debug!("Gameover received {:?}", gom);
                         state.gameover = Some(gom);
                     }
-                    ServerMessage::Limbo { averted, senses_info } => {
+                    ServerMessage::Limbo {
+                        averted,
+                        senses_info,
+                    } => {
                         state.limbo = Some(averted);
-                        if averted
-                            && let Some(info) = senses_info {
-                                state.world.update_on_averted(info);
-                            }
+                        if averted && let Some(info) = senses_info {
+                            state.world.update_on_averted(info);
+                        }
+                    }
+                    ServerMessage::Timeline(stage, timeline) => {
+                        state.world.update_timeline(stage, timeline);
                     }
                 }
             });

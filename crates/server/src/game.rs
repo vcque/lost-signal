@@ -56,6 +56,15 @@ impl Game {
             };
             self.services.sender.send(msg).unwrap();
 
+            for (stage_id, timeline) in result.timeline_updates {
+                let aids = world.get_aids_for_stage(stage_id);
+                let msg = ServerMessageWithRecipient {
+                    recipient: Recipient::Multi(aids),
+                    message: ServerMessage::Timeline(stage_id, timeline),
+                };
+                self.services.sender.send(msg).unwrap();
+            }
+
             for limbo in result.limbos {
                 match limbo {
                     Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {

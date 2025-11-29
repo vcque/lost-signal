@@ -9,7 +9,7 @@ use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
         Avatar, AvatarId, ClientAction, Foe, GameLogEvent, Offset, Orb, Position, ServerAction,
-        StageTurn, Tile, Transition, Turn,
+        StageTurn, Tile, Timeline, Transition, Turn,
     },
 };
 
@@ -165,6 +165,7 @@ impl Stage {
             senses_info,
             action,
             transition: avatar.transition,
+            timeline: self.timeline(),
         })
     }
 
@@ -427,6 +428,17 @@ impl Stage {
         }
         results
     }
+
+    fn timeline(&self) -> Timeline {
+        Timeline {
+            head: self.head_turn,
+            tail: self.head_turn - 1 - self.diffs.len() as u64,
+        }
+    }
+
+    pub fn get_aids(&self) -> Vec<u32> {
+        self.avatar_trackers.keys().copied().collect()
+    }
 }
 
 #[derive(Clone)]
@@ -481,6 +493,7 @@ pub struct StageCommandResult {
     pub action: ServerAction,
     pub logs: Vec<(StageTurn, GameLogEvent)>,
     pub transition: Option<Transition>,
+    pub timeline: Timeline,
 }
 
 fn orb_spawn(stage: &Stage, stage_turn: StageTurn) -> Position {

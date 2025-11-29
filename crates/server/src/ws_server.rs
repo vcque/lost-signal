@@ -19,6 +19,7 @@ type Ws = WebSocket<TcpStream>;
 pub enum Recipient {
     Broadcast,
     Single(AvatarId),
+    Multi(Vec<AvatarId>),
 }
 
 /// Server message with recipient
@@ -104,6 +105,15 @@ impl WsServer {
                     Recipient::Broadcast => {
                         for ws in ws_by_addr.values_mut() {
                             let _ = handle_write(ws, &server_message.message);
+                        }
+                    }
+                    Recipient::Multi(aids) => {
+                        for aid in aids {
+                            if let Some(addr) = addr_by_avatar_id.get(&aid)
+                                && let Some(ws) = ws_by_addr.get_mut(addr)
+                            {
+                                let _ = handle_write(ws, &server_message.message);
+                            }
                         }
                     }
                 }

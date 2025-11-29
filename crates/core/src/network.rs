@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     leaderboard::Leaderboard,
     sense::{Senses, SensesInfo},
-    types::{AvatarId, ClientAction, GameLogEvent, GameOver, ServerAction, StageTurn, Turn},
+    types::{
+        AvatarId, ClientAction, GameLogEvent, GameOver, ServerAction, StageTurn, Timeline, Turn,
+    },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -54,7 +56,13 @@ pub enum ServerMessage {
     Leaderboard(Leaderboard),
     Turn(TurnResultMessage),
     GameOver(GameOverMessage),
-    Limbo { averted: bool, senses_info: Option<SensesInfo> },
+    Limbo {
+        averted: bool,
+        senses_info: Option<SensesInfo>,
+    },
+
+    /// Sent when someone plays, it updates where the head and tail of the stage is
+    Timeline(u8, Timeline),
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]

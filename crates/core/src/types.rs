@@ -369,3 +369,10 @@ pub enum FoeId {
     MindSnare,
     Simple,
 }
+
+/// Represents a timeline for a given stage
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
+pub struct Timeline {
+    pub head: StageTurn,
+    pub tail: StageTurn,
+}

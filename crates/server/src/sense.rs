@@ -60,7 +60,7 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
         let fov_position = center + offset;
 
         if tiles.get(fov_position) == Tile::Empty {
-            foes.push(offset);
+            foes.push((offset, foe.foe_id()));
         }
     }
 

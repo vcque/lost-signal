@@ -1,7 +1,7 @@
 use bounded_integer::BoundedU8;
 use serde::{Deserialize, Serialize};
 
-use crate::types::{Offset, Tiles, Turn};
+use crate::types::{FoeId, Offset, Tiles, Turn};
 
 /// Describe information that an avatar want retrieved for a given turn
 #[derive(Default, Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
@@ -65,7 +65,7 @@ pub struct TouchInfo {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SightInfo {
     pub tiles: Tiles,
-    pub foes: Vec<Offset>,
+    pub foes: Vec<(Offset, FoeId)>,
     pub orb: Option<Offset>,
     pub allies: Vec<Offset>,
 }

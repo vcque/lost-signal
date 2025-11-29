@@ -267,6 +267,13 @@ impl Foe {
             Foe::Simple(_, hp) => *hp > 0,
         }
     }
+
+    pub fn foe_id(&self) -> FoeId {
+        match self {
+            Foe::Simple(_, _) => FoeId::Simple,
+            Foe::MindSnare(_) => FoeId::MindSnare,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]

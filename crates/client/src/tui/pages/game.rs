@@ -1,4 +1,4 @@
-use losig_core::types::{ClientAction, Direction, GameOver, GameOverStatus, Offset, Tile};
+use losig_core::types::{ClientAction, Direction, FoeId, GameOver, GameOverStatus, Offset, Tile};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -276,13 +276,22 @@ impl<'a> Widget for WorldViewWidget<'a> {
 
             // Show the foes
             for foe in &sight.foes {
-                let x = center_x + foe.x;
-                let y = center_y + foe.y;
+                let x = center_x + foe.0.x;
+                let y = center_y + foe.0.y;
 
-                buf.set_string(area.x + x as u16, area.y + y as u16, "¤", THEME.palette.foe);
+                let char = match foe.1 {
+                    FoeId::Simple => "s",
+                    FoeId::MindSnare => "¤",
+                };
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    char,
+                    THEME.palette.foe,
+                );
             }
 
-            // Show the foes
+            // Show the allies
             for ally in &sight.allies {
                 let x = center_x + ally.x;
                 let y = center_y + ally.y;

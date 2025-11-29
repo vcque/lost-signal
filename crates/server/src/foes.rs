@@ -1,8 +1,13 @@
-use losig_core::types::{Foe, FoeId, GameLogEvent, Position, Target};
+use losig_core::types::{AvatarId, Foe, FoeId, GameLogEvent, Position, Target};
 
-use crate::stage::{Stage, StageState};
+use crate::stage::{SenseBindings, Stage, StageState};
 
-pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(&mut Foe)> {
+pub fn act(
+    foe: &Foe,
+    _stage: &Stage,
+    state: &mut StageState,
+    bindings: &SenseBindings,
+) -> Box<dyn FnOnce(&mut Foe)> {
     if !foe.alive() {
         return Box::new(|_| {});
     }
@@ -23,16 +28,12 @@ pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(
         }
 
         Foe::Simple(pos, _) => {
-            // Find the nearest avatar
-            let avatar_opt = state
-                .avatars
-                .values_mut()
-                .filter(|avatar| !avatar.is_dead())
-                .map(|avatar| (avatar.position.dist(pos), avatar))
-                .filter(|(dist, _)| *dist < 5)
-                .min_by_key(|(dist, _)| *dist);
+            // Find a viable target
+            let avatar_opt = target_selection(foe, state, bindings);
 
-            if let Some((dist, avatar)) = avatar_opt {
+            if let Some(aid) = avatar_opt {
+                let avatar = &mut state.avatars.get_mut(&aid).unwrap();
+                let dist = avatar.position.dist(&foe.position());
                 if dist <= 1 {
                     // Attack: reduce avatar hp by 3
                     avatar.hp = avatar.hp.saturating_sub(2);
@@ -62,4 +63,32 @@ pub fn act(foe: &Foe, _stage: &Stage, state: &mut StageState) -> Box<dyn FnOnce(
     }
 
     Box::new(|_| {})
+}
+
+fn target_selection<'a>(
+    foe: &'a Foe,
+    state: &'a StageState,
+    bindings: &'a SenseBindings,
+) -> Option<AvatarId> {
+    for avatar in state.avatars.values() {
+        if avatar.is_dead() {
+            continue;
+        }
+        let aid = avatar.id;
+        let bindings = bindings.avatars.get(&aid);
+
+        let min_hp = bindings.map(|b| b.min_hp);
+        if let Some(min_hp) = min_hp
+            && avatar.hp < min_hp + 2 {
+                continue;
+            }
+
+        let dist = foe.position().dist(&avatar.position);
+        if dist > 4 {
+            continue;
+        }
+        return Some(avatar.id);
+    }
+
+    None
 }

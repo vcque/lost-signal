@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, btree_map::Entry},
     ops::Bound,
 };
 
@@ -33,7 +33,7 @@ pub struct Stage {
     head_turn: Turn,
     avatar_trackers: BTreeMap<AvatarId, AvatarTracker>,
     states: BTreeMap<Turn, StageState>,
-    diffs: Vec<StageDiff>,
+    diffs: Vec<TurnDiff>,
 }
 
 impl Stage {
@@ -48,7 +48,7 @@ impl Stage {
             head_turn,
             avatar_trackers: Default::default(),
             states: Default::default(),
-            diffs: vec![StageDiff::default()],
+            diffs: vec![TurnDiff::default()],
         };
 
         let state = StageState {
@@ -80,9 +80,10 @@ impl Stage {
     pub fn add_avatar(&mut self, avatar: Avatar) {
         let aid = avatar.id;
         self.head_turn += 1;
-        self.diffs.push(StageDiff {
-            diff_by_avatar: Default::default(),
+        self.diffs.push(TurnDiff {
+            cmd_by_avatar: Default::default(),
             new_avatar: Some(avatar),
+            sense_bindings: Default::default(),
         });
 
         self.avatar_trackers
@@ -118,24 +119,21 @@ impl Stage {
         // Add a new item to the list if at the head of the difflist
         if tracker.turn > self.head_turn {
             self.head_turn += 1;
-            self.diffs.push(StageDiff {
-                diff_by_avatar: Default::default(),
-                new_avatar: None,
-            });
+            self.diffs.push(TurnDiff::default());
         }
 
         let stage_turn = tracker.turn; // ends mutable borrow
 
         let diff_index = self.diff_index(stage_turn);
 
-        let avatar_diff = StageAvatarDiff {
+        let avatar_diff = AvatarCmd {
             action,
             senses: senses.clone(),
         };
         self.diffs
             .get_mut(diff_index)
             .ok_or_else(|| anyhow!("Incoherent difflist: no index {diff_index}"))?
-            .diff_by_avatar
+            .cmd_by_avatar
             .insert(aid, avatar_diff);
 
         self.rollback_from(stage_turn);
@@ -155,17 +153,21 @@ impl Stage {
         } else {
             gather(&senses, &avatar, self, &state, self.tail_state())
         };
-        let logs = avatar.logs;
 
         // Limbo handling
         let limbos = self.handle_limbo();
 
         self.clean_history();
+        // Could be reset in clear history
+        if stage_turn <= self.head_turn {
+            // We do this after history clean to limit the number of previous states to bind
+            self.bind_states(stage_turn, &avatar, &senses_info);
+        }
 
         Ok(StageCommandResult {
             stage_turn,
             limbos,
-            logs,
+            logs: avatar.logs,
             senses_info,
             action,
             transition: avatar.transition,
@@ -211,7 +213,7 @@ impl Stage {
         Some(())
     }
 
-    fn diff_index(&self, turn: Turn) -> usize {
+    fn diff_index(&self, turn: StageTurn) -> usize {
         let turn_diff = self.head_turn - turn;
         self.diffs.len() - 1 - turn_diff as usize
     }
@@ -248,7 +250,7 @@ impl Stage {
     }
 
     /// Update a state based on the diff
-    fn enact_turn(&self, state: &mut StageState, diff: &StageDiff) {
+    fn enact_turn(&self, state: &mut StageState, diff: &TurnDiff) {
         // Turn init
         if state.orb.excited {
             state.orb.position = orb_spawn(self, state.turn);
@@ -256,7 +258,7 @@ impl Stage {
         }
 
         self.enact_avatars(state, diff);
-        self.enact_foes(state);
+        self.enact_foes(state, &diff.sense_bindings);
 
         if let Some(ref new_avatar) = diff.new_avatar {
             self.welcome_avatar(state, new_avatar);
@@ -265,14 +267,14 @@ impl Stage {
     }
 
     /// Apply the turn of each avatar
-    fn enact_avatars(&self, state: &mut StageState, diff: &StageDiff) {
+    fn enact_avatars(&self, state: &mut StageState, diff: &TurnDiff) {
         for (
             aid,
-            StageAvatarDiff {
+            AvatarCmd {
                 action: player_action,
                 senses,
             },
-        ) in diff.diff_by_avatar.iter()
+        ) in diff.cmd_by_avatar.iter()
         {
             let Some(avatar) = state.avatars.get(aid) else {
                 continue;
@@ -331,11 +333,11 @@ impl Stage {
     }
 
     /// Apply the turn of each foe
-    fn enact_foes(&self, state: &mut StageState) {
+    fn enact_foes(&self, state: &mut StageState, bindings: &SenseBindings) {
         // Foes are static for now
         for i in 0..state.foes.len() {
             let foe = state.foes[i].clone();
-            let mutator = foes::act(&foe, self, state);
+            let mutator = foes::act(&foe, self, state, bindings);
             mutator(&mut state.foes[i]);
         }
     }
@@ -421,7 +423,7 @@ impl Stage {
                     let senses = self
                         .diffs
                         .get(index)
-                        .and_then(|diff| diff.diff_by_avatar.get(&aid))
+                        .and_then(|diff| diff.cmd_by_avatar.get(&aid))
                         .map(|avatar_diff| &avatar_diff.senses)
                         .cloned()
                         .unwrap_or_default();
@@ -457,6 +459,24 @@ impl Stage {
 
     pub fn get_aids(&self) -> Vec<u32> {
         self.avatar_trackers.keys().copied().collect()
+    }
+
+    fn bind_states(&mut self, turn: StageTurn, avatar: &Avatar, info: &SensesInfo) {
+        if self.diffs.is_empty() {
+            return;
+        }
+        let min_hp = if let Some(selfi) = &info.selfi {
+            selfi.hp
+        } else {
+            1
+        };
+
+        let diff_index = self.diff_index(turn);
+
+        for i in 0..diff_index {
+            let diff = &mut self.diffs[i];
+            diff.sense_bindings.bind_avatar_min_hp(avatar.id, min_hp);
+        }
     }
 }
 
@@ -494,13 +514,42 @@ impl StageState {
 
 /// What's needed to recompute a stage state
 #[derive(Clone, Default)]
-struct StageDiff {
-    diff_by_avatar: BTreeMap<AvatarId, StageAvatarDiff>,
+struct TurnDiff {
+    cmd_by_avatar: BTreeMap<AvatarId, AvatarCmd>,
     new_avatar: Option<Avatar>,
+    sense_bindings: SenseBindings,
+}
+
+/// When a player witness some states, it creates bindings on the previous states to ensure that
+/// the witnessed state stays true
+
+#[derive(Clone, Default)]
+pub struct SenseBindings {
+    pub avatars: BTreeMap<AvatarId, AvatarBindings>,
+}
+
+impl SenseBindings {
+    fn bind_avatar_min_hp(&mut self, aid: AvatarId, min_hp: u8) {
+        match self.avatars.entry(aid) {
+            Entry::Vacant(vacant_entry) => {
+                let bindings = AvatarBindings { min_hp };
+                vacant_entry.insert(bindings);
+            }
+            Entry::Occupied(mut occupied_entry) => {
+                let bindings = occupied_entry.get_mut();
+                bindings.min_hp = min_hp.max(bindings.min_hp);
+            }
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct AvatarBindings {
+    pub min_hp: u8,
 }
 
 #[derive(Clone, Debug)]
-struct StageAvatarDiff {
+struct AvatarCmd {
     action: ServerAction,
     senses: Senses,
 }

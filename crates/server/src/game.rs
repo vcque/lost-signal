@@ -58,7 +58,7 @@ impl Game {
 
             for limbo in result.limbos {
                 match limbo {
-                    Limbo::Dead(avatar) => {
+                    Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
                         let msg = ServerMessageWithRecipient {
                             recipient: Recipient::Single(avatar.id),
                             message: ServerMessage::GameOver(GameOver::new(

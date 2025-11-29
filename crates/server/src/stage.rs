@@ -354,7 +354,7 @@ impl Stage {
         let statuses = self.limbo_check();
         for status in statuses.iter() {
             match status {
-                Limbo::Dead(avatar) => {
+                Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
                     self.avatar_trackers.remove(&avatar.id);
                 }
                 &Limbo::MaybeDead(aid) => {
@@ -385,10 +385,15 @@ impl Stage {
                 continue;
             };
 
-            let Some(avatar) = state.avatars.get(&aid) else {
+            let Some(avatar) = state.avatars.get(&aid).cloned() else {
                 warn!("State of {aid} tracker has no corresponding avatar!");
                 continue;
             };
+
+            if tracker.turn.abs_diff(self.head_turn) > 100 {
+                results.push(Limbo::TooFarBehind(avatar));
+                continue;
+            }
 
             let in_limbo = tracker.limbo;
             let dead = avatar.is_dead();
@@ -396,8 +401,7 @@ impl Stage {
                 (false, _, true) => Some(Limbo::Dead(avatar.clone())),
                 (_, true, false) => {
                     // Get senses from the diff at this turn
-                    let turn_diff = self.head_turn - tracker.turn;
-                    let index = self.diffs.len() - 1 - turn_diff as usize;
+                    let index = self.diff_index(tracker.turn);
                     let senses = self
                         .diffs
                         .get(index)

@@ -37,6 +37,7 @@ pub enum Limbo {
     Dead(Avatar),
     MaybeDead(AvatarId),
     Averted(AvatarId, SensesInfo),
+    TooFarBehind(Avatar),
 }
 
 /// Info returned by add_command. Game over data might concern other players as they can be saved

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use anyhow::{Result, anyhow};
 use grid::Grid;
-use log::{error, info, warn};
+use log::{info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
@@ -11,7 +11,7 @@ use losig_core::{
     },
 };
 
-use crate::stage::{Stage, StageCommandResult};
+use crate::stage::Stage;
 
 /// Data of a stage that can not change with time or action players
 #[derive(Debug, Clone)]
@@ -43,13 +43,25 @@ pub enum Limbo {
 /// Info returned by add_command. Game over data might concern other players as they can be saved
 /// by another player.
 pub struct CommandResult {
-    pub stage: StageId,
-    pub stage_turn: StageTurn,
     pub limbos: Vec<Limbo>,
-    pub senses_info: SensesInfo,
-    pub action: ServerAction,
-    pub logs: Vec<(StageTurn, GameLogEvent)>,
     pub timeline_updates: Vec<(StageId, Timeline)>,
+    pub outcome: CommandResultOutcome,
+}
+
+pub enum CommandResultOutcome {
+    Turn {
+        stage: StageId,
+        stage_turn: StageTurn,
+        info: SensesInfo,
+        action: ServerAction,
+        logs: Vec<(StageTurn, GameLogEvent)>,
+    },
+    Transition {
+        stage: StageId,
+        stage_turn: StageTurn,
+        info: SensesInfo,
+    },
+    Gameover(GameOver),
 }
 
 pub enum TransitionDestination {
@@ -117,7 +129,7 @@ impl World {
             .player_by_id
             .get(&pid)
             .ok_or_else(|| anyhow!("No player #{pid} found."))?;
-        let mut stage_id = player
+        let stage_id = player
             .stage
             .ok_or_else(|| anyhow!("Trying to transition when not in a stage"))?;
         let stage = self
@@ -125,42 +137,35 @@ impl World {
             .get_mut(stage_id)
             .ok_or_else(|| anyhow!("Stage not found"))?;
 
-        let StageCommandResult {
-            mut stage_turn,
-            mut limbos,
-            mut senses_info,
-            mut action,
-            mut logs,
-            transition,
-            timeline,
-        } = stage.add_command(pid, action, senses.clone())?;
+        let scr = stage.add_command(pid, action, senses.clone())?;
+        let timeline_updates = vec![(stage_id, scr.timeline)];
 
-        let mut timeline_updates = vec![(stage_id, timeline)];
-        if let Some(transition) = transition {
-            match self.handle_transition(pid, transition, senses) {
-                Ok((tr_stage_id, scr)) => {
-                    action = scr.action;
-                    senses_info = scr.senses_info;
-                    logs = scr.logs;
-                    stage_id = tr_stage_id;
-                    stage_turn = scr.stage_turn;
-                    limbos.extend(scr.limbos);
-                    timeline_updates.push((tr_stage_id, scr.timeline));
+        let result = if let Some(transition) = &scr.transition {
+            match self.handle_transition(pid, *transition, senses) {
+                Ok(mut tr_scr) => {
+                    tr_scr.limbos.extend(scr.limbos);
+                    tr_scr.timeline_updates.extend(timeline_updates);
+                    tr_scr
                 }
-                Err(e) => error!("Error while handling transition: {e}"),
+                Err(e) => {
+                    return Err(e);
+                }
             }
-        }
-        self.handle_limbos(&limbos, stage_id);
-        let result = CommandResult {
-            stage: stage_id,
-            stage_turn,
-            limbos,
-            senses_info,
-            action,
-            logs,
-            timeline_updates,
+        } else {
+            CommandResult {
+                limbos: scr.limbos,
+                timeline_updates,
+                outcome: CommandResultOutcome::Turn {
+                    stage: stage_id,
+                    stage_turn: scr.stage_turn,
+                    info: scr.senses_info,
+                    action: scr.action,
+                    logs: scr.logs,
+                },
+            }
         };
 
+        self.handle_limbos(&result.limbos, stage_id);
         Ok(result)
     }
 
@@ -185,7 +190,7 @@ impl World {
         pid: PlayerId,
         transition: Transition,
         senses: Senses,
-    ) -> Result<(StageId, StageCommandResult)> {
+    ) -> Result<CommandResult> {
         let player = self
             .player_by_id
             .get_mut(&pid)
@@ -211,13 +216,13 @@ impl World {
         match find_destination(&self.stages, &transition, stage_id) {
             TransitionDestination::End => {
                 player.stage = None;
-                player.gameover = Some(GameOver::new(
-                    &player.last_avatar,
-                    GameOverStatus::Win,
-                    stage_id,
-                ));
-                // TODO: handle this more gracefully
-                Err(anyhow!("Nowhere to go when you're winning!"))
+                let gameover = GameOver::new(&player.last_avatar, GameOverStatus::Win, stage_id);
+                player.gameover = Some(gameover.clone());
+                Ok(CommandResult {
+                    limbos: vec![],
+                    timeline_updates: vec![],
+                    outcome: CommandResultOutcome::Gameover(gameover),
+                })
             }
             TransitionDestination::Stage(stage_id) => {
                 player.stage = Some(stage_id);
@@ -226,7 +231,16 @@ impl World {
                 next_stage.add_player(player);
                 let mut scr = next_stage.add_command(pid, ClientAction::Wait, senses)?;
                 scr.limbos.extend(limbos_from_leave);
-                Ok((stage_id, scr))
+
+                Ok(CommandResult {
+                    limbos: scr.limbos,
+                    timeline_updates: vec![(stage_id, scr.timeline)],
+                    outcome: CommandResultOutcome::Transition {
+                        stage: stage_id,
+                        stage_turn: scr.stage_turn,
+                        info: scr.senses_info,
+                    },
+                })
             }
         }
     }

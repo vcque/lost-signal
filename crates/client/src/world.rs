@@ -1,6 +1,6 @@
 use log::warn;
 use losig_core::{
-    network::TurnResultMessage,
+    network::{TransitionMessage, TurnMessage},
     sense::SensesInfo,
     types::{
         ClientAction, Offset, Position, ServerAction, StageId, StageTurn, Tile, Tiles, Timeline,
@@ -70,17 +70,18 @@ impl WorldView {
         self.turn += 1;
     }
 
-    pub fn update(&mut self, turn_result: TurnResultMessage) {
-        let TurnResultMessage {
+    pub fn update(
+        &mut self,
+        TurnMessage {
             player_id: _,
-            stage_turn,
             turn,
+            stage_turn,
             stage,
             info,
             action,
             logs,
-        } = turn_result;
-
+        }: TurnMessage,
+    ) {
         let diff = turn.abs_diff(self.turn);
         let turn_diff = (turn as i64) - (stage_turn as i64);
 
@@ -108,6 +109,28 @@ impl WorldView {
         }
 
         self.stage_turn = stage_turn;
+    }
+
+    pub fn transition(
+        &mut self,
+        TransitionMessage {
+            player_id: _,
+            turn: _,
+            stage_turn,
+            stage,
+            info,
+        }: TransitionMessage,
+    ) {
+        self.clear();
+
+        self.stage = stage;
+        self.stage_turn = stage_turn;
+        self.history.push(WorldHistory {
+            action: ClientAction::Wait,
+            server_action: Some(ServerAction::Wait),
+            info: Some(info),
+        });
+        self.rebuild_current_state();
     }
 
     /// Resets the world. Mostly after a respawn or a goal reached.

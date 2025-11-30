@@ -51,6 +51,9 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
                     ServerMessage::Timeline(stage, timeline) => {
                         state.world.update_timeline(stage, timeline);
                     }
+                    ServerMessage::Transition(transition_message) => {
+                        state.world.transition(transition_message);
+                    }
                 }
             });
         }

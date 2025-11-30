@@ -1,12 +1,12 @@
 use anyhow::Result;
 use losig_core::{
-    network::{CommandMessage, GameLogsMessage, ServerMessage, TurnResultMessage},
+    network::{CommandMessage, GameLogsMessage, ServerMessage, TransitionMessage, TurnMessage},
     types::{GameOver, GameOverStatus, PlayerId},
 };
 
 use crate::{
     services::Services,
-    world::Limbo,
+    world::{CommandResult, CommandResultOutcome, Limbo},
     ws_server::{Recipient, ServerMessageWithRecipient},
 };
 
@@ -37,27 +37,66 @@ impl Game {
         let mut world = self.services.world.lock().unwrap();
         let result = world.add_command(player_id, action, senses);
 
-        if let Ok(result) = result {
-            // Send turn result with senses info
-            let msg = TurnResultMessage {
-                player_id,
-                turn,
-                stage_turn: result.stage_turn,
-                stage: result.stage,
-                action: result.action,
-                info: result.senses_info,
-                logs: GameLogsMessage {
-                    from: 0,
-                    logs: result.logs,
-                },
-            };
-            let msg = ServerMessageWithRecipient {
-                recipient: Recipient::Single(player_id),
-                message: ServerMessage::Turn(msg),
-            };
-            self.services.sender.send(msg).unwrap();
-
-            for (stage_id, timeline) in result.timeline_updates {
+        if let Ok(CommandResult {
+            timeline_updates,
+            limbos,
+            outcome,
+        }) = result
+        {
+            match outcome {
+                CommandResultOutcome::Turn {
+                    stage,
+                    stage_turn,
+                    info,
+                    action,
+                    logs,
+                } => {
+                    // Send turn result with senses info
+                    let msg = TurnMessage {
+                        player_id,
+                        turn,
+                        stage_turn,
+                        stage,
+                        action,
+                        info,
+                        logs: GameLogsMessage {
+                            from: 0,
+                            logs,
+                        },
+                    };
+                    let msg = ServerMessageWithRecipient {
+                        recipient: Recipient::Single(player_id),
+                        message: ServerMessage::Turn(msg),
+                    };
+                    self.services.sender.send(msg).unwrap();
+                }
+                CommandResultOutcome::Transition {
+                    stage,
+                    stage_turn,
+                    info,
+                } => {
+                    let msg = TransitionMessage {
+                        player_id,
+                        turn,
+                        stage_turn,
+                        stage,
+                        info,
+                    };
+                    let msg = ServerMessageWithRecipient {
+                        recipient: Recipient::Single(player_id),
+                        message: ServerMessage::Transition(msg),
+                    };
+                    self.services.sender.send(msg).unwrap();
+                }
+                CommandResultOutcome::Gameover(gameover) => {
+                    let msg = ServerMessageWithRecipient {
+                        recipient: Recipient::Single(player_id),
+                        message: ServerMessage::GameOver(gameover),
+                    };
+                    self.services.sender.send(msg).unwrap();
+                }
+            }
+            for (stage_id, timeline) in timeline_updates {
                 let pids = world.get_pids_for_stage(stage_id);
                 let msg = ServerMessageWithRecipient {
                     recipient: Recipient::Multi(pids),
@@ -66,7 +105,7 @@ impl Game {
                 self.services.sender.send(msg).unwrap();
             }
 
-            for limbo in result.limbos {
+            for limbo in limbos {
                 match limbo {
                     Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
                         let msg = ServerMessageWithRecipient {
@@ -74,7 +113,7 @@ impl Game {
                             message: ServerMessage::GameOver(GameOver::new(
                                 &avatar,
                                 GameOverStatus::Dead,
-                                result.stage,
+                                1,
                             )),
                         };
                         self.services.sender.send(msg).unwrap();

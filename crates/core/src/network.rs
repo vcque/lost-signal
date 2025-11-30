@@ -21,7 +21,7 @@ pub struct CommandMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct TurnResultMessage {
+pub struct TurnMessage {
     pub player_id: PlayerId,
     /// The avatar's turn. Used to Keep track of which response corresponds to which command
     pub turn: Turn,
@@ -31,6 +31,18 @@ pub struct TurnResultMessage {
     pub info: SensesInfo,
     pub action: ServerAction,
     pub logs: GameLogsMessage,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TransitionMessage {
+    pub player_id: PlayerId,
+    /// The avatar's turn. Used to Keep track of which response corresponds to which command
+    pub turn: Turn,
+    /// The stage turn, interesting info to know where people are relative to each other
+    pub stage_turn: Turn,
+    pub stage: StageId,
+    /// Senses info gathered when entering the stage
+    pub info: SensesInfo,
 }
 
 pub struct LimboMessage {}
@@ -55,7 +67,8 @@ pub enum ClientMessageContent {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ServerMessage {
     Leaderboard(Leaderboard),
-    Turn(TurnResultMessage),
+    Turn(TurnMessage),
+    Transition(TransitionMessage),
     GameOver(GameOverMessage),
     Limbo {
         averted: bool,

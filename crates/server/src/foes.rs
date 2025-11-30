@@ -1,12 +1,12 @@
 use losig_core::types::{Direction, Foe, FoeId, GameLogEvent, PlayerId, Position, Target};
 
-use crate::stage::{SenseBindings, Stage, StageState};
+use crate::stage::{SenseBinds, Stage, StageState};
 
 pub fn act(
     foe: &Foe,
     _stage: &Stage,
     state: &mut StageState,
-    bindings: &SenseBindings,
+    bindings: &SenseBinds,
 ) -> Box<dyn FnOnce(&mut Foe)> {
     if !foe.alive() {
         return Box::new(|_| {});
@@ -31,19 +31,23 @@ pub fn act(
             // Find a viable target
             let avatar_opt = target_selection(foe, state, bindings);
 
-            if let Some(aid) = avatar_opt {
+            if let Some((aid, hp_bound)) = avatar_opt {
                 let avatar = &mut state.avatars.get_mut(&aid).unwrap();
                 let dist = avatar.position.dist(&foe.position());
                 if dist <= 1 {
-                    // Attack: reduce avatar hp by 3
-                    avatar.hp = avatar.hp.saturating_sub(2);
-                    avatar.logs.push((
-                        state.turn,
-                        GameLogEvent::Attack {
-                            to: Target::You,
-                            from: Target::Foe(FoeId::Simple),
-                        },
-                    ));
+                    if !hp_bound {
+                        // Attack: reduce avatar hp by 3
+                        avatar.hp = avatar.hp.saturating_sub(2);
+                        avatar.logs.push((
+                            state.turn,
+                            GameLogEvent::Attack {
+                                to: Target::You,
+                                from: Target::Foe(FoeId::Simple),
+                            },
+                        ));
+                    } else {
+                        // Do nothing
+                    }
                 } else {
                     // Move toward avatar, avoiding other foes and avatars
                     let target_pos = avatar.position;
@@ -66,9 +70,9 @@ pub fn act(
 fn target_selection<'a>(
     foe: &'a Foe,
     state: &'a StageState,
-    bindings: &'a SenseBindings,
-) -> Option<PlayerId> {
-    let mut viable_targets: Vec<(PlayerId, usize)> = vec![];
+    bindings: &'a SenseBinds,
+) -> Option<(PlayerId, bool)> {
+    let mut viable_targets: Vec<(PlayerId, bool, usize)> = vec![];
 
     for avatar in state.avatars.values() {
         if avatar.is_dead() {
@@ -78,23 +82,25 @@ fn target_selection<'a>(
         let bindings = bindings.avatars.get(&aid);
 
         let min_hp = bindings.map(|b| b.min_hp);
-        if let Some(min_hp) = min_hp
-            && avatar.hp < min_hp + 2
-        {
-            continue;
-        }
+        let is_hp_bound = if let Some(min_hp) = min_hp {
+            avatar.hp < min_hp + 2
+        } else {
+            false
+        };
 
         let dist = foe.position().dist(&avatar.position);
         if dist > 4 {
             continue;
         }
-        viable_targets.push((aid, dist));
+        viable_targets.push((aid, is_hp_bound, dist));
     }
 
-    // Sort by distance (closest first)
-    viable_targets.sort_by_key(|(_, dist)| *dist);
+    // Sort by (is_hp_bound, distance) - non-bound targets first, then by closest
+    viable_targets.sort_by_key(|(_, is_bound, dist)| (*is_bound, *dist));
 
-    viable_targets.first().map(|(aid, _)| *aid)
+    viable_targets
+        .first()
+        .map(|(aid, hp_bound, _)| (*aid, *hp_bound))
 }
 
 /// Check if a position is occupied by a foe or avatar

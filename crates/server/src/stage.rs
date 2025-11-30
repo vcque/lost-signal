@@ -337,7 +337,7 @@ impl Stage {
     }
 
     /// Apply the turn of each foe
-    fn enact_foes(&self, state: &mut StageState, bindings: &SenseBindings) {
+    fn enact_foes(&self, state: &mut StageState, bindings: &SenseBinds) {
         // Foes are static for now
         for i in 0..state.foes.len() {
             let foe = state.foes[i].clone();
@@ -346,7 +346,7 @@ impl Stage {
         }
     }
 
-    /// Update the world to spawn the user
+    /// Update the world to spawn the userMoi c'est pareil, j'avais oublié que je m'étais
     fn welcome_avatar(&self, state: &mut StageState, avatar: &Avatar) {
         let pid = avatar.player_id;
         let spawn_position = self.find_spawns();
@@ -538,22 +538,22 @@ impl StageState {
 struct TurnDiff {
     cmd_by_avatar: BTreeMap<AvatarId, AvatarCmd>,
     new_avatar: Option<Avatar>,
-    sense_bindings: SenseBindings,
+    sense_bindings: SenseBinds,
 }
 
 /// When a player witness some states, it creates bindings on the previous states to ensure that
 /// the witnessed state stays true
 
 #[derive(Clone, Default)]
-pub struct SenseBindings {
-    pub avatars: BTreeMap<PlayerId, AvatarBindings>,
+pub struct SenseBinds {
+    pub avatars: BTreeMap<PlayerId, AvatarBinds>,
 }
 
-impl SenseBindings {
+impl SenseBinds {
     fn bind_avatar_min_hp(&mut self, aid: PlayerId, min_hp: u8) {
         match self.avatars.entry(aid) {
             Entry::Vacant(vacant_entry) => {
-                let bindings = AvatarBindings { min_hp };
+                let bindings = AvatarBinds { min_hp };
                 vacant_entry.insert(bindings);
             }
             Entry::Occupied(mut occupied_entry) => {
@@ -565,7 +565,7 @@ impl SenseBindings {
 }
 
 #[derive(Clone, Default)]
-pub struct AvatarBindings {
+pub struct AvatarBinds {
     pub min_hp: u8,
 }
 

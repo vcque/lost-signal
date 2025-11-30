@@ -121,7 +121,6 @@ fn gather_self(avatar: &Avatar, tail_state: &StageState) -> SelfInfo {
     };
 
     let hp_max = hp_max.max(avatar.hp);
-    debug!("gathering info: {hp_max} at {}", tail_state.turn);
     SelfInfo {
         focus: avatar.focus,
         hp: avatar.hp,

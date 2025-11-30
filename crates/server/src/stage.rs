@@ -461,10 +461,6 @@ impl Stage {
         self.head_turn + 1 - self.diffs.len() as StageTurn
     }
 
-    pub fn get_pids(&self) -> Vec<u32> {
-        self.avatar_trackers.keys().copied().collect()
-    }
-
     fn bind_states(&mut self, turn: StageTurn, avatar: &Avatar, info: &SensesInfo) {
         if self.diffs.is_empty() {
             return;
@@ -482,6 +478,26 @@ impl Stage {
             diff.sense_bindings
                 .bind_avatar_min_hp(avatar.player_id, min_hp);
         }
+    }
+
+    pub fn get_all_infos(&self) -> Vec<(PlayerId, StageTurn, SensesInfo)> {
+        let mut results = vec![];
+
+        for (&pid, tracker) in &self.avatar_trackers {
+            let index = self.diff_index(tracker.turn);
+            let senses = self
+                .diffs
+                .get(index)
+                .and_then(|diff| diff.cmd_by_avatar.get(&pid))
+                .map(|avatar_diff| &avatar_diff.senses)
+                .cloned()
+                .unwrap_or_default();
+
+            let info = self.gather_info(pid, &senses).unwrap_or_default();
+            results.push((pid, tracker.turn, info));
+        }
+
+        results
     }
 }
 

@@ -48,8 +48,11 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
                             state.world.update_on_averted(info);
                         }
                     }
-                    ServerMessage::Timeline(stage, timeline) => {
-                        state.world.update_timeline(stage, timeline);
+                    ServerMessage::Timeline(stage_id, stage_turn, timeline, senses_info) => {
+                        state.world.update_timeline(stage_id, timeline);
+                        if let Some(info) = senses_info {
+                            state.world.update_on_timeline(stage_turn, info);
+                        }
                     }
                     ServerMessage::Transition(transition_message) => {
                         state.world.transition(transition_message);

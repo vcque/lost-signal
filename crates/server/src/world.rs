@@ -244,10 +244,13 @@ impl World {
             }
         }
     }
-    pub fn get_pids_for_stage(&self, stage: StageId) -> Vec<PlayerId> {
+    pub fn get_all_infos_for_stage(
+        &self,
+        stage: StageId,
+    ) -> Vec<(PlayerId, StageTurn, SensesInfo)> {
         self.stages
             .get(stage)
-            .map(|st| st.get_pids())
+            .map(|st| st.get_all_infos())
             .unwrap_or_default()
     }
 }

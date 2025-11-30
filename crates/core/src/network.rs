@@ -76,7 +76,7 @@ pub enum ServerMessage {
     },
 
     /// Sent when someone plays, it updates where the head and tail of the stage is
-    Timeline(StageId, Timeline),
+    Timeline(StageId, StageTurn, Timeline, Option<SensesInfo>),
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]

@@ -19,6 +19,7 @@ type Ws = WebSocket<TcpStream>;
 pub enum Recipient {
     Broadcast,
     Single(PlayerId),
+    #[allow(unused)]
     Multi(Vec<PlayerId>),
 }
 

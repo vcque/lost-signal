@@ -59,10 +59,7 @@ impl Game {
                         stage,
                         action,
                         info,
-                        logs: GameLogsMessage {
-                            from: 0,
-                            logs,
-                        },
+                        logs: GameLogsMessage { from: 0, logs },
                     };
                     let msg = ServerMessageWithRecipient {
                         recipient: Recipient::Single(player_id),
@@ -97,12 +94,14 @@ impl Game {
                 }
             }
             for (stage_id, timeline) in timeline_updates {
-                let pids = world.get_pids_for_stage(stage_id);
-                let msg = ServerMessageWithRecipient {
-                    recipient: Recipient::Multi(pids),
-                    message: ServerMessage::Timeline(stage_id, timeline),
-                };
-                self.services.sender.send(msg).unwrap();
+                let infos = world.get_all_infos_for_stage(stage_id);
+                for (pid, stage_turn, senses_info) in infos {
+                    let msg = ServerMessageWithRecipient {
+                        recipient: Recipient::Single(pid),
+                        message: ServerMessage::Timeline(stage_id, stage_turn, timeline, Some(senses_info)),
+                    };
+                    self.services.sender.send(msg).unwrap();
+                }
             }
 
             for limbo in limbos {

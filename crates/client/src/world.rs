@@ -156,6 +156,20 @@ impl WorldView {
         }
     }
 
+    pub fn update_on_timeline(&mut self, stage_turn: StageTurn, info: SensesInfo) {
+        // Calculate turn from stage_turn
+        let turn_diff = (self.turn as i64) - (self.stage_turn as i64);
+        let turn = (stage_turn as i64 + turn_diff) as u64;
+        let diff = self.turn.abs_diff(turn);
+
+        // Update the history entry at the calculated position
+        if self.history.len() > diff as usize {
+            let index = self.history.len() - diff as usize - 1;
+            self.history[index].info = Some(info);
+            self.rebuild_current_state();
+        }
+    }
+
     fn rebuild_current_state(&mut self) {
         // Should we take into account more recent terrain info ? It is static after all
         let mut state = self.past_state.clone();

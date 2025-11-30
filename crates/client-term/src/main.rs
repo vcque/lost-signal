@@ -1,7 +1,7 @@
 #![allow(clippy::all)]
 
 use losig_client::adapter::Adapter;
-use losig_core::types::AvatarId;
+use losig_core::types::PlayerId;
 
 use crate::crossterm_adapter::CrosstermAdapter;
 use crate::ws_client::WsClient;
@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    let avatar_id: AvatarId = args[1]
+    let avatar_id: PlayerId = args[1]
         .parse()
         .map_err(|_| "Avatar ID must be a valid number")?;
 

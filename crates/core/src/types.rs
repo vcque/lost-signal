@@ -190,11 +190,11 @@ impl Tile {
 pub type Turn = u64;
 pub type StageTurn = u64;
 
-pub type AvatarId = u32;
+pub type PlayerId = u32;
 
 #[derive(Clone)]
 pub struct Avatar {
-    pub id: AvatarId,
+    pub player_id: PlayerId,
     pub position: Position,
     pub hp: u8,
     pub focus: u8,
@@ -219,9 +219,9 @@ pub enum Transition {
 }
 
 impl Avatar {
-    pub fn new(id: AvatarId) -> Self {
+    pub fn new(player_id: PlayerId) -> Self {
         Avatar {
-            id,
+            player_id,
             position: Position { x: 1, y: 1 },
             hp: 10,
             focus: 100,
@@ -239,7 +239,7 @@ impl Avatar {
     pub fn reset(&mut self) {
         *self = Avatar {
             turns: self.turns,
-            ..Self::new(self.id)
+            ..Self::new(self.player_id)
         };
     }
 }

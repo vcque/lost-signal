@@ -1,4 +1,4 @@
-use losig_core::types::{AvatarId, Direction, Foe, FoeId, GameLogEvent, Position, Target};
+use losig_core::types::{Direction, Foe, FoeId, GameLogEvent, PlayerId, Position, Target};
 
 use crate::stage::{SenseBindings, Stage, StageState};
 
@@ -67,12 +67,12 @@ fn target_selection<'a>(
     foe: &'a Foe,
     state: &'a StageState,
     bindings: &'a SenseBindings,
-) -> Option<AvatarId> {
+) -> Option<PlayerId> {
     for avatar in state.avatars.values() {
         if avatar.is_dead() {
             continue;
         }
-        let aid = avatar.id;
+        let aid = avatar.player_id;
         let bindings = bindings.avatars.get(&aid);
 
         let min_hp = bindings.map(|b| b.min_hp);
@@ -86,7 +86,7 @@ fn target_selection<'a>(
         if dist > 4 {
             continue;
         }
-        return Some(avatar.id);
+        return Some(avatar.player_id);
     }
 
     None

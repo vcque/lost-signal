@@ -1,7 +1,7 @@
 use anyhow::Result;
 use losig_core::{
     network::{CommandMessage, GameLogsMessage, ServerMessage, TurnResultMessage},
-    types::{AvatarId, GameOver, GameOverStatus},
+    types::{GameOver, GameOverStatus, PlayerId},
 };
 
 use crate::{
@@ -19,9 +19,9 @@ impl Game {
         Game { services }
     }
 
-    pub fn new_player(&mut self, aid: AvatarId) {
+    pub fn new_player(&mut self, aid: PlayerId) {
         let mut world = self.services.world.lock().unwrap();
-        world.create_avatar(aid);
+        world.new_player(aid);
     }
 
     pub fn player_command(
@@ -69,7 +69,7 @@ impl Game {
                 match limbo {
                     Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
                         let msg = ServerMessageWithRecipient {
-                            recipient: Recipient::Single(avatar.id),
+                            recipient: Recipient::Single(avatar.player_id),
                             message: ServerMessage::GameOver(GameOver::new(
                                 &avatar,
                                 GameOverStatus::Dead,

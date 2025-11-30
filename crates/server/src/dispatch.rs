@@ -53,7 +53,7 @@ impl Dispatch {
                     ClientMessageContent::LeaderboardSubmit(avatar_id, name) => {
                         // Get avatar stats
                         let mut world = self.services.world.lock().unwrap();
-                        if let Some(gameover) = world.retire_avatar(avatar_id) {
+                        if let Some(gameover) = world.retire_player(avatar_id) {
                             let entry = LeaderboardEntry::new(name, &gameover);
                             {
                                 let mut leaderboard = self.services.leaderboard.lock().unwrap();

@@ -1,7 +1,9 @@
 use bounded_integer::BoundedU8;
 use log::debug;
 use losig_core::{
-    sense::{HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightedFoe, SightInfo, TouchInfo},
+    sense::{
+        HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, SightedFoe, TouchInfo,
+    },
     types::{Avatar, Tile},
 };
 
@@ -113,7 +115,7 @@ fn gather_touch(avatar: &Avatar, async_stage: &Stage, state: &StageState) -> Tou
 }
 
 fn gather_self(avatar: &Avatar, tail_state: &StageState) -> SelfInfo {
-    let hp_max = match tail_state.avatars.get(&avatar.id) {
+    let hp_max = match tail_state.avatars.get(&avatar.player_id) {
         Some(avatar) => avatar.hp,
         None => 10,
     };

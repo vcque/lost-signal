@@ -63,7 +63,7 @@ fn tail_color(i: u64) -> Color {
 }
 
 fn lightness(i: u64) -> f32 {
-    1.0 - 0.1 * (i + 1) as f32
+    1.0 - 0.05 * (i + 1) as f32
 }
 
 impl<'a> From<TimelineWidget> for Title<'a> {

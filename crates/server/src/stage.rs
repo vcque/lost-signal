@@ -8,7 +8,7 @@ use log::{debug, info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, AvatarId, ClientAction, Foe, GameLogEvent, Offset, Orb, Position, ServerAction,
+        Avatar, ClientAction, Foe, GameLogEvent, Offset, Orb, PlayerId, Position, ServerAction,
         StageTurn, Tile, Timeline, Transition, Turn,
     },
 };
@@ -16,8 +16,12 @@ use losig_core::{
 use crate::{
     action, foes, fov,
     sense::gather,
-    world::{Limbo, StageTemplate},
+    world::{Limbo, Player, StageTemplate},
 };
+
+// For now avatar has the id of the player. But this will have to change when we want timetravel
+// shenanigans
+type AvatarId = PlayerId;
 
 /// Stage that can handle async actions from players
 pub struct Stage {
@@ -31,7 +35,7 @@ pub struct Stage {
      * Rollback handling
      */
     head_turn: Turn,
-    avatar_trackers: BTreeMap<AvatarId, AvatarTracker>,
+    avatar_trackers: BTreeMap<PlayerId, AvatarTracker>,
     states: BTreeMap<Turn, StageState>,
     diffs: Vec<TurnDiff>,
 }
@@ -72,13 +76,13 @@ impl Stage {
         self.states.first_key_value().unwrap().1
     }
 
-    pub fn state_for(&self, aid: AvatarId) -> Option<StageState> {
+    pub fn state_for(&self, aid: PlayerId) -> Option<StageState> {
         let tracker = self.avatar_trackers.get(&aid)?;
         Some(self.states.get(&tracker.turn)?.clone())
     }
 
-    pub fn add_avatar(&mut self, avatar: Avatar) {
-        let aid = avatar.id;
+    pub fn add_player(&mut self, player: &Player) {
+        let avatar = player.last_avatar.clone();
         self.head_turn += 1;
         self.diffs.push(TurnDiff {
             cmd_by_avatar: Default::default(),
@@ -87,22 +91,22 @@ impl Stage {
         });
 
         self.avatar_trackers
-            .insert(aid, AvatarTracker::new(self.head_turn));
+            .insert(player.id, AvatarTracker::new(self.head_turn, player.id));
         self.rollback_from(self.head_turn);
     }
 
-    pub fn remove_avatar(&mut self, aid: AvatarId) -> Option<Avatar> {
-        let state = self.state_for(aid)?;
-        let avatar = state.avatars.get(&aid);
+    pub fn remove_player(&mut self, pid: PlayerId) -> Option<Avatar> {
+        let state = self.state_for(pid)?;
+        let avatar = state.avatars.get(&pid);
 
-        self.avatar_trackers.remove(&aid);
+        self.avatar_trackers.remove(&pid);
         self.clean_history();
         avatar.cloned()
     }
 
     pub fn add_command(
         &mut self,
-        aid: AvatarId,
+        aid: PlayerId,
         action: ClientAction,
         senses: Senses,
     ) -> Result<StageCommandResult> {
@@ -235,7 +239,7 @@ impl Stage {
         }
     }
 
-    fn gather_info(&self, aid: AvatarId, senses: &Senses) -> Result<SensesInfo> {
+    fn gather_info(&self, aid: PlayerId, senses: &Senses) -> Result<SensesInfo> {
         let state = self
             .state_for(aid)
             .ok_or_else(|| anyhow!("Could not find state for {aid}"))?;
@@ -344,7 +348,7 @@ impl Stage {
 
     /// Update the world to spawn the user
     fn welcome_avatar(&self, state: &mut StageState, avatar: &Avatar) {
-        let aid = avatar.id;
+        let aid = avatar.player_id;
         let spawn_position = self.find_spawns();
         let position = spawn_position[aid as usize % spawn_position.len()];
 
@@ -373,7 +377,7 @@ impl Stage {
         for status in statuses.iter() {
             match status {
                 Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
-                    self.avatar_trackers.remove(&avatar.id);
+                    self.avatar_trackers.remove(&avatar.player_id);
                 }
                 &Limbo::MaybeDead(aid) => {
                     self.avatar_trackers.get_mut(&aid).unwrap().limbo = true;
@@ -475,13 +479,15 @@ impl Stage {
 
         for i in 0..diff_index {
             let diff = &mut self.diffs[i];
-            diff.sense_bindings.bind_avatar_min_hp(avatar.id, min_hp);
+            diff.sense_bindings
+                .bind_avatar_min_hp(avatar.player_id, min_hp);
         }
     }
 }
 
 #[derive(Clone)]
 struct AvatarTracker {
+    avatar_id: AvatarId,
     turn: StageTurn,
     /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
     /// cancelation/confirmation
@@ -489,8 +495,12 @@ struct AvatarTracker {
 }
 
 impl AvatarTracker {
-    fn new(turn: Turn) -> Self {
-        Self { turn, limbo: false }
+    fn new(turn: Turn, aid: AvatarId) -> Self {
+        Self {
+            turn,
+            avatar_id: aid,
+            limbo: false,
+        }
     }
 }
 
@@ -500,7 +510,7 @@ pub struct StageState {
     pub turn: StageTurn,
     pub foes: Vec<Foe>,
     pub orb: Orb,
-    pub avatars: BTreeMap<AvatarId, Avatar>,
+    pub avatars: BTreeMap<PlayerId, Avatar>,
 }
 
 impl StageState {
@@ -525,11 +535,11 @@ struct TurnDiff {
 
 #[derive(Clone, Default)]
 pub struct SenseBindings {
-    pub avatars: BTreeMap<AvatarId, AvatarBindings>,
+    pub avatars: BTreeMap<PlayerId, AvatarBindings>,
 }
 
 impl SenseBindings {
-    fn bind_avatar_min_hp(&mut self, aid: AvatarId, min_hp: u8) {
+    fn bind_avatar_min_hp(&mut self, aid: PlayerId, min_hp: u8) {
         match self.avatars.entry(aid) {
             Entry::Vacant(vacant_entry) => {
                 let bindings = AvatarBindings { min_hp };

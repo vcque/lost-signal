@@ -1,5 +1,5 @@
 use losig_core::types::{
-    Avatar, AvatarId, ClientAction, Direction, Foe, FoeId, GameLogEvent, Position, ServerAction,
+    Avatar, ClientAction, Direction, Foe, FoeId, GameLogEvent, PlayerId, Position, ServerAction,
     Target,
 };
 
@@ -17,7 +17,7 @@ pub fn act(action: &ServerAction, avatar: &mut Avatar, state: &mut StageState, s
 
 fn act_spawn(avatar: &mut Avatar, stage: &Stage, state: &StageState) {
     let spawn_position = stage.find_spawns();
-    avatar.position = spawn_position[avatar.id as usize % spawn_position.len()];
+    avatar.position = spawn_position[avatar.player_id as usize % spawn_position.len()];
     avatar.hp = 10;
     avatar.focus = 100;
     avatar.logs.push((state.turn, GameLogEvent::Spawn));
@@ -43,7 +43,7 @@ fn act_attack(avatar: &mut Avatar, target_index: usize, state: &mut StageState) 
     }
 }
 
-pub fn convert_client(action: ClientAction, stage: &mut Stage, aid: AvatarId) -> ServerAction {
+pub fn convert_client(action: ClientAction, stage: &mut Stage, aid: PlayerId) -> ServerAction {
     match action {
         ClientAction::Spawn => ServerAction::Spawn,
         ClientAction::MoveOrAttack(direction) => {

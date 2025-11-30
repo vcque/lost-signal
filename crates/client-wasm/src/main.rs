@@ -3,7 +3,7 @@ use std::io;
 use crate::{ratzilla_adapter::RatzillaAdapter, ws::WsClient};
 use log::Level;
 use losig_client::adapter::Adapter;
-use losig_core::types::AvatarId;
+use losig_core::types::PlayerId;
 use wasm_bindgen::JsValue;
 use web_sys::{Url, UrlSearchParams, window};
 
@@ -27,16 +27,16 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_avatar_id() -> Option<AvatarId> {
+fn get_avatar_id() -> Option<PlayerId> {
     let window = window()?;
     let location = window.location();
     let params = location.search().ok()?;
     let params = UrlSearchParams::new_with_str(&params).ok()?;
 
-    params.get("id").and_then(|s| s.parse::<AvatarId>().ok())
+    params.get("id").and_then(|s| s.parse::<PlayerId>().ok())
 }
 
-fn generate_avatar_id() -> AvatarId {
+fn generate_avatar_id() -> PlayerId {
     let crypto = window().unwrap().crypto().unwrap();
     let mut array = [0u8; 4];
     crypto.get_random_values_with_u8_array(&mut array).unwrap();
@@ -45,7 +45,7 @@ fn generate_avatar_id() -> AvatarId {
 
 /// Change the id in the url so that the player can bookmark its player (will need proper user
 /// manager on day)
-fn update_history(id: AvatarId) {
+fn update_history(id: PlayerId) {
     let window = window().unwrap();
     let location = window.location();
 

@@ -6,13 +6,13 @@ use log::debug;
 use losig_core::{
     leaderboard::Leaderboard,
     network::{ClientMessage, ClientMessageContent, ServerMessage},
-    types::{AvatarId, GameOver},
+    types::{GameOver, PlayerId},
 };
 
 use crate::{tui::GameTui, world::WorldView};
 
 pub struct Adapter<C, T> {
-    pub avatar_id: AvatarId,
+    pub avatar_id: PlayerId,
     pub client: C,
     pub tui_adapter: T,
 }
@@ -91,7 +91,7 @@ pub trait TuiAdapter {
 
 /// State manipulated by either the tui or incoming messages
 pub struct SharedState {
-    pub avatar_id: AvatarId,
+    pub avatar_id: PlayerId,
     pub gameover: Option<GameOver>,
     pub limbo: Option<bool>,
     pub leaderboard: Leaderboard,
@@ -99,7 +99,7 @@ pub struct SharedState {
 }
 
 impl SharedState {
-    pub fn new(avatar_id: AvatarId) -> Self {
+    pub fn new(avatar_id: PlayerId) -> Self {
         Self {
             avatar_id,
             gameover: None,

@@ -10,7 +10,7 @@ use anyhow::{Result, bail};
 use log::{error, info, warn};
 use losig_core::{
     network::{ClientMessage, ServerMessage},
-    types::AvatarId,
+    types::PlayerId,
 };
 use tungstenite::{Bytes, Message, WebSocket};
 
@@ -18,8 +18,8 @@ type Ws = WebSocket<TcpStream>;
 
 pub enum Recipient {
     Broadcast,
-    Single(AvatarId),
-    Multi(Vec<AvatarId>),
+    Single(PlayerId),
+    Multi(Vec<PlayerId>),
 }
 
 /// Server message with recipient
@@ -58,7 +58,7 @@ impl WsServer {
         server.set_nonblocking(true)?;
 
         let mut ws_by_addr = HashMap::<SocketAddr, Ws>::new();
-        let mut addr_by_avatar_id = HashMap::<AvatarId, SocketAddr>::new();
+        let mut addr_by_avatar_id = HashMap::<PlayerId, SocketAddr>::new();
 
         info!("Launching server on 127.0.0.1:9001");
 

@@ -8,8 +8,8 @@ use log::{debug, info, warn};
 use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, ClientAction, Foe, GameLogEvent, Offset, Orb, PlayerId, Position, ServerAction,
-        StageTurn, Tile, Timeline, Transition, Turn, FOCUS_MAX,
+        Avatar, ClientAction, FOCUS_MAX, Foe, GameLogEvent, Offset, Orb, PlayerId, Position,
+        ServerAction, StageTurn, Tile, Timeline, Transition, Turn,
     },
 };
 
@@ -91,7 +91,7 @@ impl Stage {
         });
 
         self.avatar_trackers
-            .insert(player.id, AvatarTracker::new(self.head_turn, player.id));
+            .insert(player.id, AvatarTracker::new(self.head_turn));
         self.rollback_from(self.head_turn);
     }
 
@@ -487,7 +487,6 @@ impl Stage {
 
 #[derive(Clone)]
 struct AvatarTracker {
-    avatar_id: AvatarId,
     turn: StageTurn,
     /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
     /// cancelation/confirmation
@@ -495,12 +494,8 @@ struct AvatarTracker {
 }
 
 impl AvatarTracker {
-    fn new(turn: Turn, aid: AvatarId) -> Self {
-        Self {
-            turn,
-            avatar_id: aid,
-            limbo: false,
-        }
+    fn new(turn: Turn) -> Self {
+        Self { turn, limbo: false }
     }
 }
 

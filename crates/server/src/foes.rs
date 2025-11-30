@@ -68,6 +68,8 @@ fn target_selection<'a>(
     state: &'a StageState,
     bindings: &'a SenseBindings,
 ) -> Option<PlayerId> {
+    let mut viable_targets: Vec<(PlayerId, usize)> = vec![];
+
     for avatar in state.avatars.values() {
         if avatar.is_dead() {
             continue;
@@ -86,10 +88,13 @@ fn target_selection<'a>(
         if dist > 4 {
             continue;
         }
-        return Some(avatar.player_id);
+        viable_targets.push((aid, dist));
     }
 
-    None
+    // Sort by distance (closest first)
+    viable_targets.sort_by_key(|(_, dist)| *dist);
+
+    viable_targets.first().map(|(aid, _)| *aid)
 }
 
 /// Check if a position is occupied by a foe or avatar

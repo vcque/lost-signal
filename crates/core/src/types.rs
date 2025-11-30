@@ -194,6 +194,7 @@ pub type Turn = u64;
 pub type StageTurn = u64;
 
 pub type PlayerId = u32;
+pub type StageId = usize;
 
 #[derive(Clone)]
 pub struct Avatar {

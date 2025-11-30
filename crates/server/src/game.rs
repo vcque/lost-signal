@@ -43,7 +43,7 @@ impl Game {
                 player_id,
                 turn,
                 stage_turn: result.stage_turn,
-                stage: result.stage as u8,
+                stage: result.stage,
                 action: result.action,
                 info: result.senses_info,
                 logs: GameLogsMessage {

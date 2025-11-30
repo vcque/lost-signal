@@ -4,7 +4,8 @@ use crate::{
     leaderboard::Leaderboard,
     sense::{Senses, SensesInfo},
     types::{
-        ClientAction, GameLogEvent, GameOver, PlayerId, ServerAction, StageTurn, Timeline, Turn,
+        ClientAction, GameLogEvent, GameOver, PlayerId, ServerAction, StageId, StageTurn, Timeline,
+        Turn,
     },
 };
 
@@ -26,7 +27,7 @@ pub struct TurnResultMessage {
     pub turn: Turn,
     /// The stage turn, interesting info to know where people are relative to each other
     pub stage_turn: Turn,
-    pub stage: u8,
+    pub stage: StageId,
     pub info: SensesInfo,
     pub action: ServerAction,
     pub logs: GameLogsMessage,
@@ -62,7 +63,7 @@ pub enum ServerMessage {
     },
 
     /// Sent when someone plays, it updates where the head and tail of the stage is
-    Timeline(u8, Timeline),
+    Timeline(StageId, Timeline),
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]

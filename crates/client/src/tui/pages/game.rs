@@ -45,7 +45,7 @@ impl GamePage {
         let [world_a, log_a, _senses_a] = Self::layout(area);
         let world = &services.state.world;
         state.game.stage = 5; // TODO: fix this
-        state.game.help.next_page(world.stage);
+        state.game.help.next_page(world.stage as u8);
 
         let world_widget = WorldViewWidget { world };
         let timeline = TimelineWidget::new(world);
@@ -290,12 +290,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
                     Style::default().fg(THEME.palette.ui_disabled)
                 };
 
-                buf.set_string(
-                    area.x + x as u16,
-                    area.y + y as u16,
-                    char,
-                    style,
-                );
+                buf.set_string(area.x + x as u16, area.y + y as u16, char, style);
             }
 
             // Show the allies

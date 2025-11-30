@@ -7,7 +7,7 @@ use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
         Avatar, ClientAction, Foe, GameLogEvent, GameOver, GameOverStatus, PlayerId, ServerAction,
-        StageTurn, Tiles, Timeline, Transition,
+        StageId, StageTurn, Tiles, Timeline, Transition,
     },
 };
 
@@ -43,23 +43,23 @@ pub enum Limbo {
 /// Info returned by add_command. Game over data might concern other players as they can be saved
 /// by another player.
 pub struct CommandResult {
-    pub stage: usize,
+    pub stage: StageId,
     pub stage_turn: StageTurn,
     pub limbos: Vec<Limbo>,
     pub senses_info: SensesInfo,
     pub action: ServerAction,
     pub logs: Vec<(StageTurn, GameLogEvent)>,
-    pub timeline_updates: Vec<(u8, Timeline)>,
+    pub timeline_updates: Vec<(StageId, Timeline)>,
 }
 
 pub enum TransitionDestination {
-    Stage(usize),
+    Stage(StageId),
     End,
 }
 
 pub struct Player {
     pub id: PlayerId,
-    pub stage: Option<u8>,
+    pub stage: Option<StageId>,
     /// Copy of the last avatar sent to a stage
     pub last_avatar: Avatar,
     pub gameover: Option<GameOver>,
@@ -100,12 +100,8 @@ impl World {
         let player = self.player_by_id.remove(&pid)?;
 
         if let Some(stage_id) = player.stage {
-            let avatar = self.stages.get_mut(stage_id as usize)?.remove_player(pid)?;
-            Some(GameOver::new(
-                &avatar,
-                GameOverStatus::Dead,
-                stage_id as usize,
-            ))
+            let avatar = self.stages.get_mut(stage_id)?.remove_player(pid)?;
+            Some(GameOver::new(&avatar, GameOverStatus::Dead, stage_id))
         } else {
             player.gameover
         }
@@ -123,8 +119,7 @@ impl World {
             .ok_or_else(|| anyhow!("No player #{pid} found."))?;
         let mut stage_id = player
             .stage
-            .ok_or_else(|| anyhow!("Trying to transition when not in a stage"))?
-            as usize;
+            .ok_or_else(|| anyhow!("Trying to transition when not in a stage"))?;
         let stage = self
             .stages
             .get_mut(stage_id)
@@ -140,7 +135,7 @@ impl World {
             timeline,
         } = stage.add_command(pid, action, senses.clone())?;
 
-        let mut timeline_updates = vec![(stage_id as u8, timeline)];
+        let mut timeline_updates = vec![(stage_id, timeline)];
         if let Some(transition) = transition {
             match self.handle_transition(pid, transition, senses) {
                 Ok((tr_stage_id, scr)) => {
@@ -150,7 +145,7 @@ impl World {
                     stage_id = tr_stage_id;
                     stage_turn = scr.stage_turn;
                     limbos.extend(scr.limbos);
-                    timeline_updates.push((tr_stage_id as u8, scr.timeline));
+                    timeline_updates.push((tr_stage_id, scr.timeline));
                 }
                 Err(e) => error!("Error while handling transition: {e}"),
             }
@@ -169,7 +164,7 @@ impl World {
         Ok(result)
     }
 
-    fn handle_limbos(&mut self, limbos: &[Limbo], stage_id: usize) {
+    fn handle_limbos(&mut self, limbos: &[Limbo], stage_id: StageId) {
         for status in limbos {
             if let Limbo::Dead(avatar) = status {
                 let player_id = avatar.player_id;
@@ -190,7 +185,7 @@ impl World {
         pid: PlayerId,
         transition: Transition,
         senses: Senses,
-    ) -> Result<(usize, StageCommandResult)> {
+    ) -> Result<(StageId, StageCommandResult)> {
         let player = self
             .player_by_id
             .get_mut(&pid)
@@ -198,8 +193,7 @@ impl World {
 
         let stage_id = player
             .stage
-            .ok_or_else(|| anyhow!("Trying to transition when not in a stage"))?
-            as usize;
+            .ok_or_else(|| anyhow!("Trying to transition when not in a stage"))?;
         let stage = self
             .stages
             .get_mut(stage_id)
@@ -226,7 +220,7 @@ impl World {
                 Err(anyhow!("Nowhere to go when you're winning!"))
             }
             TransitionDestination::Stage(stage_id) => {
-                player.stage = Some(stage_id as u8);
+                player.stage = Some(stage_id);
                 let next_stage = &mut self.stages[stage_id];
 
                 next_stage.add_player(player);
@@ -236,9 +230,9 @@ impl World {
             }
         }
     }
-    pub fn get_pids_for_stage(&self, stage: u8) -> Vec<PlayerId> {
+    pub fn get_pids_for_stage(&self, stage: StageId) -> Vec<PlayerId> {
         self.stages
-            .get(stage as usize)
+            .get(stage)
             .map(|st| st.get_pids())
             .unwrap_or_default()
     }
@@ -247,7 +241,7 @@ impl World {
 fn find_destination(
     stages: &[Stage],
     transition: &Transition,
-    previous_stage: usize,
+    previous_stage: StageId,
 ) -> TransitionDestination {
     match transition {
         Transition::Orb => {

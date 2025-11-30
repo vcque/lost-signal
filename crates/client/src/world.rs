@@ -2,7 +2,10 @@ use log::warn;
 use losig_core::{
     network::TurnResultMessage,
     sense::SensesInfo,
-    types::{ClientAction, Offset, Position, ServerAction, StageTurn, Tile, Tiles, Timeline, Turn},
+    types::{
+        ClientAction, Offset, Position, ServerAction, StageId, StageTurn, Tile, Tiles, Timeline,
+        Turn,
+    },
 };
 
 use crate::logs::{ClientLog, GameLogs};
@@ -16,7 +19,7 @@ const START_POS: Position = Position {
 #[derive(Debug, Clone)]
 pub struct WorldView {
     pub winner: bool,
-    pub stage: u8,
+    pub stage: StageId,
     pub turn: Turn,
 
     history: Vec<WorldHistory>,
@@ -140,7 +143,7 @@ impl WorldView {
         self.current_state = state;
     }
 
-    pub fn update_timeline(&mut self, stage: u8, timeline: Timeline) {
+    pub fn update_timeline(&mut self, stage: StageId, timeline: Timeline) {
         if self.stage == stage {
             self.timeline = timeline;
         }

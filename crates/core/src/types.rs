@@ -3,6 +3,9 @@ use std::ops::{Add, Neg, Sub};
 use grid::Grid;
 use serde::{Deserialize, Serialize};
 
+pub const HP_MAX: u8 = 10;
+pub const FOCUS_MAX: u8 = 100;
+
 /**
 * Lists all possible commands that can be sent by a player to the game.
 * A command is an input that (often) leads to a modification of the game state.
@@ -223,8 +226,8 @@ impl Avatar {
         Avatar {
             player_id,
             position: Position { x: 1, y: 1 },
-            hp: 10,
-            focus: 100,
+            hp: HP_MAX,
+            focus: FOCUS_MAX,
             tired: false,
             turns: 1,
             transition: None,

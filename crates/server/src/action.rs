@@ -1,6 +1,6 @@
 use losig_core::types::{
     Avatar, ClientAction, Direction, Foe, FoeId, GameLogEvent, PlayerId, Position, ServerAction,
-    Target,
+    Target, FOCUS_MAX, HP_MAX,
 };
 
 use crate::stage::{Stage, StageState};
@@ -18,8 +18,8 @@ pub fn act(action: &ServerAction, avatar: &mut Avatar, state: &mut StageState, s
 fn act_spawn(avatar: &mut Avatar, stage: &Stage, state: &StageState) {
     let spawn_position = stage.find_spawns();
     avatar.position = spawn_position[avatar.player_id as usize % spawn_position.len()];
-    avatar.hp = 10;
-    avatar.focus = 100;
+    avatar.hp = HP_MAX;
+    avatar.focus = FOCUS_MAX;
     avatar.logs.push((state.turn, GameLogEvent::Spawn));
 }
 

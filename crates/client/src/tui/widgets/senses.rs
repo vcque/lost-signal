@@ -1,5 +1,6 @@
 use bounded_integer::BoundedU8;
 use losig_core::sense::{SenseStrength, Senses, SensesInfo};
+use losig_core::types::HP_MAX;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -92,18 +93,18 @@ impl<'a> Widget for SelfSenseWidget<'a> {
 
         // Render second line (HP gauge + Focus)
         if let Some(info) = self.info {
-            let hp = info.hp.min(10);
-            let hp_max = info.hp_max.min(10);
+            let hp = info.hp.min(HP_MAX);
+            let hp_max = info.hp_max.min(HP_MAX);
 
             // Render "HP: " label
             buf.set_string(second.x, second.y, "HP: ", Style::default());
 
             // Render HP gauge manually (reversed order)
-            for i in 0..10 {
-                let (ch, style) = if i < (10 - hp_max) {
+            for i in 0..HP_MAX {
+                let (ch, style) = if i < (HP_MAX - hp_max) {
                     // Beyond max HP: red
                     ('█', Style::default().fg(THEME.palette.foe))
-                } else if i < (10 - hp) {
+                } else if i < (HP_MAX - hp) {
                     // Lost HP but within max: timeline color
                     (
                         '█',

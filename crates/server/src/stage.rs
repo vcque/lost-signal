@@ -9,7 +9,7 @@ use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
         Avatar, ClientAction, Foe, GameLogEvent, Offset, Orb, PlayerId, Position, ServerAction,
-        StageTurn, Tile, Timeline, Transition, Turn,
+        StageTurn, Tile, Timeline, Transition, Turn, FOCUS_MAX,
     },
 };
 
@@ -326,7 +326,7 @@ impl Stage {
                     let position = avatar.position + offset;
                     let tile = self.template.tiles.get(position);
                     if matches!(tile, Tile::Pylon) {
-                        avatar.focus = 100;
+                        avatar.focus = FOCUS_MAX;
                     }
                 }
             }

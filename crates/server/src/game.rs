@@ -37,106 +37,110 @@ impl Game {
         let mut world = self.services.world.lock().unwrap();
         let result = world.add_command(player_id, action, senses);
 
-        if let Ok(CommandResult {
+        let CommandResult {
             timeline_updates,
             limbos,
             outcome,
-        }) = result
-        {
-            match outcome {
-                CommandResultOutcome::Turn {
-                    stage,
+        } = result?;
+
+        match outcome {
+            CommandResultOutcome::Turn {
+                stage,
+                stage_turn,
+                info,
+                action,
+                logs,
+            } => {
+                // Send turn result with senses info
+                let msg = TurnMessage {
+                    player_id,
+                    turn,
                     stage_turn,
-                    info,
+                    stage,
                     action,
-                    logs,
-                } => {
-                    // Send turn result with senses info
-                    let msg = TurnMessage {
-                        player_id,
-                        turn,
-                        stage_turn,
-                        stage,
-                        action,
-                        info,
-                        logs: GameLogsMessage { from: 0, logs },
-                    };
-                    let msg = ServerMessageWithRecipient {
-                        recipient: Recipient::Single(player_id),
-                        message: ServerMessage::Turn(msg),
-                    };
-                    self.services.sender.send(msg).unwrap();
-                }
-                CommandResultOutcome::Transition {
-                    stage,
-                    stage_turn,
                     info,
-                } => {
-                    let msg = TransitionMessage {
-                        player_id,
-                        turn,
-                        stage_turn,
-                        stage,
-                        info,
-                    };
-                    let msg = ServerMessageWithRecipient {
-                        recipient: Recipient::Single(player_id),
-                        message: ServerMessage::Transition(msg),
-                    };
-                    self.services.sender.send(msg).unwrap();
-                }
-                CommandResultOutcome::Gameover(gameover) => {
-                    let msg = ServerMessageWithRecipient {
-                        recipient: Recipient::Single(player_id),
-                        message: ServerMessage::GameOver(gameover),
-                    };
-                    self.services.sender.send(msg).unwrap();
-                }
+                    logs: GameLogsMessage { from: 0, logs },
+                };
+                let msg = ServerMessageWithRecipient {
+                    recipient: Recipient::Single(player_id),
+                    message: ServerMessage::Turn(msg),
+                };
+                self.services.sender.send(msg).unwrap();
             }
-            for (stage_id, timeline) in timeline_updates {
-                let infos = world.get_all_infos_for_stage(stage_id);
-                for (pid, stage_turn, senses_info) in infos {
+            CommandResultOutcome::Transition {
+                stage,
+                stage_turn,
+                info,
+            } => {
+                let msg = TransitionMessage {
+                    player_id,
+                    turn,
+                    stage_turn,
+                    stage,
+                    info,
+                };
+                let msg = ServerMessageWithRecipient {
+                    recipient: Recipient::Single(player_id),
+                    message: ServerMessage::Transition(msg),
+                };
+                self.services.sender.send(msg).unwrap();
+            }
+            CommandResultOutcome::Gameover(gameover) => {
+                let msg = ServerMessageWithRecipient {
+                    recipient: Recipient::Single(player_id),
+                    message: ServerMessage::GameOver(gameover),
+                };
+                self.services.sender.send(msg).unwrap();
+            }
+        }
+        for (stage_id, timeline) in timeline_updates {
+            let infos = world.get_all_infos_for_stage(stage_id);
+            for (pid, stage_turn, senses_info) in infos {
+                let msg = ServerMessageWithRecipient {
+                    recipient: Recipient::Single(pid),
+                    message: ServerMessage::Timeline(
+                        stage_id,
+                        stage_turn,
+                        timeline,
+                        Some(senses_info),
+                    ),
+                };
+                self.services.sender.send(msg).unwrap();
+            }
+        }
+
+        for limbo in limbos {
+            match limbo {
+                Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
+                    let msg = ServerMessageWithRecipient {
+                        recipient: Recipient::Single(avatar.player_id),
+                        message: ServerMessage::GameOver(GameOver::new(
+                            &avatar,
+                            GameOverStatus::Dead,
+                            1,
+                        )),
+                    };
+                    self.services.sender.send(msg).unwrap();
+                }
+                Limbo::Averted(pid, senses_info) => {
                     let msg = ServerMessageWithRecipient {
                         recipient: Recipient::Single(pid),
-                        message: ServerMessage::Timeline(stage_id, stage_turn, timeline, Some(senses_info)),
+                        message: ServerMessage::Limbo {
+                            averted: true,
+                            senses_info: Some(senses_info),
+                        },
                     };
                     self.services.sender.send(msg).unwrap();
                 }
-            }
-
-            for limbo in limbos {
-                match limbo {
-                    Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
-                        let msg = ServerMessageWithRecipient {
-                            recipient: Recipient::Single(avatar.player_id),
-                            message: ServerMessage::GameOver(GameOver::new(
-                                &avatar,
-                                GameOverStatus::Dead,
-                                1,
-                            )),
-                        };
-                        self.services.sender.send(msg).unwrap();
-                    }
-                    Limbo::Averted(pid, senses_info) => {
-                        let msg = ServerMessageWithRecipient {
-                            recipient: Recipient::Single(pid),
-                            message: ServerMessage::Limbo {
-                                averted: true,
-                                senses_info: Some(senses_info),
-                            },
-                        };
-                        self.services.sender.send(msg).unwrap();
-                    }
-                    Limbo::MaybeDead(pid) => {
-                        let msg = ServerMessageWithRecipient {
-                            recipient: Recipient::Single(pid),
-                            message: ServerMessage::Limbo {
-                                averted: false,
-                                senses_info: None,
-                            },
-                        };
-                        self.services.sender.send(msg).unwrap();
-                    }
+                Limbo::MaybeDead(pid) => {
+                    let msg = ServerMessageWithRecipient {
+                        recipient: Recipient::Single(pid),
+                        message: ServerMessage::Limbo {
+                            averted: false,
+                            senses_info: None,
+                        },
+                    };
+                    self.services.sender.send(msg).unwrap();
                 }
             }
         }

@@ -10,6 +10,7 @@ use crate::{
     ws_server::{Recipient, ServerMessageWithRecipient},
 };
 
+/// More like GameAPI
 pub struct Game {
     services: Services,
 }
@@ -19,27 +20,27 @@ impl Game {
         Game { services }
     }
 
-    pub fn new_player(&mut self, aid: PlayerId) {
+    pub fn new_player(&mut self, pid: PlayerId) {
         let mut world = self.services.world.lock().unwrap();
-        world.new_player(aid);
+        world.new_player(pid);
     }
 
     pub fn player_command(
         &mut self,
         CommandMessage {
-            avatar_id,
+            player_id,
             turn,
             action,
             senses,
         }: CommandMessage,
     ) -> Result<()> {
         let mut world = self.services.world.lock().unwrap();
-        let result = world.add_command(avatar_id, action, senses);
+        let result = world.add_command(player_id, action, senses);
 
         if let Ok(result) = result {
             // Send turn result with senses info
             let msg = TurnResultMessage {
-                avatar_id,
+                player_id,
                 turn,
                 stage_turn: result.stage_turn,
                 stage: result.stage as u8,
@@ -51,15 +52,15 @@ impl Game {
                 },
             };
             let msg = ServerMessageWithRecipient {
-                recipient: Recipient::Single(avatar_id),
+                recipient: Recipient::Single(player_id),
                 message: ServerMessage::Turn(msg),
             };
             self.services.sender.send(msg).unwrap();
 
             for (stage_id, timeline) in result.timeline_updates {
-                let aids = world.get_aids_for_stage(stage_id);
+                let pids = world.get_pids_for_stage(stage_id);
                 let msg = ServerMessageWithRecipient {
-                    recipient: Recipient::Multi(aids),
+                    recipient: Recipient::Multi(pids),
                     message: ServerMessage::Timeline(stage_id, timeline),
                 };
                 self.services.sender.send(msg).unwrap();
@@ -78,9 +79,9 @@ impl Game {
                         };
                         self.services.sender.send(msg).unwrap();
                     }
-                    Limbo::Averted(aid, senses_info) => {
+                    Limbo::Averted(pid, senses_info) => {
                         let msg = ServerMessageWithRecipient {
-                            recipient: Recipient::Single(aid),
+                            recipient: Recipient::Single(pid),
                             message: ServerMessage::Limbo {
                                 averted: true,
                                 senses_info: Some(senses_info),
@@ -88,9 +89,9 @@ impl Game {
                         };
                         self.services.sender.send(msg).unwrap();
                     }
-                    Limbo::MaybeDead(aid) => {
+                    Limbo::MaybeDead(pid) => {
                         let msg = ServerMessageWithRecipient {
-                            recipient: Recipient::Single(aid),
+                            recipient: Recipient::Single(pid),
                             message: ServerMessage::Limbo {
                                 averted: false,
                                 senses_info: None,

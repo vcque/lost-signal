@@ -28,8 +28,8 @@ impl Dispatch {
 
             while let Ok(msg) = self.cm_rx.recv() {
                 match msg.content {
-                    ClientMessageContent::Start(aid) => {
-                        game.new_player(aid);
+                    ClientMessageContent::Start(pid) => {
+                        game.new_player(pid);
                     }
                     ClientMessageContent::Command(cmd) => {
                         if let Err(e) = game.player_command(cmd) {
@@ -38,10 +38,10 @@ impl Dispatch {
                     }
                     ClientMessageContent::Leaderboard => {
                         // Send current leaderboard to requesting client
-                        if let Some(avatar_id) = msg.avatar_id {
+                        if let Some(player_id) = msg.player_id {
                             let leaderboard = self.services.leaderboard.lock().unwrap();
                             let message = ServerMessageWithRecipient {
-                                recipient: Recipient::Single(avatar_id),
+                                recipient: Recipient::Single(player_id),
                                 message: ServerMessage::Leaderboard((*leaderboard).clone()),
                             };
 
@@ -50,10 +50,10 @@ impl Dispatch {
                             }
                         }
                     }
-                    ClientMessageContent::LeaderboardSubmit(avatar_id, name) => {
+                    ClientMessageContent::LeaderboardSubmit(player_id, name) => {
                         // Get avatar stats
                         let mut world = self.services.world.lock().unwrap();
-                        if let Some(gameover) = world.retire_player(avatar_id) {
+                        if let Some(gameover) = world.retire_player(player_id) {
                             let entry = LeaderboardEntry::new(name, &gameover);
                             {
                                 let mut leaderboard = self.services.leaderboard.lock().unwrap();

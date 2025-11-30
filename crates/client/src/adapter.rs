@@ -12,14 +12,14 @@ use losig_core::{
 use crate::{tui::GameTui, world::WorldView};
 
 pub struct Adapter<C, T> {
-    pub avatar_id: PlayerId,
+    pub player_id: PlayerId,
     pub client: C,
     pub tui_adapter: T,
 }
 
 impl<C: Client, T: TuiAdapter> Adapter<C, T> {
     pub fn run(mut self) {
-        let shared_state = Arc::new(Mutex::new(SharedState::new(self.avatar_id)));
+        let shared_state = Arc::new(Mutex::new(SharedState::new(self.player_id)));
 
         // Set up server message callback
         let callback: ServerMessageCallback;
@@ -63,7 +63,7 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
             client.set_on_connect(Box::new(move || {
                 let client = client_connect.lock().unwrap();
                 client.send(ClientMessage {
-                    avatar_id: Some(self.avatar_id),
+                    player_id: Some(self.player_id),
                     content: ClientMessageContent::Leaderboard,
                 });
             }));
@@ -91,7 +91,7 @@ pub trait TuiAdapter {
 
 /// State manipulated by either the tui or incoming messages
 pub struct SharedState {
-    pub avatar_id: PlayerId,
+    pub player_id: PlayerId,
     pub gameover: Option<GameOver>,
     pub limbo: Option<bool>,
     pub leaderboard: Leaderboard,
@@ -99,9 +99,9 @@ pub struct SharedState {
 }
 
 impl SharedState {
-    pub fn new(avatar_id: PlayerId) -> Self {
+    pub fn new(player_id: PlayerId) -> Self {
         Self {
-            avatar_id,
+            player_id,
             gameover: None,
             limbo: None,
             leaderboard: Leaderboard::new(),

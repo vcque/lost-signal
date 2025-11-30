@@ -348,13 +348,13 @@ impl Stage {
 
     /// Update the world to spawn the user
     fn welcome_avatar(&self, state: &mut StageState, avatar: &Avatar) {
-        let aid = avatar.player_id;
+        let pid = avatar.player_id;
         let spawn_position = self.find_spawns();
-        let position = spawn_position[aid as usize % spawn_position.len()];
+        let position = spawn_position[pid as usize % spawn_position.len()];
 
         let mut avatar = avatar.clone();
         avatar.position = position;
-        state.avatars.insert(aid, avatar);
+        state.avatars.insert(pid, avatar);
     }
 
     pub fn find_spawns(&self) -> Vec<Position> {
@@ -461,7 +461,7 @@ impl Stage {
         self.head_turn + 1 - self.diffs.len() as StageTurn
     }
 
-    pub fn get_aids(&self) -> Vec<u32> {
+    pub fn get_pids(&self) -> Vec<u32> {
         self.avatar_trackers.keys().copied().collect()
     }
 

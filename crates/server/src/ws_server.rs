@@ -58,7 +58,7 @@ impl WsServer {
         server.set_nonblocking(true)?;
 
         let mut ws_by_addr = HashMap::<SocketAddr, Ws>::new();
-        let mut addr_by_avatar_id = HashMap::<PlayerId, SocketAddr>::new();
+        let mut addr_by_player_id = HashMap::<PlayerId, SocketAddr>::new();
 
         info!("Launching server on 127.0.0.1:9001");
 
@@ -80,8 +80,8 @@ impl WsServer {
             for (addr, stream) in ws_by_addr.iter_mut() {
                 match handle_read(stream) {
                     Ok(client_message) => {
-                        if let Some(avatar_id) = client_message.avatar_id {
-                            addr_by_avatar_id.insert(avatar_id, *addr);
+                        if let Some(player_id) = client_message.player_id {
+                            addr_by_player_id.insert(player_id, *addr);
                         }
                         cm_tx.send(client_message)?;
                     }
@@ -96,7 +96,7 @@ impl WsServer {
             for server_message in sm_rx.try_iter() {
                 match server_message.recipient {
                     Recipient::Single(id) => {
-                        if let Some(addr) = addr_by_avatar_id.get(&id)
+                        if let Some(addr) = addr_by_player_id.get(&id)
                             && let Some(ws) = ws_by_addr.get_mut(addr)
                         {
                             let _ = handle_write(ws, &server_message.message);
@@ -107,9 +107,9 @@ impl WsServer {
                             let _ = handle_write(ws, &server_message.message);
                         }
                     }
-                    Recipient::Multi(aids) => {
-                        for aid in aids {
-                            if let Some(addr) = addr_by_avatar_id.get(&aid)
+                    Recipient::Multi(pids) => {
+                        for pid in pids {
+                            if let Some(addr) = addr_by_player_id.get(&pid)
                                 && let Some(ws) = ws_by_addr.get_mut(addr)
                             {
                                 let _ = handle_write(ws, &server_message.message);

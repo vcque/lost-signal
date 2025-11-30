@@ -13,13 +13,13 @@ mod ws;
 fn main() -> io::Result<()> {
     console_log::init_with_level(Level::Debug).unwrap();
 
-    let avatar_id = get_avatar_id().unwrap_or_else(generate_avatar_id);
-    update_history(avatar_id);
+    let player_id = get_player_id().unwrap_or_else(generate_player_id);
+    update_history(player_id);
 
     let client = WsClient::new();
     let tui_adapter = RatzillaAdapter::new();
     Adapter {
-        avatar_id,
+        player_id,
         client,
         tui_adapter,
     }
@@ -27,7 +27,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_avatar_id() -> Option<PlayerId> {
+fn get_player_id() -> Option<PlayerId> {
     let window = window()?;
     let location = window.location();
     let params = location.search().ok()?;
@@ -36,7 +36,7 @@ fn get_avatar_id() -> Option<PlayerId> {
     params.get("id").and_then(|s| s.parse::<PlayerId>().ok())
 }
 
-fn generate_avatar_id() -> PlayerId {
+fn generate_player_id() -> PlayerId {
     let crypto = window().unwrap().crypto().unwrap();
     let mut array = [0u8; 4];
     crypto.get_random_values_with_u8_array(&mut array).unwrap();

@@ -54,11 +54,11 @@ pub struct InputServices<'a> {
 impl<'a> InputServices<'a> {
     pub fn act(&mut self, action: ClientAction, senses: Senses) {
         self.state.world.act(&action);
-        let avatar_id = self.state.avatar_id;
+        let player_id = self.state.player_id;
         self.client.send(ClientMessage {
-            avatar_id: Some(avatar_id),
+            player_id: Some(player_id),
             content: ClientMessageContent::Command(CommandMessage {
-                avatar_id,
+                player_id,
                 turn: self.state.world.turn,
                 action,
                 senses,
@@ -68,15 +68,15 @@ impl<'a> InputServices<'a> {
 
     pub fn submit_leaderboard(&self, name: String) {
         self.client.send(ClientMessage {
-            avatar_id: Some(self.state.avatar_id),
-            content: ClientMessageContent::LeaderboardSubmit(self.state.avatar_id, name),
+            player_id: Some(self.state.player_id),
+            content: ClientMessageContent::LeaderboardSubmit(self.state.player_id, name),
         });
     }
 
     pub fn new_game(&self) {
         self.client.send(ClientMessage {
-            avatar_id: Some(self.state.avatar_id),
-            content: ClientMessageContent::Start(self.state.avatar_id),
+            player_id: Some(self.state.player_id),
+            content: ClientMessageContent::Start(self.state.player_id),
         });
     }
 

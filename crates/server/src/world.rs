@@ -78,29 +78,29 @@ impl World {
         }
     }
 
-    pub fn new_player(&mut self, aid: PlayerId) {
+    pub fn new_player(&mut self, pid: PlayerId) {
         // Retire player if present
-        self.retire_player(aid);
+        self.retire_player(pid);
 
-        info!("New player #{aid} created.");
+        info!("New player #{pid} created.");
         let new_player = Player {
-            id: aid,
+            id: pid,
             stage: Some(0),
-            last_avatar: Avatar::new(aid),
+            last_avatar: Avatar::new(pid),
             gameover: None,
         };
 
         let stage = &mut self.stages[0];
         stage.add_player(&new_player);
 
-        self.player_by_id.insert(aid, new_player);
+        self.player_by_id.insert(pid, new_player);
     }
 
-    pub fn retire_player(&mut self, aid: PlayerId) -> Option<GameOver> {
-        let player = self.player_by_id.remove(&aid)?;
+    pub fn retire_player(&mut self, pid: PlayerId) -> Option<GameOver> {
+        let player = self.player_by_id.remove(&pid)?;
 
         if let Some(stage_id) = player.stage {
-            let avatar = self.stages.get_mut(stage_id as usize)?.remove_player(aid)?;
+            let avatar = self.stages.get_mut(stage_id as usize)?.remove_player(pid)?;
             Some(GameOver::new(
                 &avatar,
                 GameOverStatus::Dead,
@@ -113,14 +113,14 @@ impl World {
 
     pub fn add_command(
         &mut self,
-        aid: PlayerId,
+        pid: PlayerId,
         action: ClientAction,
         senses: Senses,
     ) -> Result<CommandResult> {
         let player = self
             .player_by_id
-            .get(&aid)
-            .ok_or_else(|| anyhow!("No player #{aid} found."))?;
+            .get(&pid)
+            .ok_or_else(|| anyhow!("No player #{pid} found."))?;
         let mut stage_id = player
             .stage
             .ok_or_else(|| anyhow!("Trying to transition when not in a stage"))?
@@ -138,11 +138,11 @@ impl World {
             mut logs,
             transition,
             timeline,
-        } = stage.add_command(aid, action, senses.clone())?;
+        } = stage.add_command(pid, action, senses.clone())?;
 
         let mut timeline_updates = vec![(stage_id as u8, timeline)];
         if let Some(transition) = transition {
-            match self.handle_transition(aid, transition, senses) {
+            match self.handle_transition(pid, transition, senses) {
                 Ok((tr_stage_id, scr)) => {
                     action = scr.action;
                     senses_info = scr.senses_info;
@@ -236,10 +236,10 @@ impl World {
             }
         }
     }
-    pub fn get_aids_for_stage(&self, stage: u8) -> Vec<PlayerId> {
+    pub fn get_pids_for_stage(&self, stage: u8) -> Vec<PlayerId> {
         self.stages
             .get(stage as usize)
-            .map(|st| st.get_aids())
+            .map(|st| st.get_pids())
             .unwrap_or_default()
     }
 }

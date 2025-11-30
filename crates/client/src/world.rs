@@ -69,7 +69,7 @@ impl WorldView {
 
     pub fn update(&mut self, turn_result: TurnResultMessage) {
         let TurnResultMessage {
-            avatar_id: _,
+            player_id: _,
             stage_turn,
             turn,
             stage,

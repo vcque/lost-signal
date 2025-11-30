@@ -1,6 +1,6 @@
 use losig_core::types::{
-    Avatar, ClientAction, Direction, Foe, FoeId, GameLogEvent, PlayerId, Position, ServerAction,
-    Target, FOCUS_MAX, HP_MAX,
+    Avatar, ClientAction, Direction, FOCUS_MAX, Foe, FoeId, GameLogEvent, HP_MAX, PlayerId,
+    Position, ServerAction, Target,
 };
 
 use crate::stage::{Stage, StageState};
@@ -43,11 +43,11 @@ fn act_attack(avatar: &mut Avatar, target_index: usize, state: &mut StageState) 
     }
 }
 
-pub fn convert_client(action: ClientAction, stage: &mut Stage, aid: PlayerId) -> ServerAction {
+pub fn convert_client(action: ClientAction, stage: &mut Stage, pid: PlayerId) -> ServerAction {
     match action {
         ClientAction::Spawn => ServerAction::Spawn,
         ClientAction::MoveOrAttack(direction) => {
-            convert_move_or_attack_action(direction, stage, aid).unwrap_or(ServerAction::Wait)
+            convert_move_or_attack_action(direction, stage, pid).unwrap_or(ServerAction::Wait)
         }
         ClientAction::Wait => ServerAction::Wait,
     }

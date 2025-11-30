@@ -10,7 +10,7 @@ use crate::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CommandMessage {
-    pub avatar_id: PlayerId,
+    pub player_id: PlayerId,
     /// The avatar's turn. Used to keep track of which response corresponds to which command
     pub turn: Turn,
     /// Action the avatar takes this tick
@@ -21,7 +21,7 @@ pub struct CommandMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TurnResultMessage {
-    pub avatar_id: PlayerId,
+    pub player_id: PlayerId,
     /// The avatar's turn. Used to Keep track of which response corresponds to which command
     pub turn: Turn,
     /// The stage turn, interesting info to know where people are relative to each other
@@ -38,7 +38,7 @@ pub type GameOverMessage = GameOver;
 
 #[derive(Serialize, Deserialize)]
 pub struct ClientMessage {
-    pub avatar_id: Option<PlayerId>,
+    pub player_id: Option<PlayerId>,
     pub content: ClientMessageContent,
 }
 

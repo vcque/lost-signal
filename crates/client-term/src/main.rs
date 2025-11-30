@@ -17,19 +17,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() != 2 {
-        eprintln!("Usage: {} <avatar_id>", args[0]);
+        eprintln!("Usage: {} <player_id>", args[0]);
         eprintln!("Example: {} 42", args[0]);
         std::process::exit(1);
     }
 
-    let avatar_id: PlayerId = args[1]
+    let player_id: PlayerId = args[1]
         .parse()
         .map_err(|_| "Avatar ID must be a valid number")?;
 
     let client = WsClient::new();
     let tui_adapter = CrosstermAdapter::new();
     Adapter {
-        avatar_id,
+        player_id,
         client,
         tui_adapter,
     }

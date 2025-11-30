@@ -69,12 +69,29 @@ pub struct SightedFoe {
     pub alive: bool,
 }
 
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+pub struct SightedAlly {
+    pub offset: Offset,
+    pub alive: bool,
+    pub status: SightedAllyStatus,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
+pub enum SightedAllyStatus {
+    Trailing,
+    /// Can contain the move offset
+    Leading(Option<Offset>),
+    Sync,
+    /// when the player has left the stage
+    Abandonned,
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct SightInfo {
     pub tiles: Tiles,
     pub foes: Vec<SightedFoe>,
     pub orb: Option<Offset>,
-    pub allies: Vec<Offset>,
+    pub allies: Vec<SightedAlly>,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]

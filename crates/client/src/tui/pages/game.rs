@@ -1,4 +1,8 @@
-use losig_core::types::{ClientAction, Direction, FoeId, GameOver, GameOverStatus, Offset, Tile};
+use log::info;
+use losig_core::{
+    sense::SightedAllyStatus,
+    types::{ClientAction, Direction, FoeId, GameOver, GameOverStatus, Offset, Tile},
+};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -295,15 +299,27 @@ impl<'a> Widget for WorldViewWidget<'a> {
 
             // Show the allies
             for ally in &sight.allies {
-                let x = center_x + ally.x;
-                let y = center_y + ally.y;
+                let x = center_x + ally.offset.x;
+                let y = center_y + ally.offset.y;
 
-                buf.set_string(
-                    area.x + x as u16,
-                    area.y + y as u16,
-                    "@",
-                    THEME.palette.ally,
-                );
+                let color = match ally.status {
+                    SightedAllyStatus::Trailing => THEME.palette.ally_trailing,
+                    SightedAllyStatus::Leading(_) => THEME.palette.ally_leading,
+                    SightedAllyStatus::Sync => THEME.palette.ally_sync,
+                    SightedAllyStatus::Abandonned => THEME.palette.ally_abandonned,
+                };
+                buf.set_string(area.x + x as u16, area.y + y as u16, "@", color);
+
+                if let SightedAllyStatus::Leading(Some(offset)) = ally.status {
+                    info!(
+                        "{}; {}; {}| {}, {}, {}",
+                        area.x, center_x, offset.x, area.y, center_y, offset.y
+                    );
+                    let x = area.x + (center_x + offset.x) as u16;
+                    let y = area.y + (center_y + offset.y) as u16;
+                    let area = Rect::new(x, y, 1, 1);
+                    buf.set_style(area, Style::default().bg(THEME.palette.ally_next_move));
+                }
             }
         }
 

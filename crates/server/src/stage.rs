@@ -35,9 +35,9 @@ pub struct Stage {
      * Rollback handling
      */
     head_turn: Turn,
-    avatar_trackers: BTreeMap<PlayerId, AvatarTracker>,
+    pub avatar_trackers: BTreeMap<PlayerId, AvatarTracker>,
     states: BTreeMap<Turn, StageState>,
-    diffs: Vec<TurnDiff>,
+    pub diffs: Vec<TurnDiff>,
 }
 
 impl Stage {
@@ -217,7 +217,7 @@ impl Stage {
         Some(())
     }
 
-    fn diff_index(&self, turn: StageTurn) -> usize {
+    pub fn diff_index(&self, turn: StageTurn) -> usize {
         let turn_diff = self.head_turn - turn;
         self.diffs.len() - 1 - turn_diff as usize
     }
@@ -502,8 +502,8 @@ impl Stage {
 }
 
 #[derive(Clone)]
-struct AvatarTracker {
-    turn: StageTurn,
+pub struct AvatarTracker {
+    pub turn: StageTurn,
     /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
     /// cancelation/confirmation
     limbo: bool,
@@ -535,8 +535,8 @@ impl StageState {
 
 /// What's needed to recompute a stage state
 #[derive(Clone, Default)]
-struct TurnDiff {
-    cmd_by_avatar: BTreeMap<AvatarId, AvatarCmd>,
+pub struct TurnDiff {
+    pub cmd_by_avatar: BTreeMap<AvatarId, AvatarCmd>,
     new_avatar: Option<Avatar>,
     sense_bindings: SenseBinds,
 }
@@ -570,9 +570,9 @@ pub struct AvatarBinds {
 }
 
 #[derive(Clone, Debug)]
-struct AvatarCmd {
-    action: ServerAction,
-    senses: Senses,
+pub struct AvatarCmd {
+    pub action: ServerAction,
+    pub senses: Senses,
 }
 
 pub struct StageCommandResult {

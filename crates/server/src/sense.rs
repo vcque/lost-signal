@@ -1,9 +1,12 @@
+use std::cmp::Ordering;
+
 use bounded_integer::BoundedU8;
 use losig_core::{
     sense::{
-        HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, SightedFoe, TouchInfo,
+        HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, SightedAlly,
+        SightedAllyStatus, SightedFoe, TouchInfo,
     },
-    types::{Avatar, Tile},
+    types::{Avatar, ServerAction, Tile},
 };
 
 use crate::{
@@ -78,14 +81,41 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
 
     let mut allies = vec![];
     for ally in state.avatars.values() {
-        if ally.is_dead() {
-            continue;
-        }
         let offset = ally.position - avatar.position;
         let fov_position = center + offset;
-        if tiles.get(fov_position) != Tile::Unknown {
-            allies.push(offset);
+        if tiles.get(fov_position) == Tile::Unknown {
+            // Not in fov
+            continue;
         }
+
+        let avatar_tracker = stage.avatar_trackers.get(&ally.player_id);
+        let status = if let Some(tracker) = avatar_tracker {
+            match tracker.turn.cmp(&state.turn) {
+                Ordering::Less => SightedAllyStatus::Trailing,
+                Ordering::Equal => SightedAllyStatus::Sync,
+                Ordering::Greater => {
+                    let i = stage.diff_index(state.turn + 1);
+                    let move_offset = stage
+                        .diffs
+                        .get(i)
+                        .and_then(|d| d.cmd_by_avatar.get(&ally.player_id))
+                        .and_then(|cmd| match cmd.action {
+                            ServerAction::Move(pos) => Some(pos),
+                            _ => None,
+                        })
+                        .map(|pos| pos - avatar.position);
+                    SightedAllyStatus::Leading(move_offset)
+                }
+            }
+        } else {
+            SightedAllyStatus::Abandonned
+        };
+
+        allies.push(SightedAlly {
+            offset,
+            alive: !avatar.is_dead(),
+            status,
+        });
     }
 
     SightInfo {

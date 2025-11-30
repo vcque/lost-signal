@@ -112,7 +112,7 @@ impl<'a> Widget for SelfSenseWidget<'a> {
                     )
                 } else {
                     // Current HP: green
-                    ('█', Style::default().fg(THEME.palette.ally))
+                    ('█', Style::default().fg(THEME.palette.ui_hp))
                 };
                 buf.set_string(second.x + 4 + i as u16, second.y, ch.to_string(), style);
             }

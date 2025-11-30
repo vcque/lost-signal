@@ -13,9 +13,15 @@ pub struct ThemePalette {
     pub ui_highlight: Color,
     pub ui_selected: Color,
     pub ui_disabled: Color,
+    pub ui_hp: Color,
 
     pub foe: Color,
-    pub ally: Color,
+    pub ally_leading: Color,
+    pub ally_trailing: Color,
+    pub ally_abandonned: Color,
+    pub ally_sync: Color,
+    pub ally_next_move: Color,
+
     pub terrain: Color,
     pub terrain_unseen: Color,
 
@@ -39,7 +45,12 @@ pub struct ThemePalette {
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
     palette: ThemePalette {
         foe: Color::from_hsl(Hsl::new(0.0, 1.0, 0.5)),
-        ally: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),
+        ally_leading: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),
+        ally_trailing: Color::from_hsl(Hsl::new(180.0, 1.0, 0.5)),
+        ally_sync: Color::from_hsl(Hsl::new(75.0, 0.5, 0.7)),
+        ally_abandonned: Color::from_hsl(Hsl::new(40.0, 0.2, 0.2)),
+        ally_next_move: Color::from_hsl(Hsl::new(40.0, 0.7, 0.2)),
+
         terrain: Color::from_hsl(Hsl::new(270.0, 1.0, 0.5)),
         terrain_unseen: Color::from_hsl(Hsl::new(270.0, 0.0, 0.1)),
 
@@ -48,6 +59,8 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
         ui_text: Color::from_hsl(Hsl::new(0.0, 0.0, 0.8)),
         ui_highlight: Color::White,
         ui_selected: Color::Rgb(0, 255, 0),
+        ui_hp: Color::from_hsl(Hsl::new(115.0, 0.7, 0.3)),
+
         avatar: Color::from_hsl(Hsl::new(220.0, 1.0, 0.5)),
 
         important: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),

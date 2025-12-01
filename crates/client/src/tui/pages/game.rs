@@ -216,7 +216,7 @@ const DEFAULT_STYLE: &Style = &Style::new();
 fn render_tile(tile: Tile) -> (char, Style) {
     match tile {
         Tile::Spawn => ('^', Style::new().fg(THEME.palette.important)),
-        Tile::Wall => (' ', Style::new().bg(THEME.palette.terrain)),
+        Tile::Wall => ('█', Style::new().fg(THEME.palette.terrain)),
         Tile::Unknown => (' ', *DEFAULT_STYLE),
         Tile::Empty => ('.', Style::new().fg(THEME.palette.terrain)),
         Tile::Pylon => ('|', Style::new().fg(THEME.palette.important)),

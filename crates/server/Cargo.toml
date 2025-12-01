@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[features]
+default = ["tui"]
+tui = ["dep:crossterm", "dep:ratatui", "dep:tui-logger"]
+
 [dependencies]
 losig-core = { path = "../core" }
 anyhow.workspace = true
@@ -13,13 +17,14 @@ log.workspace = true
 rand.workspace = true
 serde.workspace = true
 tungstenite.workspace = true
-crossterm.workspace = true
-ratatui = { version = "0.29" }
-tui-logger.workspace = true
+crossterm = { workspace = true, optional = true }
+ratatui = { version = "0.29", optional = true }
+tui-logger = { workspace = true, optional = true }
 fraction.workspace = true
 tiled = "0.15.0"
 bounded-integer.workspace = true
 grid.workspace = true
+env_logger = "0.11.8"
 
 [lints]
 workspace = true

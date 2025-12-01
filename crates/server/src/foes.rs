@@ -4,7 +4,7 @@ use crate::stage::{SenseBinds, Stage, StageState};
 
 pub fn act(
     foe: &Foe,
-    _stage: &Stage,
+    stage: &Stage,
     state: &mut StageState,
     bindings: &SenseBinds,
 ) -> Box<dyn FnOnce(&mut Foe)> {
@@ -52,7 +52,7 @@ pub fn act(
                     // Move toward avatar, avoiding other foes and avatars
                     let target_pos = avatar.position;
 
-                    if let Some(new_pos) = find_best_move(*pos, target_pos, foe, state) {
+                    if let Some(new_pos) = find_best_move(*pos, target_pos, foe, stage, state) {
                         return Box::new(move |f| {
                             if let Foe::Simple(pos, _) = f {
                                 *pos = new_pos
@@ -122,11 +122,12 @@ fn is_position_occupied(pos: Position, current_foe: &Foe, state: &StageState) ->
     false
 }
 
-/// Find the best move toward the target that avoids other foes and avatars
+/// Find the best move toward the target that avoids other foes, avatars, and walls
 fn find_best_move(
     current_pos: Position,
     target_pos: Position,
     current_foe: &Foe,
+    stage: &Stage,
     state: &StageState,
 ) -> Option<Position> {
     use Direction::*;
@@ -149,9 +150,12 @@ fn find_best_move(
     // Sort by distance (closest first)
     candidates.sort_by_key(|(_, _, dist)| *dist);
 
-    // First pass: find unoccupied position that gets us closer or maintains distance
+    // First pass: find traversable, unoccupied position that gets us closer or maintains distance
     for (_, new_pos, new_dist) in &candidates {
-        if *new_dist <= current_dist && !is_position_occupied(*new_pos, current_foe, state) {
+        let tile = stage.template.tiles.grid.get(new_pos.x, new_pos.y).copied().unwrap_or_default();
+        if *new_dist <= current_dist
+            && tile.can_travel()
+            && !is_position_occupied(*new_pos, current_foe, state) {
             return Some(*new_pos);
         }
     }

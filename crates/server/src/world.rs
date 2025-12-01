@@ -55,11 +55,13 @@ pub enum CommandResultOutcome {
         info: SensesInfo,
         action: ServerAction,
         logs: Vec<(StageTurn, GameLogEvent)>,
+        timeline: Timeline,
     },
     Transition {
         stage: StageId,
         stage_turn: StageTurn,
         info: SensesInfo,
+        timeline: Timeline,
     },
     Gameover(GameOver),
 }
@@ -161,6 +163,7 @@ impl World {
                     info: scr.senses_info,
                     action: scr.action,
                     logs: scr.logs,
+                    timeline: scr.timeline,
                 },
             }
         };
@@ -239,6 +242,7 @@ impl World {
                         stage: stage_id,
                         stage_turn: scr.stage_turn,
                         info: scr.senses_info,
+                        timeline: scr.timeline,
                     },
                 })
             }

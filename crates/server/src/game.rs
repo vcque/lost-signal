@@ -50,6 +50,7 @@ impl Game {
                 info,
                 action,
                 logs,
+                timeline,
             } => {
                 // Send turn result with senses info
                 let msg = TurnMessage {
@@ -60,6 +61,7 @@ impl Game {
                     action,
                     info,
                     logs: GameLogsMessage { from: 0, logs },
+                    timeline,
                 };
                 let msg = ServerMessageWithRecipient {
                     recipient: Recipient::Single(player_id),
@@ -71,6 +73,7 @@ impl Game {
                 stage,
                 stage_turn,
                 info,
+                timeline,
             } => {
                 let msg = TransitionMessage {
                     player_id,
@@ -78,6 +81,7 @@ impl Game {
                     stage_turn,
                     stage,
                     info,
+                    timeline,
                 };
                 let msg = ServerMessageWithRecipient {
                     recipient: Recipient::Single(player_id),

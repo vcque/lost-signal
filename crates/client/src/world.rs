@@ -89,6 +89,7 @@ impl WorldView {
             info,
             action,
             logs,
+            timeline,
         }: TurnMessage,
     ) {
         let diff = turn.abs_diff(self.turn);
@@ -118,6 +119,7 @@ impl WorldView {
         }
 
         self.stage_turn = stage_turn;
+        self.timeline = timeline;
     }
 
     pub fn transition(
@@ -128,6 +130,7 @@ impl WorldView {
             stage_turn,
             stage,
             info,
+            timeline,
         }: TransitionMessage,
     ) {
         self.clear();
@@ -139,6 +142,7 @@ impl WorldView {
             server_action: Some(ServerAction::Wait),
             info: Some(info),
         });
+        self.timeline = timeline;
         self.rebuild_current_state();
     }
 
@@ -387,9 +391,8 @@ impl WorldState {
                             adjusted.offset = adjusted.offset - player_movement;
                             // Also adjust the offset in Leading status if present
                             if let SightedAllyStatus::Leading(Some(move_offset)) = adjusted.status {
-                                adjusted.status = SightedAllyStatus::Leading(
-                                    Some(move_offset - player_movement)
-                                );
+                                adjusted.status =
+                                    SightedAllyStatus::Leading(Some(move_offset - player_movement));
                             }
                             adjusted
                         })

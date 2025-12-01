@@ -31,6 +31,7 @@ pub struct TurnMessage {
     pub info: SensesInfo,
     pub action: ServerAction,
     pub logs: GameLogsMessage,
+    pub timeline: Timeline,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -43,6 +44,7 @@ pub struct TransitionMessage {
     pub stage: StageId,
     /// Senses info gathered when entering the stage
     pub info: SensesInfo,
+    pub timeline: Timeline,
 }
 
 pub struct LimboMessage {}

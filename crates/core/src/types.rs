@@ -388,7 +388,7 @@ pub enum FoeId {
 }
 
 /// Represents a timeline for a given stage
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug, Default)]
 pub struct Timeline {
     pub head: StageTurn,
     pub tail: StageTurn,

@@ -215,10 +215,10 @@ const DEFAULT_STYLE: &Style = &Style::new();
 
 fn render_tile(tile: Tile) -> (char, Style) {
     match tile {
-        Tile::Spawn => ('^', Style::new().fg(THEME.palette.important)),
-        Tile::Wall => ('█', Style::new().fg(THEME.palette.terrain)),
+        Tile::Spawn => ('_', Style::new().fg(THEME.palette.important)),
+        Tile::Wall => ('█', Style::new().fg(THEME.palette.tile_wall)),
         Tile::Unknown => (' ', *DEFAULT_STYLE),
-        Tile::Empty => ('.', Style::new().fg(THEME.palette.terrain)),
+        Tile::Empty => ('.', Style::new().fg(THEME.palette.tile_floor)),
         Tile::Pylon => ('|', Style::new().fg(THEME.palette.important)),
     }
 }
@@ -254,9 +254,9 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 let style = if in_fov {
                     style
                 } else if style.fg.is_some() {
-                    style.fg(THEME.palette.terrain_unseen)
+                    style.fg(THEME.palette.tile_unseen)
                 } else if style.bg.is_some() {
-                    style.bg(THEME.palette.terrain_unseen)
+                    style.bg(THEME.palette.tile_unseen)
                 } else {
                     style
                 };

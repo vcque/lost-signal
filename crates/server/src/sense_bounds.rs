@@ -2,15 +2,17 @@ use std::collections::{BTreeMap, btree_map::Entry};
 
 use losig_core::{
     sense::{SelfInfo, SightInfo},
-    types::{Avatar, FoeId, PlayerId, Position, StageTurn},
+    types::{Avatar, Foe, FoeId, PlayerId, Position, StageTurn},
 };
+
+use crate::stage::StageState;
 
 /// When a player witness some states, it creates bindings on the previous states to ensure that
 /// the witnessed state stays true
 
 #[derive(Clone, Default)]
 pub struct SenseBounds {
-    pub avatars: BTreeMap<PlayerId, HpBound>,
+    pub avatars: BTreeMap<PlayerId, MaxHpBound>,
 
     pub death_bounds: BTreeMap<FoeId, DeathBound>,
     pub position_bounds: BTreeMap<(FoeId, PlayerId), PositionBound>,
@@ -26,7 +28,7 @@ impl SenseBounds {
     ) {
         self.avatars.insert(
             avatar_id,
-            HpBound {
+            MaxHpBound {
                 value: selfi.hp,
                 turn,
                 source: pid,
@@ -62,6 +64,29 @@ impl SenseBounds {
         }
     }
 
+    pub fn enforce(&self, state: &mut StageState) {
+        // Enforce avatar HP bounds
+        for (avatar_id, hp_bound) in &self.avatars {
+            if let Some(avatar) = state.avatars.get_mut(avatar_id) {
+                hp_bound.enforce(state.turn, avatar);
+            }
+        }
+
+        // Enforce foe death bounds
+        for (foe_id, death_bound) in &self.death_bounds {
+            if let Some(foe) = state.foes.get_mut(*foe_id) {
+                death_bound.enforce(state.turn, foe);
+            }
+        }
+
+        // Enforce foe position bounds
+        for ((foe_id, _player_id), position_bound) in &self.position_bounds {
+            if let Some(foe) = state.foes.get_mut(*foe_id) {
+                position_bound.enforce(state.turn, foe);
+            }
+        }
+    }
+
     pub fn release(&mut self, pid: PlayerId) {
         self.avatars.retain(|_, bound| bound.source != pid);
         self.death_bounds.retain(|_, bound| bound.source != pid);
@@ -70,8 +95,8 @@ impl SenseBounds {
 }
 
 /// The target health has been witnessed
-#[derive(Clone)]
-pub struct HpBound {
+#[derive(Clone, Debug)]
+pub struct MaxHpBound {
     pub value: u8,
     pub turn: StageTurn,
     pub source: PlayerId,
@@ -90,4 +115,34 @@ pub struct PositionBound {
     pub value: Position,
     pub turn: StageTurn,
     pub source: PlayerId,
+}
+
+impl PositionBound {
+    pub fn enforce(&self, turn: StageTurn, foe: &mut Foe) {
+        if turn == self.turn {
+            match foe {
+                Foe::MindSnare(position) => *position = self.value,
+                Foe::Simple(position, _) => *position = self.value,
+            }
+        }
+    }
+}
+
+impl DeathBound {
+    pub fn enforce(&self, turn: StageTurn, foe: &mut Foe) {
+        if turn == self.turn {
+            match foe {
+                Foe::MindSnare(_) => unreachable!("Cannot be killed"),
+                Foe::Simple(_, hp) => *hp = 0,
+            }
+        }
+    }
+}
+
+impl MaxHpBound {
+    pub fn enforce(&self, turn: StageTurn, avatar: &mut Avatar) {
+        if turn == self.turn {
+            avatar.hp = avatar.hp.max(self.value);
+        }
+    }
 }

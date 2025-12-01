@@ -208,10 +208,12 @@ impl Stage {
             "states after retain turn <= {turn}: {:?}",
             self.states.keys()
         );
+
         for turn in (turn + 1)..(self.head_turn + 1) {
             let index = self.diff_index(turn);
             let diff = &self.diffs[index];
             self.enact_turn(&mut state, diff);
+            self.bounds.enforce(&mut state);
             if turns_to_save.contains(&turn) {
                 self.states.insert(turn, state.clone());
             }
@@ -271,6 +273,7 @@ impl Stage {
         if let Some(ref new_avatar) = diff.new_avatar {
             self.welcome_avatar(state, new_avatar);
         }
+
         state.turn += 1;
     }
 

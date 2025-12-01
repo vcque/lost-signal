@@ -82,20 +82,12 @@ fn target_selection<'a>(
             continue;
         }
         let aid = avatar.player_id;
-        let bindings = bindings.avatars.get(&aid);
-
-        let min_hp = bindings.map(|b| b.value);
-        let is_hp_bound = if let Some(min_hp) = min_hp {
-            avatar.hp < min_hp + 2
-        } else {
-            false
-        };
 
         let dist = foe.position().dist(&avatar.position);
         if dist > 4 {
             continue;
         }
-        viable_targets.push((aid, is_hp_bound, dist));
+        viable_targets.push((aid, false, dist));
     }
 
     // Sort by (is_hp_bound, distance) - non-bound targets first, then by closest

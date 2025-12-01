@@ -1,4 +1,4 @@
-use log::warn;
+use log::{debug, warn};
 use losig_core::{
     fov,
     network::{TransitionMessage, TurnMessage},
@@ -54,12 +54,12 @@ impl WorldView {
             self.clear();
         }
 
-        let previous_sight = self.last_info().and_then(|info| info.sight.as_ref());
-        let intermediate_info = WorldState::generate_intermediate_sight(
+        let previous_info = self.last_info();
+        let intermediate_info = WorldState::generate_intermediate_info(
             action,
             senses,
             &self.current_state,
-            previous_sight,
+            previous_info,
         );
 
         let history = WorldHistory {
@@ -154,7 +154,11 @@ impl WorldView {
     }
 
     pub fn last_info(&self) -> Option<&SensesInfo> {
-        self.history.last().and_then(|h| h.info.as_ref())
+        self.history
+            .iter()
+            .rev()
+            .filter_map(|h| h.info.as_ref())
+            .next()
     }
 
     pub fn update_on_averted(&mut self, info: SensesInfo) {
@@ -180,12 +184,12 @@ impl WorldView {
     }
 
     fn rebuild_current_state(&mut self) {
-        // Should we take into account more recent terrain info ? It is static after all
         let mut state = self.past_state.clone();
         for history in self.history.iter() {
             state.update(history);
         }
 
+        debug!("Rebuilding state up to turn {}", self.turn);
         self.current_state = state;
     }
 
@@ -322,31 +326,16 @@ impl WorldState {
 
         tiles
     }
-    /// Generate intermediate sight info using client-side FOV to prevent flickers.
+    /// Generate intermediate sense info using client-side FOV to prevent flickers.
     /// This shows entities at their last known positions "as if they didn't move"
     /// while waiting for the server response.
-    fn generate_intermediate_sight(
+    fn generate_intermediate_info(
         action: &ClientAction,
         senses: &Senses,
         current_state: &WorldState,
-        previous_sight: Option<&SightInfo>,
+        previous_info: Option<&SensesInfo>,
     ) -> Option<SensesInfo> {
-        // Use the minimum of current sense strength and previous sight radius
-        let previous_sight_radius = previous_sight
-            .map(|sight| {
-                // Calculate radius from the tiles grid size
-                (sight.tiles.width().saturating_sub(1)) / 2
-            })
-            .unwrap_or(0);
-
-        let requested_radius = senses.sight.get() as usize;
-        let sight_radius = requested_radius.min(previous_sight_radius);
-
-        if sight_radius == 0 {
-            return None;
-        }
-
-        // Predict the state after this action to get the right position and tiles
+        // Predict the state after this action to get the right position
         let old_position = current_state.position;
         let mut predicted_state = current_state.clone();
         predicted_state.update_action(action, None);
@@ -355,57 +344,85 @@ impl WorldState {
         // Calculate player movement offset to adjust entity offsets
         let player_movement = new_position - old_position;
 
-        // Convert client tiles to Tiles for FOV calculation centered around predicted position
-        let tiles_for_fov = predicted_state.tiles_for_fov(sight_radius);
+        // Generate sight info if sight sense is active
+        let sight = if senses.sight.get() > 0 {
+            let previous_sight = previous_info.and_then(|info| info.sight.as_ref());
+            let previous_sight_radius = previous_sight
+                .map(|sight| (sight.tiles.width().saturating_sub(1)) / 2)
+                .unwrap_or(0);
 
-        // Calculate FOV from center of the local grid (which represents predicted_position)
-        let center_pos = Position {
-            x: sight_radius,
-            y: sight_radius,
-        };
-        let fov_tiles = fov::fov(center_pos, sight_radius, &tiles_for_fov);
+            let requested_radius = senses.sight.get() as usize;
+            let sight_radius = requested_radius.min(previous_sight_radius);
 
-        // Copy foes, orb, and allies from previous sight (as if they didn't move)
-        // Adjust their offsets based on player movement
-        let (foes, orb, allies) = if let Some(prev_sight) = previous_sight {
-            let adjusted_foes = prev_sight
-                .foes
-                .iter()
-                .map(|foe| {
-                    let mut adjusted = foe.clone();
-                    adjusted.offset = adjusted.offset - player_movement;
-                    adjusted
+            if sight_radius > 0 {
+                // Convert client tiles to Tiles for FOV calculation
+                let tiles_for_fov = predicted_state.tiles_for_fov(sight_radius);
+
+                // Calculate FOV from center of the local grid
+                let center_pos = Position {
+                    x: sight_radius,
+                    y: sight_radius,
+                };
+                let fov_tiles = fov::fov(center_pos, sight_radius, &tiles_for_fov);
+
+                // Copy foes, orb, and allies from previous sight, adjusting offsets for player movement
+                let (foes, orb, allies) = if let Some(prev_sight) = previous_sight {
+                    let adjusted_foes = prev_sight
+                        .foes
+                        .iter()
+                        .map(|foe| {
+                            let mut adjusted = foe.clone();
+                            adjusted.offset = adjusted.offset - player_movement;
+                            adjusted
+                        })
+                        .collect();
+
+                    let adjusted_orb = prev_sight.orb.map(|offset| offset - player_movement);
+
+                    let adjusted_allies = prev_sight
+                        .allies
+                        .iter()
+                        .map(|ally| {
+                            let mut adjusted = ally.clone();
+                            adjusted.offset = adjusted.offset - player_movement;
+                            adjusted
+                        })
+                        .collect();
+
+                    (adjusted_foes, adjusted_orb, adjusted_allies)
+                } else {
+                    (vec![], None, vec![])
+                };
+
+                Some(SightInfo {
+                    tiles: fov_tiles,
+                    foes,
+                    orb,
+                    allies,
                 })
-                .collect();
-
-            let adjusted_orb = prev_sight.orb.map(|offset| offset - player_movement);
-
-            let adjusted_allies = prev_sight
-                .allies
-                .iter()
-                .map(|ally| {
-                    let mut adjusted = ally.clone();
-                    adjusted.offset = adjusted.offset - player_movement;
-                    adjusted
-                })
-                .collect();
-
-            (adjusted_foes, adjusted_orb, adjusted_allies)
+            } else {
+                None
+            }
         } else {
-            (vec![], None, vec![])
+            None
         };
 
-        Some(SensesInfo {
-            selfi: None,
-            touch: None,
-            sight: Some(SightInfo {
-                tiles: fov_tiles,
-                foes,
-                orb,
-                allies,
-            }),
-            hearing: None,
-        })
+        // Copy other sense infos from previous state
+        let selfi = previous_info.and_then(|info| info.selfi.clone());
+        let touch = previous_info.and_then(|info| info.touch.clone());
+        let hearing = previous_info.and_then(|info| info.hearing.clone());
+
+        // Return intermediate info if at least one sense is present
+        if sight.is_some() || selfi.is_some() || touch.is_some() || hearing.is_some() {
+            Some(SensesInfo {
+                selfi,
+                touch,
+                sight,
+                hearing,
+            })
+        } else {
+            None
+        }
     }
 }
 

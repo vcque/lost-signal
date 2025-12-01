@@ -57,14 +57,15 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
     let mut foes = vec![];
 
     let center = tiles.center();
-    for foe in &state.foes {
+    for (i, foe) in state.foes.iter().enumerate() {
         let offset = foe.position() - avatar.position;
         let fov_position = center + offset;
 
         if tiles.get(fov_position) != Tile::Unknown {
             foes.push(SightedFoe {
+                id: i,
                 offset,
-                foe_id: foe.foe_id(),
+                foe_type: foe.foe_type(),
                 alive: foe.alive(),
             });
         }

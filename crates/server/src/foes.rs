@@ -1,12 +1,15 @@
-use losig_core::types::{Direction, Foe, FoeId, GameLogEvent, PlayerId, Position, Target};
+use losig_core::types::{Direction, Foe, FoeType, GameLogEvent, PlayerId, Position, Target};
 
-use crate::stage::{SenseBinds, Stage, StageState};
+use crate::{
+    sense_bounds::SenseBounds,
+    stage::{Stage, StageState},
+};
 
 pub fn act(
     foe: &Foe,
     stage: &Stage,
     state: &mut StageState,
-    bindings: &SenseBinds,
+    bindings: &SenseBounds,
 ) -> Box<dyn FnOnce(&mut Foe)> {
     if !foe.alive() {
         return Box::new(|_| {});
@@ -20,7 +23,7 @@ pub fn act(
                         state.turn,
                         GameLogEvent::Attack {
                             to: Target::You,
-                            from: Target::Foe(FoeId::MindSnare),
+                            from: Target::Foe(FoeType::MindSnare),
                         },
                     ));
                 }
@@ -42,7 +45,7 @@ pub fn act(
                             state.turn,
                             GameLogEvent::Attack {
                                 to: Target::You,
-                                from: Target::Foe(FoeId::Simple),
+                                from: Target::Foe(FoeType::Simple),
                             },
                         ));
                     } else {
@@ -70,7 +73,7 @@ pub fn act(
 fn target_selection<'a>(
     foe: &'a Foe,
     state: &'a StageState,
-    bindings: &'a SenseBinds,
+    bindings: &'a SenseBounds,
 ) -> Option<(PlayerId, bool)> {
     let mut viable_targets: Vec<(PlayerId, bool, usize)> = vec![];
 
@@ -81,7 +84,7 @@ fn target_selection<'a>(
         let aid = avatar.player_id;
         let bindings = bindings.avatars.get(&aid);
 
-        let min_hp = bindings.map(|b| b.min_hp);
+        let min_hp = bindings.map(|b| b.value);
         let is_hp_bound = if let Some(min_hp) = min_hp {
             avatar.hp < min_hp + 2
         } else {
@@ -152,10 +155,17 @@ fn find_best_move(
 
     // First pass: find traversable, unoccupied position that gets us closer or maintains distance
     for (_, new_pos, new_dist) in &candidates {
-        let tile = stage.template.tiles.grid.get(new_pos.x, new_pos.y).copied().unwrap_or_default();
+        let tile = stage
+            .template
+            .tiles
+            .grid
+            .get(new_pos.x, new_pos.y)
+            .copied()
+            .unwrap_or_default();
         if *new_dist <= current_dist
             && tile.can_travel()
-            && !is_position_occupied(*new_pos, current_foe, state) {
+            && !is_position_occupied(*new_pos, current_foe, state)
+        {
             return Some(*new_pos);
         }
     }

@@ -195,6 +195,7 @@ pub type StageTurn = u64;
 
 pub type PlayerId = u32;
 pub type StageId = usize;
+pub type FoeId = usize;
 
 #[derive(Clone)]
 pub struct Avatar {
@@ -278,10 +279,10 @@ impl Foe {
             }
     }
 
-    pub fn foe_id(&self) -> FoeId {
+    pub fn foe_type(&self) -> FoeType {
         match self {
-            Foe::Simple(_, _) => FoeId::Simple,
-            Foe::MindSnare(_) => FoeId::MindSnare,
+            Foe::Simple(_, _) => FoeType::Simple,
+            Foe::MindSnare(_) => FoeType::MindSnare,
         }
     }
 }
@@ -376,13 +377,13 @@ pub enum GameLogEvent {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 pub enum Target {
-    Foe(FoeId),
+    Foe(FoeType),
     You,
     OtherPlayer,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
-pub enum FoeId {
+pub enum FoeType {
     MindSnare,
     Simple,
 }

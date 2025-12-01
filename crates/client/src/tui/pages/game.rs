@@ -1,7 +1,7 @@
 use log::info;
 use losig_core::{
     sense::SightedAllyStatus,
-    types::{ClientAction, Direction, FoeId, GameOver, GameOverStatus, Offset, Tile},
+    types::{ClientAction, Direction, FoeType, GameOver, GameOverStatus, Offset, Tile},
 };
 use ratatui::{
     buffer::Buffer,
@@ -283,9 +283,9 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 let x = center_x + foe.offset.x;
                 let y = center_y + foe.offset.y;
 
-                let char = match foe.foe_id {
-                    FoeId::Simple => "s",
-                    FoeId::MindSnare => "¤",
+                let char = match foe.foe_type {
+                    FoeType::Simple => "s",
+                    FoeType::MindSnare => "¤",
                 };
 
                 let style = if foe.alive {

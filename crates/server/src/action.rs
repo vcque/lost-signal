@@ -1,5 +1,5 @@
 use losig_core::types::{
-    Avatar, ClientAction, Direction, FOCUS_MAX, Foe, FoeId, GameLogEvent, HP_MAX, PlayerId,
+    Avatar, ClientAction, Direction, FOCUS_MAX, Foe, FoeType, GameLogEvent, HP_MAX, PlayerId,
     Position, ServerAction, Target,
 };
 
@@ -37,7 +37,7 @@ fn act_attack(avatar: &mut Avatar, target_index: usize, state: &mut StageState) 
             state.turn,
             GameLogEvent::Attack {
                 from: Target::You,
-                to: Target::Foe(FoeId::Simple),
+                to: Target::Foe(FoeType::Simple),
             },
         ));
     }

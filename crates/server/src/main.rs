@@ -8,6 +8,7 @@ mod dispatch;
 mod foes;
 mod game;
 mod sense;
+mod sense_bounds;
 mod services;
 mod stage;
 mod tiled;

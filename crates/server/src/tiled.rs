@@ -30,6 +30,7 @@ const STAGES: &[(&str, &[u8])] = include_stages![
     "tuto_sight",
     "tuto_end",
     "arena",
+    "arena_corridor"
 ];
 
 const MINDSNARE_ID: u32 = 1;
@@ -156,6 +157,7 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
     Ok(results)
 }
 
+#[allow(unused)]
 pub fn load_tutorial() -> Result<World> {
     let tutos: Vec<&str> = STAGES
         .iter()
@@ -166,8 +168,9 @@ pub fn load_tutorial() -> Result<World> {
     load_world(&tutos)
 }
 
+#[allow(unused)]
 pub fn load_arena() -> Result<World> {
-    load_world(&["arena"])
+    load_world(&["arena_corridor"])
 }
 
 pub fn load_world(stage_ids: &[&str]) -> Result<World> {

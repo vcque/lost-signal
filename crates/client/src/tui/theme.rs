@@ -41,6 +41,8 @@ pub struct ThemePalette {
     pub timeline_head: Hsl,
 
     pub page_info: Color,
+    pub ui_bar_empty: Color,
+    pub ui_focus: Color,
 }
 
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
@@ -62,6 +64,8 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
         ui_highlight: Color::White,
         ui_selected: Color::Rgb(0, 255, 0),
         ui_hp: Color::from_hsl(Hsl::new(115.0, 0.7, 0.3)),
+        ui_bar_empty: Color::from_hsl(Hsl::new(115.0, 0.0, 0.5)),
+        ui_focus: Color::from_hsl(Hsl::new(220.0, 1.0, 0.5)),
 
         avatar: Color::from_hsl(Hsl::new(220.0, 1.0, 0.5)),
 

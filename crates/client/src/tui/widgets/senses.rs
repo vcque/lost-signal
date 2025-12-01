@@ -1,6 +1,6 @@
 use bounded_integer::BoundedU8;
 use losig_core::sense::{SenseStrength, Senses, SensesInfo};
-use losig_core::types::HP_MAX;
+use losig_core::types::{FOCUS_MAX, HP_MAX};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -91,36 +91,58 @@ impl<'a> Widget for SelfSenseWidget<'a> {
             .right_aligned()
             .render(first, buf);
 
-        // Render second line (HP gauge + Focus)
+        // Render second line (HP gauge + Focus gauge)
         if let Some(info) = self.info {
+            // Split the second line into two equal halves
+            let halves =
+                Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .split(second);
+            let [hp_area, fp_area] = halves.as_ref() else {
+                return;
+            };
+
+            // Render HP gauge in left half
             let hp = info.hp.min(HP_MAX);
             let hp_max = info.hp_max.min(HP_MAX);
 
-            // Render "HP: " label
-            buf.set_string(second.x, second.y, "HP: ", Style::default());
+            buf.set_string(hp_area.x, hp_area.y, "HP: ", Style::default());
 
-            // Render HP gauge manually (reversed order)
+            // Render HP gauge
             for i in 0..HP_MAX {
-                let (ch, style) = if i < (HP_MAX - hp_max) {
-                    // Beyond max HP: red
-                    ('█', Style::default().fg(THEME.palette.foe))
-                } else if i < (HP_MAX - hp) {
+                let (ch, style) = if i < hp {
+                    // Current HP: green
+                    ('█', Style::default().fg(THEME.palette.ui_hp))
+                } else if i < hp_max {
                     // Lost HP but within max: timeline color
                     (
                         '█',
                         Style::default().fg(Color::from_hsl(THEME.palette.timeline_tail)),
                     )
                 } else {
-                    // Current HP: green
-                    ('█', Style::default().fg(THEME.palette.ui_hp))
+                    // Beyond max HP: red
+                    ('█', Style::default().fg(THEME.palette.ui_bar_empty))
                 };
-                buf.set_string(second.x + 4 + i as u16, second.y, ch.to_string(), style);
+                buf.set_string(hp_area.x + 4 + i as u16, hp_area.y, ch.to_string(), style);
             }
 
-            // Render Focus text
-            Line::from(format!("Focus:{:2}", info.focus))
-                .right_aligned()
-                .render(second, buf);
+            // Render FP gauge in right half
+            let focus = info.focus.min(FOCUS_MAX);
+
+            buf.set_string(fp_area.x, fp_area.y, "FP: ", Style::default());
+
+            // Calculate number of blocks based on available width (subtract 4 for "FP: " label)
+            let fp_blocks = fp_area.width.saturating_sub(4) as usize;
+
+            // Render FP gauge using ratio
+            for i in 0..fp_blocks {
+                let threshold = ((i + 1) as f32 / fp_blocks as f32 * FOCUS_MAX as f32) as u8;
+                let (ch, style) = if focus >= threshold {
+                    ('█', Style::default().fg(THEME.palette.ui_focus))
+                } else {
+                    ('█', Style::default().fg(THEME.palette.ui_bar_empty))
+                };
+                buf.set_string(fp_area.x + 4 + i as u16, fp_area.y, ch.to_string(), style);
+            }
         } else {
             Line::from("-")
                 .style(THEME.palette.ui_disabled)

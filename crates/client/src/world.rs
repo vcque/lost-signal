@@ -2,7 +2,7 @@ use log::{debug, warn};
 use losig_core::{
     fov,
     network::{TransitionMessage, TurnMessage},
-    sense::{Senses, SensesInfo, SightInfo},
+    sense::{Senses, SensesInfo, SightInfo, SightedAllyStatus},
     types::{
         ClientAction, Offset, Position, ServerAction, StageId, StageTurn, Tile, Tiles, Timeline,
         Turn,
@@ -385,6 +385,12 @@ impl WorldState {
                         .map(|ally| {
                             let mut adjusted = ally.clone();
                             adjusted.offset = adjusted.offset - player_movement;
+                            // Also adjust the offset in Leading status if present
+                            if let SightedAllyStatus::Leading(Some(move_offset)) = adjusted.status {
+                                adjusted.status = SightedAllyStatus::Leading(
+                                    Some(move_offset - player_movement)
+                                );
+                            }
                             adjusted
                         })
                         .collect();

@@ -8,4 +8,3 @@ pub mod widgets;
 pub use app::*;
 pub use state::*;
 pub use theme::*;
-

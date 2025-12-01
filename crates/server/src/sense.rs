@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 use bounded_integer::BoundedU8;
 use losig_core::{
+    fov,
     sense::{
         HearingInfo, SelfInfo, SenseStrength, Senses, SensesInfo, SightInfo, SightedAlly,
         SightedAllyStatus, SightedFoe, TouchInfo,
@@ -9,10 +10,7 @@ use losig_core::{
     types::{Avatar, ServerAction, Tile},
 };
 
-use crate::{
-    fov,
-    stage::{Stage, StageState},
-};
+use crate::stage::{Stage, StageState};
 
 pub fn gather(
     senses: &Senses,

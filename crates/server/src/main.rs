@@ -6,7 +6,6 @@ mod action;
 mod command;
 mod dispatch;
 mod foes;
-mod fov;
 mod game;
 mod sense;
 mod services;

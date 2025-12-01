@@ -63,9 +63,10 @@ impl GameLogs {
         let make_existing = |existing: &GameLog| -> GameLog {
             let mut existing = existing.clone();
             if let LogEvent::Server { averted, .. } = &mut existing.log
-                && averted.is_none() {
-                    *averted = Some(current_turn)
-                }
+                && averted.is_none()
+            {
+                *averted = Some(current_turn)
+            }
             existing
         };
 

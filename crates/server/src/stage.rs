@@ -6,6 +6,7 @@ use std::{
 use anyhow::{Result, anyhow};
 use log::{debug, info, warn};
 use losig_core::{
+    fov,
     sense::{Senses, SensesInfo},
     types::{
         Avatar, ClientAction, FOCUS_MAX, Foe, GameLogEvent, Offset, Orb, PlayerId, Position,
@@ -14,7 +15,7 @@ use losig_core::{
 };
 
 use crate::{
-    action, foes, fov,
+    action, foes,
     sense::gather,
     world::{Limbo, Player, StageTemplate},
 };

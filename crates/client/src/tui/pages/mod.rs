@@ -1,5 +1,5 @@
-mod menu;
 mod game;
+mod menu;
 
-pub use menu::*;
 pub use game::*;
+pub use menu::*;

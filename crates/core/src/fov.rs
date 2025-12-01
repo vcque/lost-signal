@@ -1,4 +1,4 @@
-use losig_core::types::{Offset, Position, Tile, Tiles};
+use crate::types::{Offset, Position, Tile, Tiles};
 
 type F = fraction::Fraction;
 

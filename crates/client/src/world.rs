@@ -1,7 +1,8 @@
 use log::warn;
 use losig_core::{
+    fov,
     network::{TransitionMessage, TurnMessage},
-    sense::SensesInfo,
+    sense::{Senses, SensesInfo, SightInfo},
     types::{
         ClientAction, Offset, Position, ServerAction, StageId, StageTurn, Tile, Tiles, Timeline,
         Turn,
@@ -48,15 +49,58 @@ impl WorldView {
         }
     }
 
-    pub fn act(&mut self, action: &ClientAction) {
+    pub fn act(&mut self, action: &ClientAction, senses: &Senses) {
         if matches!(action, ClientAction::Spawn) {
             self.clear();
         }
 
+        // Generate intermediate sight info using client-side FOV to prevent flickers
+        // Use the minimum of current sense strength and previous sight radius
+        let previous_sight_radius = self
+            .last_info()
+            .and_then(|info| info.sight.as_ref())
+            .map(|sight| {
+                // Calculate radius from the tiles grid size
+                (sight.tiles.width().saturating_sub(1)) / 2
+            })
+            .unwrap_or(0);
+
+        let requested_radius = senses.sight.get() as usize;
+        let sight_radius = requested_radius.min(previous_sight_radius);
+        let intermediate_info = if sight_radius > 0 {
+            // Predict the state after this action to get the right position and tiles
+            let mut predicted_state = self.current_state.clone();
+            predicted_state.update_action(action, None);
+
+            // Convert client tiles to Tiles for FOV calculation centered around predicted position
+            let tiles_for_fov = predicted_state.tiles_for_fov(sight_radius);
+
+            // Calculate FOV from center of the local grid (which represents predicted_position)
+            let center_pos = Position {
+                x: sight_radius,
+                y: sight_radius,
+            };
+            let fov_tiles = fov::fov(center_pos, sight_radius, &tiles_for_fov);
+
+            Some(SensesInfo {
+                selfi: None,
+                touch: None,
+                sight: Some(SightInfo {
+                    tiles: fov_tiles,
+                    foes: vec![],
+                    orb: None,
+                    allies: vec![],
+                }),
+                hearing: None,
+            })
+        } else {
+            None
+        };
+
         let history = WorldHistory {
             action: *action,
             server_action: None,
-            info: None,
+            info: intermediate_info,
         };
         self.current_state.update(&history);
         self.history.push(history);
@@ -286,6 +330,32 @@ impl WorldState {
                 }
             }
         }
+    }
+
+    /// Convert client's tile array to Tiles struct for FOV calculation
+    fn tiles_for_fov(&self, radius: usize) -> Tiles {
+        let size = 2 * radius + 1;
+        let mut tiles = Tiles::new(size, size);
+        let center_offset = radius as isize;
+
+        for x in 0..size {
+            for y in 0..size {
+                let world_x = (self.position.x as isize) + (x as isize) - center_offset;
+                let world_y = (self.position.y as isize) + (y as isize) - center_offset;
+
+                if world_x >= 0 && world_y >= 0 {
+                    let world_x = world_x as usize;
+                    let world_y = world_y as usize;
+
+                    if world_x < VIEW_SIZE && world_y < VIEW_SIZE {
+                        let tile_index = world_x + world_y * VIEW_SIZE;
+                        tiles.grid[(x, y)] = self.tiles[tile_index];
+                    }
+                }
+            }
+        }
+
+        tiles
     }
 }
 

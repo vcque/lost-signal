@@ -53,7 +53,7 @@ pub struct InputServices<'a> {
 
 impl<'a> InputServices<'a> {
     pub fn act(&mut self, action: ClientAction, senses: Senses) {
-        self.state.world.act(&action);
+        self.state.world.act(&action, &senses);
         let player_id = self.state.player_id;
         self.client.send(ClientMessage {
             player_id: Some(player_id),

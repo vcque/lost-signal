@@ -96,6 +96,10 @@ impl Game {
         for (stage_id, timeline) in timeline_updates {
             let infos = world.get_all_infos_for_stage(stage_id);
             for (pid, stage_turn, senses_info) in infos {
+                if pid == player_id {
+                    // Don't send timeline update to player
+                    continue;
+                }
                 let msg = ServerMessageWithRecipient {
                     recipient: Recipient::Single(pid),
                     message: ServerMessage::Timeline(

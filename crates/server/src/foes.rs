@@ -35,7 +35,7 @@ pub fn act(
 
 fn foe_ai(foe: &Foe, stage: &Stage, state: &mut StageState, bindings: &SenseBounds) -> FoeAction {
     // 1. List all possible actions
-    let actions: Vec<FoeAction> = compute_possible_actions(foe, stage, state);
+    let actions: Vec<FoeAction> = compute_possible_actions(foe, stage, state, bindings);
     if actions.len() == 1 {
         return actions[0];
     }
@@ -53,18 +53,26 @@ fn foe_ai(foe: &Foe, stage: &Stage, state: &mut StageState, bindings: &SenseBoun
 }
 
 /// Compute all possible actions for a foe in the current situation
-fn compute_possible_actions(foe: &Foe, stage: &Stage, state: &StageState) -> Vec<FoeAction> {
+fn compute_possible_actions(
+    foe: &Foe,
+    stage: &Stage,
+    state: &StageState,
+    bindings: &SenseBounds,
+) -> Vec<FoeAction> {
     let mut actions = vec![FoeAction::Wait];
 
     match foe.foe_type {
         FoeType::MindSnare => {
             // MindSnare can only attack avatars on its own tile
-            if let Some((avatar_id, _)) = state
+            if let Some((avatar_id, avatar)) = state
                 .avatars
                 .iter()
                 .find(|(_, a)| a.position == foe.position)
             {
-                actions.push(FoeAction::Attack(*avatar_id));
+                // Check if attack would be pointless due to MaxHpBound
+                if can_damage_avatar(*avatar_id, avatar, foe.attack, state.turn, bindings) {
+                    actions.push(FoeAction::Attack(*avatar_id));
+                }
             }
         }
         FoeType::Simple => {
@@ -84,10 +92,13 @@ fn compute_possible_actions(foe: &Foe, stage: &Stage, state: &StageState) -> Vec
                 let new_pos = foe.position.move_once(dir);
 
                 // Check if there's an avatar at this position
-                if let Some((avatar_id, _)) =
+                if let Some((avatar_id, avatar)) =
                     state.avatars.iter().find(|(_, a)| a.position == new_pos)
                 {
-                    actions.push(FoeAction::Attack(*avatar_id));
+                    // Check if attack would be pointless due to MaxHpBound
+                    if can_damage_avatar(*avatar_id, avatar, foe.attack, state.turn, bindings) {
+                        actions.push(FoeAction::Attack(*avatar_id));
+                    }
                     continue;
                 }
 
@@ -101,6 +112,28 @@ fn compute_possible_actions(foe: &Foe, stage: &Stage, state: &StageState) -> Vec
     }
 
     actions
+}
+
+/// Check if attacking an avatar would actually do damage, or if a MaxHpBound would prevent it
+fn can_damage_avatar(
+    avatar_id: crate::stage::AvatarId,
+    avatar: &losig_core::types::Avatar,
+    attack_damage: u8,
+    current_turn: losig_core::types::StageTurn,
+    bindings: &SenseBounds,
+) -> bool {
+    // Check if there's a MaxHpBound for this avatar at or after the current turn
+    if let Some(hp_bound) = bindings.avatars.get(&avatar_id) {
+        if hp_bound.turn >= current_turn {
+            // If the bound would prevent damage, don't generate this attack
+            let hp_after_attack = avatar.hp.saturating_sub(attack_damage);
+            if hp_after_attack < hp_bound.value {
+                // The enforce step would restore HP at the bound turn, making this attack pointless
+                return false;
+            }
+        }
+    }
+    true
 }
 
 /// Compute position bounds from the bindings as grids for evaluation

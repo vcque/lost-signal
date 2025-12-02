@@ -1,6 +1,6 @@
-use std::{sync::mpsc::Receiver, thread::spawn};
+use std::{sync::mpsc::Receiver, thread::spawn, time::Instant};
 
-use log::error;
+use log::{debug, error};
 use losig_core::{
     leaderboard::LeaderboardEntry,
     network::{ClientMessage, ClientMessageContent, ServerMessage},
@@ -32,7 +32,16 @@ impl Dispatch {
                         game.new_player(pid);
                     }
                     ClientMessageContent::Command(cmd) => {
-                        if let Err(e) = game.player_command(cmd) {
+                        let player_id = cmd.player_id;
+                        let start = Instant::now();
+                        let result = game.player_command(cmd);
+                        let elapsed = start.elapsed();
+
+                        if elapsed.as_millis() > 100 {
+                            debug!("player_command [player_id={}] took {:?}", player_id, elapsed);
+                        }
+
+                        if let Err(e) = result {
                             error!("Error while using command: {e}");
                         }
                     }

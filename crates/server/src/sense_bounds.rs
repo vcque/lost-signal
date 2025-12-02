@@ -120,10 +120,7 @@ pub struct PositionBound {
 impl PositionBound {
     pub fn enforce(&self, turn: StageTurn, foe: &mut Foe) {
         if turn == self.turn {
-            match foe {
-                Foe::MindSnare(position) => *position = self.value,
-                Foe::Simple(position, _) => *position = self.value,
-            }
+            foe.position = self.value
         }
     }
 }
@@ -131,10 +128,7 @@ impl PositionBound {
 impl DeathBound {
     pub fn enforce(&self, turn: StageTurn, foe: &mut Foe) {
         if turn == self.turn {
-            match foe {
-                Foe::MindSnare(_) => unreachable!("Cannot be killed"),
-                Foe::Simple(_, hp) => *hp = 0,
-            }
+            foe.hp = 0;
         }
     }
 }

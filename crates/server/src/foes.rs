@@ -14,10 +14,10 @@ pub fn act(
     if !foe.alive() {
         return Box::new(|_| {});
     }
-    match foe {
-        Foe::MindSnare(pos) => {
+    match foe.foe_type {
+        FoeType::MindSnare => {
             for avatar in state.avatars.values_mut() {
-                if *pos == avatar.position {
+                if foe.position == avatar.position {
                     avatar.hp = avatar.hp.saturating_sub(3);
                     avatar.logs.push((
                         state.turn,
@@ -30,13 +30,14 @@ pub fn act(
             }
         }
 
-        Foe::Simple(pos, _) => {
+        FoeType::Simple => {
             // Find a viable target
             let avatar_opt = target_selection(foe, state, bindings);
 
             if let Some((aid, hp_bound)) = avatar_opt {
                 let avatar = &mut state.avatars.get_mut(&aid).unwrap();
-                let dist = avatar.position.dist(&foe.position());
+                let dist = avatar.position.dist(&foe.position);
+
                 if dist <= 1 {
                     if !hp_bound {
                         // Attack: reduce avatar hp by 3
@@ -55,12 +56,10 @@ pub fn act(
                     // Move toward avatar, avoiding other foes and avatars
                     let target_pos = avatar.position;
 
-                    if let Some(new_pos) = find_best_move(*pos, target_pos, foe, stage, state) {
-                        return Box::new(move |f| {
-                            if let Foe::Simple(pos, _) = f {
-                                *pos = new_pos
-                            }
-                        });
+                    if let Some(new_pos) =
+                        find_best_move(foe.position, target_pos, foe, stage, state)
+                    {
+                        return Box::new(move |f| f.position = new_pos);
                     }
                 }
             }
@@ -83,7 +82,7 @@ fn target_selection<'a>(
         }
         let aid = avatar.player_id;
 
-        let dist = foe.position().dist(&avatar.position);
+        let dist = foe.position.dist(&avatar.position);
         if dist > 4 {
             continue;
         }
@@ -102,7 +101,7 @@ fn target_selection<'a>(
 fn is_position_occupied(pos: Position, current_foe: &Foe, state: &StageState) -> bool {
     // Check if any other foe occupies this position
     for foe in &state.foes {
-        if foe.position() == pos && foe.position() != current_foe.position() && foe.alive() {
+        if foe.position == pos && foe.position != current_foe.position && foe.alive() {
             return true;
         }
     }

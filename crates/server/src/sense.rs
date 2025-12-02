@@ -58,14 +58,14 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
 
     let center = tiles.center();
     for (i, foe) in state.foes.iter().enumerate() {
-        let offset = foe.position() - avatar.position;
+        let offset = foe.position - avatar.position;
         let fov_position = center + offset;
 
         if tiles.get(fov_position) != Tile::Unknown {
             foes.push(SightedFoe {
                 id: i,
                 offset,
-                foe_type: foe.foe_type(),
+                foe_type: foe.foe_type,
                 alive: foe.alive(),
             });
         }
@@ -130,7 +130,7 @@ fn gather_touch(avatar: &Avatar, async_stage: &Stage, state: &StageState) -> Tou
 
     let mut foes = 0;
     for foe in &state.foes {
-        if foe.position().dist(&avatar.position) <= 1 {
+        if foe.position.dist(&avatar.position) <= 1 {
             foes += 1;
         }
     }

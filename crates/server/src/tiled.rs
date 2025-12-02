@@ -4,7 +4,7 @@ use std::io::Cursor;
 
 use anyhow::{Result, anyhow};
 use grid::Grid;
-use losig_core::types::{Foe, Position, Tile, Tiles};
+use losig_core::types::{Foe, FoeType, Position, Tile, Tiles};
 use tiled::{Layer, Loader};
 
 use crate::world::{StageTemplate, World};
@@ -137,6 +137,7 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
     let width = layer.width().ok_or(anyhow!("no width"))?;
     let height = layer.height().ok_or(anyhow!("no height"))?;
 
+    let mut id = 0;
     for x in 0..width {
         for y in 0..height {
             let Some(tile) = layer.get_tile(x as i32, y as i32) else {
@@ -146,11 +147,29 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
                 x: x as usize,
                 y: y as usize,
             };
-            if tile.id() == MINDSNARE_ID {
-                results.push(Foe::MindSnare(position));
+
+            let foe = if tile.id() == MINDSNARE_ID {
+                Foe {
+                    id,
+                    foe_type: FoeType::MindSnare,
+                    position,
+                    hp: 1,
+                    attack: 3,
+                }
             } else if tile.id() == SIMPLE_FOE_ID {
-                results.push(Foe::Simple(position, 4));
-            }
+                Foe {
+                    id,
+                    foe_type: FoeType::Simple,
+                    position,
+                    hp: 3,
+                    attack: 2,
+                }
+            } else {
+                continue;
+            };
+
+            results.push(foe);
+            id += 1;
         }
     }
 

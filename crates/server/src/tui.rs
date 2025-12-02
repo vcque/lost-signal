@@ -158,8 +158,7 @@ impl GameTui {
         }
 
         for foe in state.foes.iter() {
-            let position = foe.position();
-            let Position { x, y } = position + offset;
+            let Position { x, y } = foe.position + offset;
             if (0..area.width).contains(&(x as u16)) && (0..area.height).contains(&(y as u16)) {
                 buf.set_string(
                     area.x + x as u16,

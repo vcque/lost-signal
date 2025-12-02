@@ -250,40 +250,25 @@ impl Avatar {
 }
 
 #[derive(Debug, Clone)]
-pub enum Foe {
-    /// Some kind of trap
-    MindSnare(Position),
-    /// Classic mob with hp and attack on sight for testing purpose
-    Simple(Position, u8),
+pub struct Foe {
+    pub id: FoeId,
+    pub foe_type: FoeType,
+    pub position: Position,
+    pub hp: u8,
+    pub attack: u8,
 }
-impl Foe {
-    pub fn position(&self) -> Position {
-        match self {
-            Self::MindSnare(pos) => *pos,
-            Self::Simple(pos, _) => *pos,
-        }
-    }
 
+impl Foe {
     pub fn alive(&self) -> bool {
-        match self {
-            Self::MindSnare(_) => true,
-            Self::Simple(_, hp) => *hp > 0,
-        }
+        self.hp > 0
     }
 
     pub fn can_be_attacked(&self) -> bool {
         self.alive()
-            && match self {
-                Foe::MindSnare(_) => false,
-                Foe::Simple(_, _) => true,
+            && match self.foe_type {
+                FoeType::MindSnare => false,
+                _ => true,
             }
-    }
-
-    pub fn foe_type(&self) -> FoeType {
-        match self {
-            Foe::Simple(_, _) => FoeType::Simple,
-            Foe::MindSnare(_) => FoeType::MindSnare,
-        }
     }
 }
 
@@ -382,7 +367,7 @@ pub enum Target {
     OtherPlayer,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
 pub enum FoeType {
     MindSnare,
     Simple,

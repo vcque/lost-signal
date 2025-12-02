@@ -1,6 +1,6 @@
 use losig_core::types::{
-    Avatar, ClientAction, Direction, FOCUS_MAX, Foe, FoeType, GameLogEvent, HP_MAX, PlayerId,
-    Position, ServerAction, Target,
+    Avatar, ClientAction, Direction, FOCUS_MAX, FoeType, GameLogEvent, HP_MAX, PlayerId, Position,
+    ServerAction, Target,
 };
 
 use crate::stage::{Stage, StageState};
@@ -29,10 +29,10 @@ fn act_move(avatar: &mut Avatar, position: Position) {
 
 fn act_attack(avatar: &mut Avatar, target_index: usize, state: &mut StageState) {
     if let Some(foe) = state.foes.get_mut(target_index)
-        && let Foe::Simple(pos, hp) = foe
-        && pos.dist(&avatar.position) <= 1
+        && foe.can_be_attacked()
+        && foe.position.dist(&avatar.position) <= 1
     {
-        *hp = hp.saturating_sub(1);
+        foe.hp = foe.hp.saturating_sub(1);
         avatar.logs.push((
             state.turn,
             GameLogEvent::Attack {

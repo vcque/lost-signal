@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap},
+    widgets::{Block, Borders, Clear, Padding, Paragraph, Widget, Wrap},
 };
 
 use crate::{
@@ -70,12 +70,8 @@ impl HelpWidget {
     pub fn render(&self, area: Rect, buf: &mut Buffer, state: &HelpState) {
         let popup_area = center(area, Constraint::Percentage(60), Constraint::Percentage(60));
 
-        // Clear the popup area with a background
-        for x in popup_area.x..popup_area.x + popup_area.width {
-            for y in popup_area.y..popup_area.y + popup_area.height {
-                buf.set_string(x, y, " ", Style::default().bg(Color::Black));
-            }
-        }
+        // Clear the popup area to reset style
+        Clear.render(popup_area, buf);
 
         let title = "Help - Press '?' or 'ESC' to close";
         let page_info = format!("< page {} of {} >", state.selection + 1, state.max + 1);

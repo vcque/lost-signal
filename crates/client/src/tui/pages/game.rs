@@ -8,7 +8,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Style, Stylize},
     text::Line,
-    widgets::{Block, Borders, Widget},
+    widgets::{Block, Borders, Clear, Widget},
 };
 
 use crate::{
@@ -366,12 +366,8 @@ impl GameOverWidget {
             Constraint::Length(popup_height),
         );
 
-        // Clear background
-        for x in popup_area.x..popup_area.x + popup_area.width {
-            for y in popup_area.y..popup_area.y + popup_area.height {
-                buf.set_string(x, y, " ", Style::default());
-            }
-        }
+        // Clear the popup area to reset style
+        Clear.render(popup_area, buf);
 
         let (title, color) = match gameover.status {
             GameOverStatus::Win => ("🎉 Victory! 🎉", THEME.palette.log_info),
@@ -493,12 +489,8 @@ impl LimboWidget {
             Constraint::Length(popup_height),
         );
 
-        // Clear background
-        for x in popup_area.x..popup_area.x + popup_area.width {
-            for y in popup_area.y..popup_area.y + popup_area.height {
-                buf.set_string(x, y, " ", Style::default());
-            }
-        }
+        // Clear the popup area to reset style
+        Clear.render(popup_area, buf);
 
         let (title, color, lines) = if averted {
             (

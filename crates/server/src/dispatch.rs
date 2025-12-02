@@ -28,8 +28,8 @@ impl Dispatch {
 
             while let Ok(msg) = self.cm_rx.recv() {
                 match msg.content {
-                    ClientMessageContent::Start(pid) => {
-                        game.new_player(pid);
+                    ClientMessageContent::Start(pid, name) => {
+                        game.new_player(pid, name);
                     }
                     ClientMessageContent::Command(cmd) => {
                         let player_id = cmd.player_id;
@@ -38,7 +38,10 @@ impl Dispatch {
                         let elapsed = start.elapsed();
 
                         if elapsed.as_millis() > 100 {
-                            debug!("player_command [player_id={}] took {:?}", player_id, elapsed);
+                            debug!(
+                                "player_command [player_id={}] took {:?}",
+                                player_id, elapsed
+                            );
                         }
 
                         if let Err(e) = result {

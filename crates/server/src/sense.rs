@@ -111,6 +111,7 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
         };
 
         allies.push(SightedAlly {
+            name: avatar_tracker.map(|at| at.player_name.clone()),
             offset,
             alive: !avatar.is_dead(),
             status,

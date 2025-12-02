@@ -76,7 +76,7 @@ impl<'a> InputServices<'a> {
     pub fn new_game(&self) {
         self.client.send(ClientMessage {
             player_id: Some(self.state.player_id),
-            content: ClientMessageContent::Start(self.state.player_id),
+            content: ClientMessageContent::Start(self.state.player_id, None),
         });
     }
 

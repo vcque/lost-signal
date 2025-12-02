@@ -218,8 +218,6 @@ pub struct Avatar {
     // TODO: should be elsewhere, will do for now
     /// If a player turn set this flag to true on his avatar, he is transitioned according to it.
     pub transition: Option<Transition>,
-
-    pub logs: Vec<(StageTurn, GameLogEvent)>,
 }
 
 /// A transition is the move of an avatar from one stage to another.
@@ -240,7 +238,6 @@ impl Avatar {
             tired: false,
             turns: 1,
             transition: None,
-            logs: vec![],
         }
     }
 

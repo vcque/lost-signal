@@ -59,7 +59,7 @@ pub struct ClientMessage {
 
 #[derive(Serialize, Deserialize)]
 pub enum ClientMessageContent {
-    Start(PlayerId),
+    Start(PlayerId, Option<String>),
     Leaderboard,
     LeaderboardSubmit(PlayerId, String),
     Command(CommandMessage),

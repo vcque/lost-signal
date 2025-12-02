@@ -73,6 +73,7 @@ pub enum TransitionDestination {
 
 pub struct Player {
     pub id: PlayerId,
+    pub name: String,
     pub stage: Option<StageId>,
     /// Copy of the last avatar sent to a stage
     pub last_avatar: Avatar,
@@ -82,6 +83,7 @@ pub struct Player {
 pub struct World {
     pub player_by_id: BTreeMap<PlayerId, Player>,
     pub stages: Vec<Stage>,
+    pub name_gen: usize,
 }
 
 impl World {
@@ -89,16 +91,25 @@ impl World {
         World {
             stages: stages.into_iter().map(Stage::new).collect(),
             player_by_id: Default::default(),
+            name_gen: 0,
         }
     }
 
-    pub fn new_player(&mut self, pid: PlayerId) {
+    pub fn new_player(&mut self, pid: PlayerId, name: Option<String>) {
         // Retire player if present
         self.retire_player(pid);
 
+        let name = match name {
+            Some(name) => name,
+            None => {
+                self.name_gen += 1;
+                format!("P{}", self.name_gen)
+            }
+        };
         info!("New player #{pid} created.");
         let new_player = Player {
             id: pid,
+            name,
             stage: Some(0),
             last_avatar: Avatar::new(pid),
             gameover: None,

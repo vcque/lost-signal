@@ -94,7 +94,7 @@ impl Stage {
         });
 
         self.avatar_trackers
-            .insert(player.id, AvatarTracker::new(self.head_turn));
+            .insert(player.id, AvatarTracker::new(player, self.head_turn));
         self.rollback_from(self.head_turn);
     }
 
@@ -175,7 +175,7 @@ impl Stage {
         Ok(StageCommandResult {
             stage_turn,
             limbos,
-            logs: avatar.logs,
+            logs: vec![],
             senses_info,
             action,
             transition: avatar.transition,
@@ -315,7 +315,7 @@ impl Stage {
                 )
             {
                 state.orb.excited = true;
-                avatar.logs.push((state.turn, GameLogEvent::OrbSeen));
+                // TODO: logs
             }
 
             // If pylon is adjacent, recharges focus
@@ -505,11 +505,17 @@ pub struct AvatarTracker {
     /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
     /// cancelation/confirmation
     limbo: bool,
+    /// Needed to have access to the player name in info gathering
+    pub player_name: String,
 }
 
 impl AvatarTracker {
-    fn new(turn: Turn) -> Self {
-        Self { turn, limbo: false }
+    fn new(player: &Player, turn: Turn) -> Self {
+        Self {
+            player_name: player.name.clone(),
+            turn,
+            limbo: false,
+        }
     }
 }
 

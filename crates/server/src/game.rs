@@ -20,9 +20,9 @@ impl Game {
         Game { services }
     }
 
-    pub fn new_player(&mut self, pid: PlayerId) {
+    pub fn new_player(&mut self, pid: PlayerId, name: Option<String>) {
         let mut world = self.services.world.lock().unwrap();
-        world.new_player(pid);
+        world.new_player(pid, name);
     }
 
     pub fn player_command(

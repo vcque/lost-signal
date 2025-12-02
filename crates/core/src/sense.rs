@@ -83,6 +83,7 @@ pub struct SightedFoe {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct SightedAlly {
+    pub name: Option<String>,
     pub offset: Offset,
     pub alive: bool,
     pub status: SightedAllyStatus,

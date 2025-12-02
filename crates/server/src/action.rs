@@ -1,6 +1,5 @@
 use losig_core::types::{
-    Avatar, ClientAction, Direction, FOCUS_MAX, FoeType, GameLogEvent, HP_MAX, PlayerId, Position,
-    ServerAction, Target,
+    Avatar, ClientAction, Direction, FOCUS_MAX, HP_MAX, PlayerId, Position, ServerAction,
 };
 
 use crate::stage::{Stage, StageState};
@@ -8,19 +7,18 @@ use crate::stage::{Stage, StageState};
 /// Execute an action for an avatar
 pub fn act(action: &ServerAction, avatar: &mut Avatar, state: &mut StageState, stage: &Stage) {
     match action {
-        ServerAction::Spawn => act_spawn(avatar, stage, state),
+        ServerAction::Spawn => act_spawn(avatar, stage),
         ServerAction::Move(position) => act_move(avatar, *position),
         ServerAction::Attack(target_index) => act_attack(avatar, *target_index, state),
         ServerAction::Wait => {}
     }
 }
 
-fn act_spawn(avatar: &mut Avatar, stage: &Stage, state: &StageState) {
+fn act_spawn(avatar: &mut Avatar, stage: &Stage) {
     let spawn_position = stage.find_spawns();
     avatar.position = spawn_position[avatar.player_id as usize % spawn_position.len()];
     avatar.hp = HP_MAX;
     avatar.focus = FOCUS_MAX;
-    avatar.logs.push((state.turn, GameLogEvent::Spawn));
 }
 
 fn act_move(avatar: &mut Avatar, position: Position) {
@@ -33,13 +31,6 @@ fn act_attack(avatar: &mut Avatar, target_index: usize, state: &mut StageState) 
         && foe.position.dist(&avatar.position) <= 1
     {
         foe.hp = foe.hp.saturating_sub(1);
-        avatar.logs.push((
-            state.turn,
-            GameLogEvent::Attack {
-                from: Target::You,
-                to: Target::Foe(FoeType::Simple),
-            },
-        ));
     }
 }
 

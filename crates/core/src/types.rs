@@ -1,3 +1,4 @@
+use std::fmt;
 use std::ops::{Add, Neg, Sub};
 
 use grid::Grid;
@@ -150,6 +151,12 @@ impl Sub<Position> for Position {
         let x = self.x as isize - rhs.x as isize;
         let y = self.y as isize - rhs.y as isize;
         Offset { x, y }
+    }
+}
+
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
     }
 }
 

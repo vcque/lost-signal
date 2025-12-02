@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, btree_map::Entry};
+use std::fmt;
 
 use losig_core::{
     sense::{SelfInfo, SightInfo},
@@ -10,7 +11,7 @@ use crate::stage::StageState;
 /// When a player witness some states, it creates bindings on the previous states to ensure that
 /// the witnessed state stays true
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct SenseBounds {
     pub avatars: BTreeMap<PlayerId, MaxHpBound>,
 
@@ -103,14 +104,14 @@ pub struct MaxHpBound {
 }
 
 /// The target has been witnessed as dead at this turn.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DeathBound {
     pub turn: StageTurn,
     pub source: PlayerId,
 }
 
 /// The target has been witnessed at a specific position.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PositionBound {
     pub value: Position,
     pub turn: StageTurn,
@@ -122,6 +123,16 @@ impl PositionBound {
         if turn == self.turn {
             foe.position = self.value
         }
+    }
+}
+
+impl fmt::Display for PositionBound {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "PositionBound(pos: {}, turn: {}, source: {})",
+            self.value, self.turn, self.source
+        )
     }
 }
 

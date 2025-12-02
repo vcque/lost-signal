@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::{Result, anyhow};
-use log::{debug, info, warn};
+use log::{info, warn};
 use losig_core::{
     fov,
     sense::{Senses, SensesInfo},
@@ -201,13 +201,7 @@ impl Stage {
             .collect::<BTreeSet<_>>();
 
         turns_to_save.insert(self.head_turn);
-        debug!("states: {:?}", self.states.keys());
         self.states.retain(|key, _| turns_to_save.contains(key));
-
-        debug!(
-            "states after retain turn <= {turn}: {:?}",
-            self.states.keys()
-        );
 
         for turn in (turn + 1)..(self.head_turn + 1) {
             let index = self.diff_index(turn);
@@ -219,7 +213,6 @@ impl Stage {
             }
         }
 
-        debug!("keys at the end of rollback: {:?}", self.states.keys());
         Some(())
     }
 
@@ -261,6 +254,7 @@ impl Stage {
 
     /// Update a state based on the diff
     fn enact_turn(&self, state: &mut StageState, diff: &TurnDiff) {
+        state.turn += 1;
         // Turn init
         if state.orb.excited {
             state.orb.position = orb_spawn(self, state.turn);
@@ -273,8 +267,6 @@ impl Stage {
         if let Some(ref new_avatar) = diff.new_avatar {
             self.welcome_avatar(state, new_avatar);
         }
-
-        state.turn += 1;
     }
 
     /// Apply the turn of each avatar

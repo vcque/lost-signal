@@ -1,6 +1,7 @@
 use bounded_integer::BoundedU8;
 use losig_core::sense::{SenseStrength, Senses, SensesInfo};
 use losig_core::types::{FOCUS_MAX, HP_MAX};
+use ratatui::layout::Spacing;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -96,6 +97,7 @@ impl<'a> Widget for SelfSenseWidget<'a> {
             // Split the second line into two equal halves
             let halves =
                 Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    .spacing(Spacing::Space(2))
                     .split(second);
             let [hp_area, fp_area] = halves.as_ref() else {
                 return;
@@ -107,12 +109,16 @@ impl<'a> Widget for SelfSenseWidget<'a> {
 
             buf.set_string(hp_area.x, hp_area.y, "HP: ", Style::default());
 
-            // Render HP gauge
-            for i in 0..HP_MAX {
-                let (ch, style) = if i < hp {
+            // Calculate number of blocks based on available width (subtract 4 for "HP: " label)
+            let hp_blocks = hp_area.width.saturating_sub(4) as usize;
+
+            // Render HP gauge using ratio
+            for i in 0..hp_blocks {
+                let threshold = ((i + 1) as f32 / hp_blocks as f32 * HP_MAX as f32) as u8;
+                let (ch, style) = if hp >= threshold {
                     // Current HP: green
                     ('█', Style::default().fg(THEME.palette.ui_hp))
-                } else if i < hp_max {
+                } else if hp_max >= threshold {
                     // Lost HP but within max: timeline color
                     (
                         '█',

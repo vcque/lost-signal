@@ -4,35 +4,91 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Rust project named "lost-signal" using Rust 2024 edition. Currently contains a minimal "Hello, world!" application structure.
+Lost-Signal is a multiplayer traditional roguelike game about perception and time, built with Rust 2024 edition. The game features a WebSocket-based client-server architecture with support for both terminal and web clients.
+
+### Design Philosophy
+- Multiplayer traditional roguelike with perception-based gameplay
+- Server supports any third-party client via WebSocket protocol
+- Mostly cooperative gameplay
+- Resource management focused on information gathering (senses/perception system)
+
+## Project Structure
+
+This is a Cargo workspace with 5 crates:
+
+### Core Crates
+- **`crates/core`** - Shared types, game logic, and protocol (no I/O dependencies)
+  - Types: positions, tiles, player stats (HP, focus)
+  - Sense system: self, touch, hearing, sight
+  - Network protocol types
+  - FOV algorithms
+
+- **`crates/server`** - Game server with WebSocket support
+  - World and stage management
+  - Game loop and action processing
+  - Foe AI and sense calculations
+  - Optional TUI feature for debugging (disable with `--no-default-features`)
+  - Map loading via Tiled format
+
+- **`crates/client`** - Shared client TUI logic (platform-agnostic)
+  - Ratatui-based UI widgets (senses, timeline, logs, help)
+  - Game state management
+  - Theme system with palette support
+
+### Client Implementations
+- **`crates/client-term`** - Terminal client using crossterm
+- **`crates/client-wasm`** - Web client using wasm-bindgen
 
 ## Common Development Commands
 
 ### Building and Running
-- `cargo build` - Build the project
-- `cargo run` - Build and run the project
-- `cargo build --release` - Build optimized release version
-- `cargo check` - Fast compilation check without producing binary
+```sh
+# Build everything
+cargo build
 
-### Code Quality and Testing
+# Run server (with TUI)
+cargo run --bin losig-server
+
+# Run server (headless, for deployment)
+cargo run --bin losig-server --no-default-features
+
+# Run terminal client
+cargo run --bin losig-term <player_id>
+
+# Run web client (requires trunk)
+cd crates/client-wasm && trunk serve
+
+# Fast compilation check
+cargo check
+```
+
+### Code Quality
 - `cargo test` - Run all tests
-- `cargo clippy` - Run Rust linter for code quality checks
-- `cargo fmt` - Format code according to Rust style guidelines
-- `cargo clippy -- -D warnings` - Run clippy treating warnings as errors
-
-### Documentation
-- `cargo doc` - Generate documentation
-- `cargo doc --open` - Generate and open documentation in browser
-
-## Project Structure
-
-- `Cargo.toml` - Project configuration and dependencies
-- `src/main.rs` - Main entry point for the binary application
-- `target/` - Build artifacts (generated, not committed to git)
+- `cargo clippy` - Run linter
+- `cargo fmt` - Format code
+- `cargo clippy -- -D warnings` - Clippy treating warnings as errors
 
 ## Architecture Notes
 
-This is currently a single-binary Rust application with no external dependencies. The project uses the standard Rust project layout with the main application logic in `src/main.rs`.
+### Client-Server Protocol
+- WebSocket-based communication using `tungstenite`
+- Binary protocol with `bincode` serialization
+- Clients connect via `ws://localhost:8080` (or web interface)
+- Server broadcasts game state updates
+
+### Sense System
+Players have multiple senses with different strengths:
+- **Self**: HP/HP_MAX and Focus (FP) tracking
+- **Touch**: Detect adjacent entities
+- **Hearing**: Detect orb at various ranges (0-5)
+- **Sight**: Visual perception (0-10)
+
+Resources (focus) are spent to activate and upgrade senses.
+
+### UI Architecture
+- Ratatui for terminal UI rendering
+- Widget-based architecture in `crates/client/src/tui/widgets/`
+- Theme system with HSL color support
 
 ## Development Guidelines
 
@@ -41,3 +97,4 @@ This is currently a single-binary Rust application with no external dependencies
 - When adding a dependency, check with cargo that it is the latest
 - Always explain approaches and provide guidance before implementing
 - When code changes are requested, follow existing patterns and conventions
+- Maintain separation between core (no I/O), server (game logic), and client (UI) concerns

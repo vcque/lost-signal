@@ -1,5 +1,5 @@
 use grid::Grid;
-use losig_core::types::{Direction, Foe, FoeType, Position};
+use losig_core::types::{Avatar, Direction, Foe, FoeType, Position, StageTurn};
 
 use crate::{
     sense_bounds::SenseBounds,
@@ -47,9 +47,16 @@ fn foe_ai(foe: &Foe, stage: &Stage, state: &mut StageState, bindings: &SenseBoun
         Some(bound) => filter_actions_by_bounds(foe, actions, bound),
     };
 
-    let visible_avatars = find_visible_avatars(foe, state);
+    let visible_avatars = find_targets(foe, state);
 
-    select_best_action(&actions, &visible_avatars, foe, state, position_bound)
+    select_best_action(
+        &actions,
+        &visible_avatars,
+        foe,
+        state,
+        position_bound,
+        bindings,
+    )
 }
 
 /// Compute all possible actions for a foe in the current situation
@@ -70,7 +77,7 @@ fn compute_possible_actions(
                 .find(|(_, a)| a.position == foe.position)
             {
                 // Check if attack would be pointless due to MaxHpBound
-                if can_damage_avatar(*avatar_id, avatar, foe.attack, state.turn, bindings) {
+                if can_damage_avatar(avatar, foe.attack, state.turn, bindings) {
                     actions.push(FoeAction::Attack(*avatar_id));
                 }
             }
@@ -96,7 +103,7 @@ fn compute_possible_actions(
                     state.avatars.iter().find(|(_, a)| a.position == new_pos)
                 {
                     // Check if attack would be pointless due to MaxHpBound
-                    if can_damage_avatar(*avatar_id, avatar, foe.attack, state.turn, bindings) {
+                    if can_damage_avatar(avatar, foe.attack, state.turn, bindings) {
                         actions.push(FoeAction::Attack(*avatar_id));
                     }
                     continue;
@@ -116,21 +123,20 @@ fn compute_possible_actions(
 
 /// Check if attacking an avatar would actually do damage, or if a MaxHpBound would prevent it
 fn can_damage_avatar(
-    avatar_id: crate::stage::AvatarId,
-    avatar: &losig_core::types::Avatar,
+    avatar: &Avatar,
     attack_damage: u8,
-    current_turn: losig_core::types::StageTurn,
+    current_turn: StageTurn,
     bindings: &SenseBounds,
 ) -> bool {
     // Check if there's a MaxHpBound for this avatar at or after the current turn
-    if let Some(hp_bound) = bindings.avatars.get(&avatar_id) {
-        if hp_bound.turn >= current_turn {
-            // If the bound would prevent damage, don't generate this attack
-            let hp_after_attack = avatar.hp.saturating_sub(attack_damage);
-            if hp_after_attack < hp_bound.value {
-                // The enforce step would restore HP at the bound turn, making this attack pointless
-                return false;
-            }
+    if let Some(hp_bound) = bindings.avatars.get(&avatar.player_id)
+        && hp_bound.turn >= current_turn
+    {
+        // If the bound would prevent damage, don't generate this attack
+        let hp_after_attack = avatar.hp.saturating_sub(attack_damage);
+        if hp_after_attack < hp_bound.value {
+            // The enforce step would restore HP at the bound turn, making this attack pointless
+            return false;
         }
     }
     true
@@ -242,7 +248,7 @@ fn filter_actions_by_bounds(
 }
 
 /// Find any avatar within a certain distance threshold
-fn find_visible_avatars(foe: &Foe, state: &StageState) -> Vec<AvatarId> {
+fn find_targets(foe: &Foe, state: &StageState) -> Vec<AvatarId> {
     state
         .avatars
         .iter()
@@ -258,19 +264,18 @@ fn select_best_action(
     foe: &Foe,
     state: &StageState,
     position_bound: Option<Grid<u8>>,
+    bindings: &SenseBounds,
 ) -> FoeAction {
     // Priority one: attack visible avatar
     for action in actions {
-        if let FoeAction::Attack(target_id) = action
-            && visible_avatars.contains(target_id)
-        {
+        if let FoeAction::Attack(_) = action {
             return *action;
         }
     }
 
     // Priority two: move toward nearest visible avatar
     if !visible_avatars.is_empty() {
-        let mut best_action: Option<(FoeAction, usize)> = None;
+        let mut best_action: Option<(FoeAction, (usize, usize))> = None;
 
         for action in actions {
             let next_pos = action.next_position(foe);
@@ -279,10 +284,18 @@ fn select_best_action(
             let target = visible_avatars
                 .iter()
                 .filter_map(|avatar_id| state.avatars.get(avatar_id))
-                .min_by_key(|avatar| next_pos.dist(&avatar.position));
+                .min_by_key(|avatar| {
+                    (
+                        !can_damage_avatar(avatar, foe.attack, state.turn, bindings),
+                        next_pos.dist(&avatar.position),
+                    )
+                });
 
             if let Some(avatar) = target {
-                let dist = avatar.position.dist_manhattan(&next_pos);
+                let dist = (
+                    avatar.position.dist(&next_pos),
+                    avatar.position.dist_manhattan(&next_pos),
+                );
                 match best_action {
                     None => best_action = Some((*action, dist)),
                     Some((_, best_dist)) if dist < best_dist => {

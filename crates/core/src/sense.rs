@@ -4,12 +4,23 @@ use serde::{Deserialize, Serialize};
 use crate::types::{FoeId, FoeType, Offset, Tiles, Turn};
 
 /// Describe information that an avatar want retrieved for a given turn
-#[derive(Default, Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Senses {
     pub selfs: bool,
     pub touch: bool,
     pub sight: BoundedU8<0, 10>,
     pub hearing: BoundedU8<0, 5>,
+}
+
+impl Default for Senses {
+    fn default() -> Self {
+        Self {
+            selfs: true,
+            touch: false,
+            sight: BoundedU8::const_new::<5>(),
+            hearing: BoundedU8::const_new::<0>(),
+        }
+    }
 }
 
 impl Senses {

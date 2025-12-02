@@ -60,9 +60,10 @@ impl MenuPage {
                     match selection {
                         MenuOption::Start => {
                             services.new_game();
+                            services.act(ClientAction::Wait, Default::default());
                         }
                         MenuOption::Continue => {
-                            services.act(ClientAction::Spawn, Senses::default());
+                            services.act(ClientAction::Wait, Default::default());
                         }
                     }
                     state.page = PageSelection::Game;

@@ -34,9 +34,9 @@ impl HelpState {
 impl Default for HelpState {
     fn default() -> Self {
         Self {
-            open: true,
+            open: false,
             selection: 0,
-            max: 0, // 4 pages (0-3)
+            max: 10, // 4 pages (0-3)
         }
     }
 }

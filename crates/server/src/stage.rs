@@ -23,7 +23,7 @@ use crate::{
 
 // For now avatar has the id of the player. But this will have to change when we want timetravel
 // shenanigans
-type AvatarId = PlayerId;
+pub(crate) type AvatarId = PlayerId;
 
 /// Stage that can handle async actions from players
 pub struct Stage {

@@ -1,6 +1,5 @@
 use losig_core::{
     leaderboard::Leaderboard,
-    sense::Senses,
     types::{ClientAction, GameOverStatus},
 };
 use ratatui::{

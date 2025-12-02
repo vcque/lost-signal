@@ -111,9 +111,10 @@ fn compute_possible_actions(
 
                 // Check if the tile is walkable and not occupied by another foe
                 let tile = stage.template.tiles.get(new_pos);
-                if tile.can_travel() && state.find_foe(new_pos).is_none() {
-                    actions.push(FoeAction::Move(new_pos));
-                }
+                if tile.can_travel()
+                    && !matches!(state.find_foe(new_pos), Some(f) if f.1.alive()) {
+                        actions.push(FoeAction::Move(new_pos));
+                    }
             }
         }
     }

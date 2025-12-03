@@ -1,7 +1,7 @@
 use bounded_integer::BoundedU8;
 use serde::{Deserialize, Serialize};
 
-use crate::types::{FoeId, FoeType, Offset, Tiles, Turn};
+use crate::types::{FoeId, FoeType, Offset, StageTurn, Tiles, Turn};
 
 /// Describe information that an avatar want retrieved for a given turn
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
@@ -87,16 +87,15 @@ pub struct SightedAlly {
     pub offset: Offset,
     pub alive: bool,
     pub status: SightedAllyStatus,
+    pub next_move: Option<Offset>,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub enum SightedAllyStatus {
-    Trailing,
     /// Can contain the move offset
-    Leading(Option<Offset>),
-    Sync,
+    Controlled { turn: StageTurn, name: String },
     /// when the player has left the stage
-    Abandonned,
+    Discarded,
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]

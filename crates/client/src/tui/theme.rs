@@ -18,7 +18,7 @@ pub struct ThemePalette {
     pub foe: Color,
     pub ally_leading: Color,
     pub ally_trailing: Color,
-    pub ally_abandonned: Color,
+    pub ally_discarded: Color,
     pub ally_sync: Color,
     pub ally_next_move: Color,
 
@@ -51,7 +51,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
         ally_leading: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),
         ally_trailing: Color::from_hsl(Hsl::new(180.0, 1.0, 0.5)),
         ally_sync: Color::from_hsl(Hsl::new(75.0, 0.5, 1.0)),
-        ally_abandonned: Color::from_hsl(Hsl::new(40.0, 0.2, 0.2)),
+        ally_discarded: Color::from_hsl(Hsl::new(40.0, 0.2, 0.2)),
         ally_next_move: Color::from_hsl(Hsl::new(40.0, 0.7, 0.2)),
 
         tile_wall: Color::from_hsl(Hsl::new(270.0, 1.0, 0.5)),

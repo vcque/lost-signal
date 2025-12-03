@@ -36,7 +36,7 @@ pub struct Stage {
     /*
      * Rollback handling
      */
-    head_turn: Turn,
+    pub head_turn: Turn,
     pub avatar_trackers: BTreeMap<PlayerId, AvatarTracker>,
     states: BTreeMap<Turn, StageState>,
     pub diffs: Vec<TurnDiff>,
@@ -216,6 +216,7 @@ impl Stage {
         Some(())
     }
 
+    /// TODO: make it optional
     pub fn diff_index(&self, turn: StageTurn) -> usize {
         let turn_diff = self.head_turn - turn;
         self.diffs.len() - 1 - turn_diff as usize

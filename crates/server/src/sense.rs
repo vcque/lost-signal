@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use bounded_integer::BoundedU8;
 use losig_core::{
     fov,
@@ -88,26 +86,27 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
         }
 
         let avatar_tracker = stage.avatar_trackers.get(&ally.player_id);
+        let move_offset = if state.turn < stage.head_turn {
+            let i = stage.diff_index(state.turn + 1);
+            stage
+                .diffs
+                .get(i)
+                .and_then(|d| d.cmd_by_avatar.get(&ally.player_id))
+                .and_then(|cmd| match cmd.action {
+                    ServerAction::Move(pos) => Some(pos),
+                    _ => None,
+                })
+                .map(|pos| pos - avatar.position)
+        } else {
+            None
+        };
         let status = if let Some(tracker) = avatar_tracker {
-            match tracker.turn.cmp(&state.turn) {
-                Ordering::Less => SightedAllyStatus::Trailing,
-                Ordering::Equal => SightedAllyStatus::Sync,
-                Ordering::Greater => {
-                    let i = stage.diff_index(state.turn + 1);
-                    let move_offset = stage
-                        .diffs
-                        .get(i)
-                        .and_then(|d| d.cmd_by_avatar.get(&ally.player_id))
-                        .and_then(|cmd| match cmd.action {
-                            ServerAction::Move(pos) => Some(pos),
-                            _ => None,
-                        })
-                        .map(|pos| pos - avatar.position);
-                    SightedAllyStatus::Leading(move_offset)
-                }
+            SightedAllyStatus::Controlled {
+                turn: tracker.turn,
+                name: tracker.player_name.clone(),
             }
         } else {
-            SightedAllyStatus::Abandonned
+            SightedAllyStatus::Discarded
         };
 
         allies.push(SightedAlly {
@@ -115,6 +114,7 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
             offset,
             alive: !avatar.is_dead(),
             status,
+            next_move: move_offset,
         });
     }
 

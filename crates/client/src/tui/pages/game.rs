@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use log::info;
 use losig_core::{
     sense::SightedAllyStatus,
@@ -303,14 +305,16 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 let y = center_y + ally.offset.y;
 
                 let color = match ally.status {
-                    SightedAllyStatus::Trailing => THEME.palette.ally_trailing,
-                    SightedAllyStatus::Leading(_) => THEME.palette.ally_leading,
-                    SightedAllyStatus::Sync => THEME.palette.ally_sync,
-                    SightedAllyStatus::Abandonned => THEME.palette.ally_abandonned,
+                    SightedAllyStatus::Controlled { turn, .. } => match turn.cmp(&w.stage_turn) {
+                        Ordering::Less => THEME.palette.ally_trailing,
+                        Ordering::Equal => THEME.palette.ally_sync,
+                        Ordering::Greater => THEME.palette.ally_leading,
+                    },
+                    SightedAllyStatus::Discarded => THEME.palette.ally_discarded,
                 };
                 buf.set_string(area.x + x as u16, area.y + y as u16, "@", color);
 
-                if let SightedAllyStatus::Leading(Some(offset)) = ally.status {
+                if let Some(offset) = ally.next_move {
                     info!(
                         "{}; {}; {}| {}, {}, {}",
                         area.x, center_x, offset.x, area.y, center_y, offset.y

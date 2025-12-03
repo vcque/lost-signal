@@ -9,8 +9,9 @@ use losig_core::{
     fov,
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, ClientAction, FOCUS_MAX, Foe, GameLogEvent, Offset, Orb, PlayerId, Position,
-        ServerAction, StageTurn, Tile, Timeline, Transition, Turn,
+        Avatar, ClientAction, FOCUS_MAX, FOCUS_REGEN, Foe, GameLogEvent, HP_MAX, Offset, Orb,
+        PlayerId, Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline, Transition,
+        Turn,
     },
 };
 
@@ -289,6 +290,12 @@ impl Stage {
             }
 
             let mut avatar = avatar.clone();
+
+            // Regen
+            avatar.focus = (avatar.focus + FOCUS_REGEN).min(FOCUS_MAX);
+            if state.turn.is_multiple_of(TURN_FOR_HP_REGEN) {
+                avatar.hp = (avatar.hp + 1).min(HP_MAX);
+            }
 
             // Execute the action
             action::act(player_action, &mut avatar, state, self);

@@ -892,6 +892,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bounded-integer",
+ "itertools 0.14.0",
  "log",
  "losig-core",
  "palette",

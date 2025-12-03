@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use losig_core::types::FoeType;
 use palette::Hsl;
 use ratatui::style::Color;
 
@@ -84,3 +85,24 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
         page_info: Color::Gray,
     },
 });
+
+pub trait FoeTypeRender {
+    fn grapheme(&self) -> &'static str;
+    fn label(&self) -> &'static str;
+}
+
+impl FoeTypeRender for FoeType {
+    fn grapheme(&self) -> &'static str {
+        match self {
+            FoeType::MindSnare => "¤",
+            FoeType::Simple => "s",
+        }
+    }
+
+    fn label(&self) -> &'static str {
+        match self {
+            FoeType::MindSnare => "mindsnare",
+            FoeType::Simple => "simple foe",
+        }
+    }
+}

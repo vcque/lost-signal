@@ -1,7 +1,11 @@
+use std::cmp::Ordering;
+
 use bounded_integer::BoundedU8;
-use losig_core::sense::{SenseStrength, Senses, SensesInfo, SightInfo};
-use losig_core::types::{FOCUS_MAX, HP_MAX};
+use itertools::Itertools;
+use losig_core::sense::{SenseStrength, Senses, SensesInfo, SightInfo, SightedAllyStatus};
+use losig_core::types::{FOCUS_MAX, FoeType, HP_MAX, StageTurn};
 use ratatui::layout::Spacing;
+use ratatui::widgets::Paragraph;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -10,7 +14,7 @@ use ratatui::{
     widgets::Widget,
 };
 
-use crate::tui::THEME;
+use crate::tui::{FoeTypeRender, THEME};
 
 /// Renders the common header line for a sense widget (label, indicator, selection styling)
 fn render_sense_header(
@@ -198,18 +202,19 @@ impl<'a> Widget for HearingSenseWidget<'a> {
 
 pub struct SightSenseWidget<'a> {
     pub sense: BoundedU8<0, 10>,
+    pub stage_turn: StageTurn,
     pub info: Option<&'a SightInfo>,
     pub selected: bool,
 }
 
 impl<'a> Widget for SightSenseWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
-        let [first, second] = layout.areas(area);
+        let layout = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]);
+        let [header, content] = layout.areas(area);
 
         // Render header
         render_sense_header(
-            first,
+            header,
             buf,
             "Sight",
             &format!("({})", self.sense),
@@ -217,17 +222,97 @@ impl<'a> Widget for SightSenseWidget<'a> {
             !self.sense.is_min(),
         );
 
-        // Render content
-        let status = self
-            .info
-            .map(|_| Line::from("I see stuff"))
-            .unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
+        let lines: Vec<Line> = match self.info {
+            Some(info) => {
+                let lines = to_widget_lines(info, content.height as usize);
+                lines
+                    .into_iter()
+                    .map(|l| render_sight_line(l, self.stage_turn))
+                    .collect()
+            }
+            None => vec![
+                Line::from("-")
+                    .style(THEME.palette.ui_disabled)
+                    .right_aligned(),
+            ],
+        };
 
-        status.right_aligned().render(second, buf);
+        Paragraph::new(lines).render(content, buf);
     }
 }
 
+fn render_sight_line<'a>(l: SightWidgetLine, stage_turn: u64) -> Line<'a> {
+    match l {
+        SightWidgetLine::Orb => Line::from(vec![
+            Span::from("o").style(THEME.palette.important),
+            Span::from(": the orb"),
+        ]),
+        SightWidgetLine::Foe(foe_type, count) => Line::from(vec![
+            Span::from(foe_type.grapheme()).style(THEME.palette.foe),
+            Span::from(format!(": {} {}", count, foe_type.label())),
+        ]),
+        SightWidgetLine::Ally(turn, name) => {
+            let diff = turn.abs_diff(stage_turn);
+            let (color, label) = match turn.cmp(&stage_turn) {
+                Ordering::Greater => (THEME.palette.ally_leading, format!("{diff} turns ahead")),
+                Ordering::Equal => (THEME.palette.ally_sync, "on the same turn".to_owned()),
+                Ordering::Less => (THEME.palette.ally_trailing, format!("{diff} turns behind")),
+            };
+
+            Line::from(vec![
+                Span::from("@").style(color),
+                Span::from(format!(": {name} ({label})")),
+            ])
+        }
+    }
+}
+
+fn to_widget_lines(info: &SightInfo, max_lines: usize) -> Vec<SightWidgetLine> {
+    let mut lines = vec![];
+
+    if info.orb.is_some() {
+        lines.push(SightWidgetLine::Orb);
+    }
+
+    let foe_lines = info
+        .foes
+        .iter()
+        .filter(|f| f.alive)
+        .map(|f| f.foe_type)
+        .counts()
+        .into_iter()
+        .map(|(foe_type, count)| SightWidgetLine::Foe(foe_type, count))
+        .collect::<Vec<_>>();
+
+    lines.extend(foe_lines);
+
+    let ally_lines = info
+        .allies
+        .iter()
+        .filter(|al| al.alive)
+        .filter_map(|al| match &al.status {
+            SightedAllyStatus::Controlled { turn, name } => Some((*turn, name.clone())),
+            SightedAllyStatus::Discarded => None,
+        })
+        .sorted()
+        .map(|(turn, name)| SightWidgetLine::Ally(turn, name))
+        .collect_vec();
+
+    lines.extend(ally_lines);
+
+    lines.truncate(max_lines);
+    lines
+}
+
+#[derive(Eq, PartialEq)]
+enum SightWidgetLine {
+    Orb,
+    Foe(FoeType, usize),
+    Ally(StageTurn, String),
+}
+
 pub struct SensesWidget<'a> {
+    pub stage_turn: StageTurn,
     pub senses: Senses,
     pub info: Option<&'a SensesInfo>,
     pub selection: usize,
@@ -243,7 +328,7 @@ impl<'a> Widget for SensesWidget<'a> {
             Constraint::Length(2),
             Constraint::Length(2),
             Constraint::Length(2),
-            Constraint::Length(2),
+            Constraint::Min(2),
         ])
         .split(area);
         let mut row_index = 0;
@@ -285,6 +370,7 @@ impl<'a> Widget for SensesWidget<'a> {
         }
 
         SightSenseWidget {
+            stage_turn: self.stage_turn,
             sense: self.senses.sight,
             info: self.info.and_then(|i| i.sight.as_ref()),
             selected: self.selection == row_index,

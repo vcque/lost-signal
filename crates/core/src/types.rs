@@ -371,7 +371,7 @@ pub enum Target {
     OtherPlayer,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum FoeType {
     MindSnare,
     Simple,

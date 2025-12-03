@@ -74,6 +74,7 @@ impl GamePage {
 
         let game_state = &mut state.game;
         let senses_widget = SensesWidget {
+            stage_turn: world.stage_turn,
             senses: game_state.senses.clone(),
             info: world.last_info(),
             selection: game_state.sense_selection,

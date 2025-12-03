@@ -50,6 +50,10 @@ impl MenuPage {
             return false;
         };
 
+        if state.menu.entering_name {
+            return self.handle_name_input(key, state, services);
+        }
+
         let list_state = &mut state.menu.list_state;
         match key.code {
             KeyCode::Up => list_state.select_previous(),
@@ -58,14 +62,14 @@ impl MenuPage {
                 if let Some(selection) = list_state.selected().map(|i| MENU_OPTIONS[i]) {
                     match selection {
                         MenuOption::Start => {
-                            services.new_game();
-                            services.act(ClientAction::Wait, Default::default());
+                            state.menu.entering_name = true;
+                            state.menu.name.clear();
                         }
                         MenuOption::Continue => {
                             services.act(ClientAction::Wait, Default::default());
+                            state.page = PageSelection::Game;
                         }
                     }
-                    state.page = PageSelection::Game;
                 }
             }
             _ => {
@@ -76,7 +80,58 @@ impl MenuPage {
         true
     }
 
+    fn handle_name_input(
+        self,
+        key: &crate::tui_adapter::KeyEvent,
+        state: &mut TuiState,
+        mut services: InputServices,
+    ) -> bool {
+        match key.code {
+            KeyCode::Char(c) => {
+                if state.menu.name.len() < 8 {
+                    state.menu.name.push(c);
+                }
+            }
+            KeyCode::Backspace => {
+                state.menu.name.pop();
+            }
+            KeyCode::Enter => {
+                let name = if state.menu.name.is_empty() {
+                    None
+                } else {
+                    Some(state.menu.name.clone())
+                };
+                services.new_game(name);
+                services.act(ClientAction::Wait, Default::default());
+                state.menu.entering_name = false;
+                state.page = PageSelection::Game;
+            }
+            KeyCode::Esc => {
+                state.menu.entering_name = false;
+                state.menu.name.clear();
+            }
+            _ => {
+                return false;
+            }
+        }
+        true
+    }
+
     pub fn render(
+        self,
+        area: Rect,
+        buf: &mut Buffer,
+        state: &mut MenuState,
+        services: RenderServices,
+    ) {
+        if state.entering_name {
+            self.render_name_input(area, buf, state);
+        } else {
+            self.render_menu(area, buf, state, services);
+        }
+    }
+
+    fn render_menu(
         self,
         area: Rect,
         buf: &mut Buffer,
@@ -115,6 +170,52 @@ impl MenuPage {
         // Leaderboard on the right
         let leaderboard_widget = LeaderboardWidget::new(&services.state.leaderboard);
         leaderboard_widget.render(chunks[1], buf);
+    }
+
+    fn render_name_input(self, area: Rect, buf: &mut Buffer, state: &MenuState) {
+        use ratatui::widgets::Clear;
+
+        let popup_width = 50;
+        let popup_height = 8;
+
+        let popup_area = center(
+            area,
+            Constraint::Length(popup_width),
+            Constraint::Length(popup_height),
+        );
+
+        // Clear the popup area to reset style
+        Clear.render(popup_area, buf);
+
+        let block = Block::default()
+            .title("Start New Game")
+            .borders(Borders::ALL)
+            .style(Style::default().fg(THEME.palette.ui_highlight));
+
+        let inner = block.inner(popup_area);
+        block.render(popup_area, buf);
+
+        let lines = [
+            "Enter your name:",
+            "",
+            &format!("> {}_", state.name),
+            "",
+            "(Max 8 characters)",
+            "",
+            "Press Enter to start, Esc to cancel",
+        ];
+
+        for (i, line) in lines.iter().enumerate() {
+            let y = inner.y + i as u16;
+            let x = inner.x + (inner.width.saturating_sub(line.len() as u16)) / 2;
+            let style = match i {
+                0 => Style::default().fg(THEME.palette.ui_text).bold(),
+                2 => Style::default().fg(THEME.palette.ui_highlight),
+                4 | 6 => Style::default().fg(THEME.palette.ui_disabled),
+                _ => Style::default().fg(THEME.palette.ui_text),
+            };
+            buf.set_string(x, y, line, style);
+        }
     }
 }
 

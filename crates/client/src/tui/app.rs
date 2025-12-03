@@ -73,10 +73,10 @@ impl<'a> InputServices<'a> {
         });
     }
 
-    pub fn new_game(&self) {
+    pub fn new_game(&self, name: Option<String>) {
         self.client.send(ClientMessage {
             player_id: Some(self.state.player_id),
-            content: ClientMessageContent::Start(self.state.player_id, None),
+            content: ClientMessageContent::Start(self.state.player_id, name),
         });
     }
 

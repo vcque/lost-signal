@@ -21,13 +21,19 @@ pub enum PageSelection {
 #[derive(Debug)]
 pub struct MenuState {
     pub list_state: ListState,
+    pub entering_name: bool,
+    pub name: String,
 }
 
 impl Default for MenuState {
     fn default() -> Self {
         let mut list_state = ListState::default();
         list_state.select(Some(0));
-        Self { list_state }
+        Self {
+            list_state,
+            entering_name: false,
+            name: String::new(),
+        }
     }
 }
 

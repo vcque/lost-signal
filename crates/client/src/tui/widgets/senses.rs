@@ -1,5 +1,5 @@
 use bounded_integer::BoundedU8;
-use losig_core::sense::{SenseStrength, Senses, SensesInfo};
+use losig_core::sense::{SenseStrength, Senses, SensesInfo, SightInfo};
 use losig_core::types::{FOCUS_MAX, HP_MAX};
 use ratatui::layout::Spacing;
 use ratatui::{
@@ -12,51 +12,27 @@ use ratatui::{
 
 use crate::tui::THEME;
 
-struct SenseWidget<'a> {
-    label: &'a str,
-    indicator: &'a str,
-    status: Option<Line<'a>>,
+/// Renders the common header line for a sense widget (label, indicator, selection styling)
+fn render_sense_header(
+    area: Rect,
+    buf: &mut Buffer,
+    label: &str,
+    indicator: &str,
     selected: bool,
     active: bool,
-}
+) {
+    let style = match (selected, active) {
+        (true, _) => THEME.palette.ui_selected,
+        (_, true) => THEME.palette.ui_highlight,
+        _ => THEME.palette.ui_disabled,
+    };
 
-impl<'a> Widget for SenseWidget<'a> {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer)
-    where
-        Self: Sized,
-    {
-        let Self {
-            label,
-            indicator,
-            status,
-            active,
-            selected,
-        } = self;
-
-        let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
-        let [first, second] = layout.areas(area);
-
-        let first_line_style = match (selected, active) {
-            (true, _) => THEME.palette.ui_selected,
-            (_, true) => THEME.palette.ui_highlight,
-            _ => THEME.palette.ui_disabled,
-        };
-
-        buf.set_string(
-            first.x,
-            first.y,
-            ".".repeat(area.width as usize),
-            first_line_style,
-        );
-        Line::from(label).style(first_line_style).render(first, buf);
-        Line::from(indicator)
-            .style(first_line_style)
-            .right_aligned()
-            .render(first, buf);
-
-        let status = status.unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
-        status.right_aligned().render(second, buf);
-    }
+    buf.set_string(area.x, area.y, ".".repeat(area.width as usize), style);
+    Line::from(label).style(style).render(area, buf);
+    Line::from(indicator)
+        .style(style)
+        .right_aligned()
+        .render(area, buf);
 }
 
 pub struct SelfSenseWidget<'a> {
@@ -70,29 +46,11 @@ impl<'a> Widget for SelfSenseWidget<'a> {
         let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
         let [first, second] = layout.areas(area);
 
-        // Render first line (label and indicator)
-        let first_line_style = match (self.selected, self.sense) {
-            (true, _) => THEME.palette.ui_selected,
-            (_, true) => THEME.palette.ui_highlight,
-            _ => THEME.palette.ui_disabled,
-        };
-
-        buf.set_string(
-            first.x,
-            first.y,
-            ".".repeat(area.width as usize),
-            first_line_style,
-        );
-        Line::from("Self")
-            .style(first_line_style)
-            .render(first, buf);
+        // Render header
         let indicator = if self.sense { "(+)" } else { "(-)" };
-        Line::from(indicator)
-            .style(first_line_style)
-            .right_aligned()
-            .render(first, buf);
+        render_sense_header(first, buf, "Self", indicator, self.selected, self.sense);
 
-        // Render second line (HP gauge + Focus gauge)
+        // Render content (HP gauge + Focus gauge)
         if let Some(info) = self.info {
             // Split the second line into two equal halves
             let halves =
@@ -166,31 +124,33 @@ pub struct TouchSenseWidget<'a> {
 
 impl<'a> Widget for TouchSenseWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let status = self.info.map(|info| match (info.foes, info.orb) {
-            (0, false) => Line::from("Nothing nearby"),
-            (1, false) => Line::from("I touched something!").style(THEME.palette.foe),
-            (n, false) => Line::from(format!("I touched {n} things!")).style(THEME.palette.foe),
-            (0, true) => Line::from("The orb is nearby!").style(THEME.palette.important),
-            (1, true) => Line::from(vec![
-                Span::from("I touched something...").style(THEME.palette.foe),
-                Span::from(" And the orb!").style(THEME.palette.important),
-            ]),
-            (n, true) => Line::from(vec![
-                Span::from(format!("I touched {n} things...")).style(THEME.palette.foe),
-                Span::from(" And the orb!").style(THEME.palette.important),
-            ]),
-        });
+        let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
+        let [first, second] = layout.areas(area);
 
+        // Render header
         let indicator = if self.sense { "(+)" } else { "(-)" };
+        render_sense_header(first, buf, "Touch", indicator, self.selected, self.sense);
 
-        SenseWidget {
-            label: "Touch",
-            indicator,
-            status,
-            selected: self.selected,
-            active: self.sense,
-        }
-        .render(area, buf);
+        // Render content
+        let status = self
+            .info
+            .map(|info| match (info.foes, info.orb) {
+                (0, false) => Line::from("Nothing nearby"),
+                (1, false) => Line::from("I touched something!").style(THEME.palette.foe),
+                (n, false) => Line::from(format!("I touched {n} things!")).style(THEME.palette.foe),
+                (0, true) => Line::from("The orb is nearby!").style(THEME.palette.important),
+                (1, true) => Line::from(vec![
+                    Span::from("I touched something...").style(THEME.palette.foe),
+                    Span::from(" And the orb!").style(THEME.palette.important),
+                ]),
+                (n, true) => Line::from(vec![
+                    Span::from(format!("I touched {n} things...")).style(THEME.palette.foe),
+                    Span::from(" And the orb!").style(THEME.palette.important),
+                ]),
+            })
+            .unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
+
+        status.right_aligned().render(second, buf);
     }
 }
 
@@ -202,51 +162,68 @@ pub struct HearingSenseWidget<'a> {
 
 impl<'a> Widget for HearingSenseWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let status = self.info.map(|str| match str.range {
-            Some(range) => match range.get() {
-                1 => Line::from("The orb is buzzing nearby!"),
-                2 => Line::from("The orb is buzzing somewhat close"),
-                3 => Line::from("The orb is buzzing"),
-                4 => Line::from("The orb is buzzing distantly"),
-                5 => Line::from("The orb is buzzing in the far distance"),
-                _ => unreachable!(),
-            }
-            .style(THEME.palette.important),
-            None => Line::from("Nothing"),
-        });
+        let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
+        let [first, second] = layout.areas(area);
 
-        let indicator = format!("({})", self.sense);
+        // Render header
+        render_sense_header(
+            first,
+            buf,
+            "Hearing",
+            &format!("({})", self.sense),
+            self.selected,
+            !self.sense.is_min(),
+        );
 
-        SenseWidget {
-            label: "Hearing",
-            indicator: indicator.as_str(),
-            status,
-            selected: self.selected,
-            active: !self.sense.is_min(),
-        }
-        .render(area, buf);
+        // Render content
+        let status = self
+            .info
+            .map(|str| match str.range {
+                Some(range) => match range.get() {
+                    1 => Line::from("The orb is buzzing nearby!"),
+                    2 => Line::from("The orb is buzzing somewhat close"),
+                    3 => Line::from("The orb is buzzing"),
+                    4 => Line::from("The orb is buzzing distantly"),
+                    5 => Line::from("The orb is buzzing in the far distance"),
+                    _ => unreachable!(),
+                }
+                .style(THEME.palette.important),
+                None => Line::from("Nothing"),
+            })
+            .unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
+
+        status.right_aligned().render(second, buf);
     }
 }
 
 pub struct SightSenseWidget<'a> {
     pub sense: BoundedU8<0, 10>,
-    pub info: Option<&'a losig_core::sense::SightInfo>,
+    pub info: Option<&'a SightInfo>,
     pub selected: bool,
 }
 
 impl<'a> Widget for SightSenseWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let status = self.info.map(|_| Line::from("I see stuff"));
-        let indicator = format!("({})", self.sense);
+        let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
+        let [first, second] = layout.areas(area);
 
-        SenseWidget {
-            label: "Sight",
-            indicator: indicator.as_str(),
-            status,
-            selected: self.selected,
-            active: !self.sense.is_min(),
-        }
-        .render(area, buf);
+        // Render header
+        render_sense_header(
+            first,
+            buf,
+            "Sight",
+            &format!("({})", self.sense),
+            self.selected,
+            !self.sense.is_min(),
+        );
+
+        // Render content
+        let status = self
+            .info
+            .map(|_| Line::from("I see stuff"))
+            .unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
+
+        status.right_aligned().render(second, buf);
     }
 }
 

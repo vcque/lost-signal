@@ -206,6 +206,16 @@ impl GamePage {
             _ => None,
         };
         if let Some(action) = action {
+            // Check for wall collision before moving
+            if let ClientAction::MoveOrAttack(dir) = &action {
+                let new_pos = services.state.world.current_state.position + dir.offset();
+                let tile = services.state.world.current_state.tile_at(new_pos);
+                if !tile.can_travel() {
+                    // Cancel move into wall
+                    return true;
+                }
+            }
+
             services.act(action, game_state.senses.clone());
             return true;
         }

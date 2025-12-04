@@ -212,14 +212,7 @@ pub struct Avatar {
     pub player_id: PlayerId,
     pub position: Position,
     pub hp: u8,
-
-    /// flag to represent an avatar which could not pay the cost of its senses
-    pub tired: bool,
     pub turns: Turn,
-
-    // TODO: should be elsewhere, will do for now
-    /// If a player turn set this flag to true on his avatar, he is transitioned according to it.
-    pub transition: Option<Transition>,
 }
 
 /// A transition is the move of an avatar from one stage to another.
@@ -236,9 +229,7 @@ impl Avatar {
             player_id,
             position: Position { x: 1, y: 1 },
             hp: HP_MAX,
-            tired: false,
             turns: 1,
-            transition: None,
         }
     }
 

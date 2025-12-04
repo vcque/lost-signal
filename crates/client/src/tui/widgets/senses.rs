@@ -146,7 +146,7 @@ impl<'a> Widget for TouchSenseWidget<'a> {
                     ]));
                 }
 
-                if info.foes.len() > 0 {
+                if !info.foes.is_empty() {
                     lines.push(Line::from(vec![
                         Span::from("?").style(THEME.palette.foe),
                         Span::from(format!(

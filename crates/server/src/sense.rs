@@ -55,6 +55,10 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
 
     let center = tiles.center();
     for (i, foe) in state.foes.iter().enumerate() {
+        if foe.is_trap() {
+            // Traps can't be seen
+            continue;
+        }
         let offset = foe.position - avatar.position;
         let fov_position = center + offset;
 
@@ -71,8 +75,8 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
     let offset = state.orb.position - avatar.position;
     let fov_position = center + offset;
     let orb = match tiles.get(fov_position) {
-        Tile::Empty => Some(offset),
-        _ => None,
+        Tile::Unknown => None,
+        _ => Some(offset),
     };
 
     let mut allies = vec![];
@@ -129,15 +133,21 @@ fn gather_touch(avatar: &Avatar, async_stage: &Stage, state: &StageState) -> Tou
     let tiles = fov::fov(avatar.position, 1, &async_stage.template.tiles);
 
     let mut foes = 0;
+    let mut traps = 0;
     for foe in &state.foes {
         if foe.alive() && foe.position.dist(&avatar.position) <= 1 {
-            foes += 1;
+            if foe.is_trap() {
+                traps += 1;
+            } else {
+                foes += 1;
+            }
         }
     }
 
     TouchInfo {
         tiles,
         foes,
+        traps,
         orb: state.orb.position.dist(&avatar.position) <= 1,
     }
 }

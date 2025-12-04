@@ -354,18 +354,16 @@ impl<'a> Widget for WorldViewWidget<'a> {
             }
         }
 
-        let neigboring_foes = last_info
-            .and_then(|i| i.touch.as_ref())
-            .map(|it| it.foes)
-            .unwrap_or_default();
+        let touch_info = last_info.and_then(|i| i.touch.as_ref());
+        let neigboring_traps = touch_info.map(|it| it.traps).unwrap_or_default();
 
         let has_sight = last_info.and_then(|i| i.sight.as_ref()).is_some();
-        if !has_sight && neigboring_foes > 0 {
+        if !has_sight && neigboring_traps > 0 {
             buf.set_string(
                 area.x + center_x as u16,
                 area.y + center_y as u16,
-                neigboring_foes.to_string(),
-                THEME.palette.foe,
+                neigboring_traps.to_string(),
+                THEME.palette.trap,
             );
         } else {
             buf.set_string(

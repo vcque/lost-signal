@@ -269,11 +269,14 @@ impl Foe {
     }
 
     pub fn can_be_attacked(&self) -> bool {
-        self.alive()
-            && match self.foe_type {
-                FoeType::MindSnare => false,
-                _ => true,
-            }
+        self.alive() && !self.is_trap()
+    }
+
+    pub fn is_trap(&self) -> bool {
+        match self.foe_type {
+            FoeType::Simple => false,
+            FoeType::MindSnare => true,
+        }
     }
 }
 

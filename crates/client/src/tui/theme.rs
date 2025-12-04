@@ -17,6 +17,7 @@ pub struct ThemePalette {
     pub ui_hp: Color,
 
     pub foe: Color,
+    pub trap: Color,
     pub ally_leading: Color,
     pub ally_trailing: Color,
     pub ally_discarded: Color,
@@ -49,6 +50,7 @@ pub struct ThemePalette {
 pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
     palette: ThemePalette {
         foe: Color::from_hsl(Hsl::new(0.0, 1.0, 0.5)),
+        trap: Color::from_hsl(Hsl::new(0.0, 0.8, 0.3)),
         ally_leading: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),
         ally_trailing: Color::from_hsl(Hsl::new(180.0, 1.0, 0.5)),
         ally_sync: Color::from_hsl(Hsl::new(75.0, 0.5, 1.0)),

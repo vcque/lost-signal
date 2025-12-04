@@ -153,6 +153,13 @@ impl<'a> Widget for TouchSenseWidget<'a> {
                     ]));
                 }
 
+                if info.traps > 0 {
+                    lines.push(Line::from(vec![
+                        Span::from("¤").style(THEME.palette.trap),
+                        Span::from(format!(": {} trap{}", info.traps, if info.traps == 1 { "" } else { "s" })),
+                    ]));
+                }
+
                 if lines.is_empty() {
                     lines.push(Line::from("Nothing nearby"));
                 }

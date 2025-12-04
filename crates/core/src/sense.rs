@@ -70,6 +70,7 @@ pub struct SelfInfo {
 pub struct TouchInfo {
     pub tiles: Tiles,
     pub foes: u8,
+    pub traps: u8,
     pub orb: bool,
 }
 

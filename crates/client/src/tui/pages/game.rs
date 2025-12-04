@@ -114,10 +114,14 @@ impl GamePage {
 
         // Display latency at the bottom of the senses panel
         if let Some(latency) = world.last_latency {
-            let latency_text = format!(" {}ms ", latency.as_millis());
+            let latency_text = format!("Latency: {}ms", latency.as_millis());
             let latency_style = Style::default().fg(Color::Black).bg(Color::White);
             let bottom_y = _senses_a.y + _senses_a.height.saturating_sub(1);
-            buf.set_string(_senses_a.x, bottom_y, latency_text, latency_style);
+            let latency_area = Rect::new(_senses_a.x, bottom_y, _senses_a.width, 1);
+
+            Line::from(latency_text)
+                .style(latency_style)
+                .render(latency_area, buf);
         }
 
         // Check for limbo state from server

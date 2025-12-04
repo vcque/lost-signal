@@ -23,7 +23,7 @@ pub struct WorldView {
     pub stage: StageId,
     pub turn: Turn,
 
-    history: Vec<WorldHistory>,
+    history: Vec<WorldDiff>,
     past_state: WorldState,
     pub current_state: WorldState,
     pub logs: GameLogs,
@@ -62,8 +62,9 @@ impl WorldView {
             previous_info,
         );
 
-        let history = WorldHistory {
+        let history = WorldDiff {
             action: *action,
+            update_received: false,
             server_action: None,
             info: intermediate_info,
         };
@@ -110,6 +111,7 @@ impl WorldView {
                 let index = self.history.len() - i as usize - 1;
                 self.history[index].info = info;
                 self.history[index].server_action = Some(action);
+                self.history[index].update_received = true;
                 self.rebuild_current_state();
             }
             _ => {
@@ -137,10 +139,11 @@ impl WorldView {
 
         self.stage = stage;
         self.stage_turn = stage_turn;
-        self.history.push(WorldHistory {
+        self.history.push(WorldDiff {
             action: ClientAction::Wait,
             server_action: Some(ServerAction::Wait),
             info,
+            update_received: true,
         });
         self.timeline = timeline;
         self.rebuild_current_state();
@@ -158,11 +161,7 @@ impl WorldView {
     }
 
     pub fn last_info(&self) -> Option<&SensesInfo> {
-        self.history
-            .iter()
-            .rev()
-            .filter_map(|h| h.info.as_ref())
-            .next()
+        self.history.last().and_then(|h| h.info.as_ref())
     }
 
     pub fn update_on_averted(&mut self, info: SensesInfo) {
@@ -211,8 +210,9 @@ impl Default for WorldView {
 }
 
 #[derive(Debug, Clone)]
-struct WorldHistory {
+struct WorldDiff {
     action: ClientAction,
+    update_received: bool,
     server_action: Option<ServerAction>,
     info: Option<SensesInfo>,
 }
@@ -246,7 +246,7 @@ impl WorldState {
         self.tiles[pos.x + VIEW_SIZE * pos.y]
     }
 
-    fn update(&mut self, history: &WorldHistory) {
+    fn update(&mut self, history: &WorldDiff) {
         self.update_action(&history.action, history.server_action.as_ref());
 
         if let Some(ref info) = history.info {

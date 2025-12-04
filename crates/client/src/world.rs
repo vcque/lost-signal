@@ -8,6 +8,7 @@ use losig_core::{
         Turn,
     },
 };
+use web_time::{Duration, Instant};
 
 use crate::logs::{ClientLog, GameLogs};
 
@@ -29,6 +30,8 @@ pub struct WorldView {
     pub logs: GameLogs,
     pub stage_turn: StageTurn,
     pub timeline: Timeline,
+    pub last_latency: Option<Duration>,
+    action_sent_at: Option<Instant>,
 }
 
 impl WorldView {
@@ -46,6 +49,8 @@ impl WorldView {
             current_state: WorldState::default(),
             logs,
             timeline: Timeline { head: 1, tail: 1 },
+            last_latency: None,
+            action_sent_at: None,
         }
     }
 
@@ -53,6 +58,9 @@ impl WorldView {
         if matches!(action, ClientAction::Spawn) {
             self.clear();
         }
+
+        // Record timestamp when action is sent
+        self.action_sent_at = Some(Instant::now());
 
         let previous_info = self.last_info();
         let intermediate_info = WorldState::generate_intermediate_info(
@@ -95,6 +103,12 @@ impl WorldView {
     ) {
         let diff = turn.abs_diff(self.turn);
         let turn_diff = (turn as i64) - (stage_turn as i64);
+
+        // Calculate latency if this is a response to our action
+        if diff == 0
+            && let Some(sent_at) = self.action_sent_at.take() {
+                self.last_latency = Some(sent_at.elapsed());
+            }
 
         // Update global info
         if diff == 0 {

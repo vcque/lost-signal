@@ -112,6 +112,14 @@ impl GamePage {
             .wrap(senses_widget);
         senses_wigdet.render(_senses_a, buf);
 
+        // Display latency at the bottom of the senses panel
+        if let Some(latency) = world.last_latency {
+            let latency_text = format!(" {}ms ", latency.as_millis());
+            let latency_style = Style::default().fg(Color::Black).bg(Color::White);
+            let bottom_y = _senses_a.y + _senses_a.height.saturating_sub(1);
+            buf.set_string(_senses_a.x, bottom_y, latency_text, latency_style);
+        }
+
         // Check for limbo state from server
         if let Some(averted) = services.state.limbo {
             state.limbo.open = true;

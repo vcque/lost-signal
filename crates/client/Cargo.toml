@@ -13,6 +13,7 @@ ratatui.workspace = true
 log.workspace = true
 palette.workspace = true
 itertools.workspace = true
+web-time = "1.1.0"
 
 [lints]
 workspace = true

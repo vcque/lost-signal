@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Result, anyhow};
-use log::{info, warn};
+use log::warn;
 use losig_core::{
     fov,
     sense::{Senses, SensesInfo},
@@ -246,13 +246,6 @@ impl Stage {
             self.diffs.drain(0..index);
             let tail = self.tail_turn();
             self.states.retain(|key, _| *key >= tail);
-        } else {
-            info!(
-                "Stage {} is reset because it has no more player",
-                self.template.id
-            );
-
-            *self = Self::new(self.template.clone());
         }
     }
 

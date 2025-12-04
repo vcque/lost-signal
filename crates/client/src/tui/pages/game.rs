@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use itertools::Itertools;
 use log::info;
 use losig_core::{
     sense::SightedAllyStatus,
@@ -307,7 +308,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
             }
 
             // Show the foes
-            for foe in &sight.foes {
+            for foe in sight.foes.iter().sorted_by_key(|f| f.alive) {
                 let x = center_x + foe.offset.x;
                 let y = center_y + foe.offset.y;
 

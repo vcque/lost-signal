@@ -128,33 +128,45 @@ pub struct TouchSenseWidget<'a> {
 
 impl<'a> Widget for TouchSenseWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let layout = Layout::vertical([Constraint::Length(1), Constraint::Length(1)]);
-        let [first, second] = layout.areas(area);
+        let layout = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]);
+        let [header, content] = layout.areas(area);
 
         // Render header
         let indicator = if self.sense { "(+)" } else { "(-)" };
-        render_sense_header(first, buf, "Touch", indicator, self.selected, self.sense);
+        render_sense_header(header, buf, "Touch", indicator, self.selected, self.sense);
 
-        // Render content
-        let status = self
-            .info
-            .map(|info| match (info.foes, info.orb) {
-                (0, false) => Line::from("Nothing nearby"),
-                (1, false) => Line::from("I touched something!").style(THEME.palette.foe),
-                (n, false) => Line::from(format!("I touched {n} things!")).style(THEME.palette.foe),
-                (0, true) => Line::from("The orb is nearby!").style(THEME.palette.important),
-                (1, true) => Line::from(vec![
-                    Span::from("I touched something...").style(THEME.palette.foe),
-                    Span::from(" And the orb!").style(THEME.palette.important),
-                ]),
-                (n, true) => Line::from(vec![
-                    Span::from(format!("I touched {n} things...")).style(THEME.palette.foe),
-                    Span::from(" And the orb!").style(THEME.palette.important),
-                ]),
-            })
-            .unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
+        let lines: Vec<Line> = match self.info {
+            Some(info) => {
+                let mut lines = vec![];
 
-        status.right_aligned().render(second, buf);
+                if info.orb {
+                    lines.push(Line::from(vec![
+                        Span::from("o").style(THEME.palette.important),
+                        Span::from(": the orb"),
+                    ]));
+                }
+
+                if info.foes > 0 {
+                    lines.push(Line::from(vec![
+                        Span::from("?").style(THEME.palette.foe),
+                        Span::from(format!(": {} foe{}", info.foes, if info.foes == 1 { "" } else { "s" })),
+                    ]));
+                }
+
+                if lines.is_empty() {
+                    lines.push(Line::from("Nothing nearby"));
+                }
+
+                lines
+            }
+            None => vec![
+                Line::from("-")
+                    .style(THEME.palette.ui_disabled)
+                    .right_aligned(),
+            ],
+        };
+
+        Paragraph::new(lines).render(content, buf);
     }
 }
 

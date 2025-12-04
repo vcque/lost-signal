@@ -549,6 +549,7 @@ impl StageState {
         self.foes
             .iter()
             .enumerate()
+            .filter(|f| f.1.alive())
             .find(|(_, f)| f.position == position)
     }
 }

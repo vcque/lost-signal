@@ -86,16 +86,24 @@ impl GamePage {
             .last_info()
             .and_then(|info| info.selfi.as_ref())
             .map(|selfi| selfi.focus);
-        let cost_style = if focus.is_some_and(|s| s < cost) {
-            Style::default().bold().bg(THEME.palette.foe)
+
+        let (cost_style, title) = if world.last_info().is_none() {
+            let tired_style = Style::default().fg(Color::White).bg(Color::Red);
+            let tired_title = Line::from(" TIRED ")
+                .alignment(ratatui::layout::Alignment::Center);
+            (tired_style, tired_title)
         } else {
-            Style::default()
+            let style = if focus.is_some_and(|s| s < cost) {
+                Style::default().bold().bg(THEME.palette.foe)
+            } else {
+                Style::default()
+            };
+
+            let focus_str = focus.map(|s| s.to_string()).unwrap_or("??".to_owned());
+            let cost_title = Line::from(format!(" Senses - cost: {} / {} ", cost, focus_str))
+                .alignment(ratatui::layout::Alignment::Center);
+            (style, cost_title)
         };
-
-        let focus_str = focus.map(|s| s.to_string()).unwrap_or("??".to_owned());
-
-        let title = Line::from(format!(" Senses - cost: {} / {} ", cost, focus_str))
-            .alignment(ratatui::layout::Alignment::Center);
 
         let senses_wigdet = Block::default()
             .borders(Borders::TOP)

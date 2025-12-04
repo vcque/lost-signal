@@ -69,7 +69,7 @@ pub struct SelfInfo {
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub struct TouchInfo {
     pub tiles: Tiles,
-    pub foes: u8,
+    pub foes: Vec<Offset>,
     pub traps: u8,
     pub orb: bool,
 }

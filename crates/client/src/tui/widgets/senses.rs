@@ -146,17 +146,25 @@ impl<'a> Widget for TouchSenseWidget<'a> {
                     ]));
                 }
 
-                if info.foes > 0 {
+                if info.foes.len() > 0 {
                     lines.push(Line::from(vec![
                         Span::from("?").style(THEME.palette.foe),
-                        Span::from(format!(": {} foe{}", info.foes, if info.foes == 1 { "" } else { "s" })),
+                        Span::from(format!(
+                            ": {} foe{}",
+                            info.foes.len(),
+                            if info.foes.len() == 1 { "" } else { "s" }
+                        )),
                     ]));
                 }
 
                 if info.traps > 0 {
                     lines.push(Line::from(vec![
                         Span::from("¤").style(THEME.palette.trap),
-                        Span::from(format!(": {} trap{}", info.traps, if info.traps == 1 { "" } else { "s" })),
+                        Span::from(format!(
+                            ": {} trap{}",
+                            info.traps,
+                            if info.traps == 1 { "" } else { "s" }
+                        )),
                     ]));
                 }
 

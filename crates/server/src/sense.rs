@@ -132,14 +132,14 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
 fn gather_touch(avatar: &Avatar, async_stage: &Stage, state: &StageState) -> TouchInfo {
     let tiles = fov::fov(avatar.position, 1, &async_stage.template.tiles);
 
-    let mut foes = 0;
+    let mut foes = vec![];
     let mut traps = 0;
     for foe in &state.foes {
         if foe.alive() && foe.position.dist(&avatar.position) <= 1 {
             if foe.is_trap() {
                 traps += 1;
             } else {
-                foes += 1;
+                foes.push(foe.position - avatar.position);
             }
         }
     }

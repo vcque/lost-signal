@@ -89,8 +89,7 @@ impl GamePage {
 
         let (cost_style, title) = if world.last_info().is_none() {
             let tired_style = Style::default().fg(Color::White).bg(Color::Red);
-            let tired_title = Line::from(" TIRED ")
-                .alignment(ratatui::layout::Alignment::Center);
+            let tired_title = Line::from(" TIRED ").alignment(ratatui::layout::Alignment::Center);
             (tired_style, tired_title)
         } else {
             let style = if focus.is_some_and(|s| s < cost) {
@@ -355,9 +354,18 @@ impl<'a> Widget for WorldViewWidget<'a> {
         }
 
         let touch_info = last_info.and_then(|i| i.touch.as_ref());
-        let neigboring_traps = touch_info.map(|it| it.traps).unwrap_or_default();
-
         let has_sight = last_info.and_then(|i| i.sight.as_ref()).is_some();
+
+        // Render touched foes as "?" when sight is inactive
+        if !has_sight && let Some(touch) = touch_info {
+            for offset in &touch.foes {
+                let x = center_x + offset.x;
+                let y = center_y + offset.y;
+                buf.set_string(area.x + x as u16, area.y + y as u16, "?", THEME.palette.foe);
+            }
+        }
+
+        let neigboring_traps = touch_info.map(|it| it.traps).unwrap_or_default();
         if !has_sight && neigboring_traps > 0 {
             buf.set_string(
                 area.x + center_x as u16,

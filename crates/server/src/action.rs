@@ -1,5 +1,5 @@
 use losig_core::types::{
-    Avatar, ClientAction, Direction, FOCUS_MAX, HP_MAX, PlayerId, Position, ServerAction,
+    Avatar, ClientAction, Direction, HP_MAX, PlayerId, Position, ServerAction,
 };
 
 use crate::stage::{Stage, StageState};
@@ -18,7 +18,6 @@ fn act_spawn(avatar: &mut Avatar, stage: &Stage) {
     let spawn_position = stage.find_spawns();
     avatar.position = spawn_position[avatar.player_id as usize % spawn_position.len()];
     avatar.hp = HP_MAX;
-    avatar.focus = FOCUS_MAX;
 }
 
 fn act_move(avatar: &mut Avatar, position: Position) {

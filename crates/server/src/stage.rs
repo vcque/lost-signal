@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    ops::Bound,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Result, anyhow};
 use log::{info, warn};
@@ -38,7 +35,7 @@ pub struct Stage {
      * Rollback handling
      */
     pub head_turn: Turn,
-    pub avatar_trackers: BTreeMap<PlayerId, AvatarTracker>,
+    pub players: BTreeMap<PlayerId, StagePlayer>,
     states: BTreeMap<Turn, StageState>,
     pub diffs: Vec<TurnDiff>,
     pub bounds: SenseBounds,
@@ -54,7 +51,7 @@ impl Stage {
             template: stage,
             seed,
             head_turn,
-            avatar_trackers: Default::default(),
+            players: Default::default(),
             states: Default::default(),
             diffs: vec![TurnDiff::default()],
             bounds: Default::default(),
@@ -68,6 +65,7 @@ impl Stage {
                 excited: false,
             },
             avatars,
+            player: None,
         };
         new.states.insert(head_turn, state);
         new
@@ -82,7 +80,7 @@ impl Stage {
     }
 
     pub fn state_for(&self, aid: PlayerId) -> Option<StageState> {
-        let tracker = self.avatar_trackers.get(&aid)?;
+        let tracker = self.players.get(&aid)?;
         Some(self.states.get(&tracker.turn)?.clone())
     }
 
@@ -94,16 +92,16 @@ impl Stage {
             new_avatar: Some(avatar),
         });
 
-        self.avatar_trackers
-            .insert(player.id, AvatarTracker::new(player, self.head_turn));
-        self.rollback_from(self.head_turn);
+        self.players
+            .insert(player.id, StagePlayer::new(player, self.head_turn));
+        self.rollback_from(*self.states.last_key_value().unwrap().0);
     }
 
     pub fn remove_player(&mut self, pid: PlayerId) -> Option<Avatar> {
         let state = self.state_for(pid)?;
         let avatar = state.avatars.get(&pid);
 
-        self.avatar_trackers.remove(&pid);
+        self.players.remove(&pid);
         self.bounds.release(pid);
         self.clean_history();
         avatar.cloned()
@@ -111,98 +109,117 @@ impl Stage {
 
     pub fn add_command(
         &mut self,
-        aid: PlayerId,
+        pid: PlayerId,
         action: ClientAction,
-        senses: Senses,
+        mut senses: Senses,
     ) -> Result<StageCommandResult> {
-        let action = action::convert_client(action, self, aid);
+        let action = action::convert_client(action, self, pid);
 
-        let tracker = self
-            .avatar_trackers
-            .get_mut(&aid)
-            .ok_or_else(|| anyhow!("Could not find turn"))?;
+        let mut player = self
+            .players
+            .get(&pid)
+            .ok_or_else(|| anyhow!("Could not find player"))?
+            .clone();
 
-        // Next turn
-        tracker.turn += 1;
+        // Remove state if this is the sole player on it, otherwise clone
+        let players_on_turn = self
+            .players
+            .values()
+            .filter(|p| p.turn == player.turn)
+            .count();
 
-        // Add a new item to the list if at the head of the difflist
-        if tracker.turn > self.head_turn {
-            self.head_turn += 1;
-            self.diffs.push(TurnDiff::default());
+        let mut state = if players_on_turn == 1 {
+            self.states.remove(&player.turn).unwrap()
+        } else {
+            self.states[&player.turn].clone()
+        };
+
+        // Focus handling
+        player.focus = (player.focus + FOCUS_REGEN).min(FOCUS_MAX);
+        let focus_cost = senses.cost();
+        let has_focus = focus_cost <= player.focus;
+        if has_focus {
+            player.focus -= focus_cost;
+        } else {
+            senses = Senses::default();
         }
 
-        let stage_turn = tracker.turn; // ends mutable borrow
-
-        let diff_index = self.diff_index(stage_turn);
-
+        // Diff handling
+        player.turn += 1;
+        let stage_turn = player.turn;
         let avatar_diff = AvatarCmd {
             action,
             senses: senses.clone(),
         };
-        self.diffs
-            .get_mut(diff_index)
-            .ok_or_else(|| anyhow!("Incoherent difflist: no index {diff_index}"))?
+
+        // Add turns to head if player is at the head
+        if player.turn > self.head_turn {
+            for _ in 0..player.turn - self.head_turn {
+                self.diffs.push(TurnDiff::default());
+            }
+            self.head_turn = player.turn;
+        }
+
+        let diff_index = self.diff_index(player.turn);
+        self.diffs[diff_index]
             .cmd_by_avatar
-            .insert(aid, avatar_diff);
+            .insert(pid, avatar_diff);
+        let turn_diff = &self.diffs[diff_index];
 
-        self.rollback_from(stage_turn);
+        // Update state based on diff
+        state.player = Some(player);
+        self.enact_turn(&mut state, turn_diff);
+        let mut player = state.player.take().unwrap();
+        let transition = player.transition.take();
 
-        // fetch state for aid
-        let state = self
-            .state_for(aid)
-            .ok_or_else(|| anyhow!("Couldn't find state at {aid}"))?;
-        let avatar = state
-            .avatars
-            .get(&aid)
-            .cloned()
-            .ok_or_else(|| anyhow!("Couldn't find avatar at {aid}"))?;
+        let avatar = state.avatars[&pid].clone();
 
-        let senses_info = if avatar.tired {
-            SensesInfo::default()
+        // Insert state back
+        self.states.insert(player.turn, state);
+
+        // Save player
+        self.players.insert(pid, player);
+
+        // Gather info, update bounds
+        let info = if has_focus {
+            let info = gather(&senses, self, pid);
+            self.bind_states(stage_turn, &avatar, &info);
+            Some(info)
         } else {
-            gather(&senses, &avatar, self, &state, self.tail_state())
+            None
         };
 
-        // Limbo handling
+        // Rollback
+        self.rollback_from(stage_turn);
+
+        // Limbo
         let limbos = self.handle_limbo();
 
+        // Clean
         self.clean_history();
-        // Could be reset in clear history
-        if stage_turn <= self.head_turn {
-            // We do this after history clean to limit the number of previous states to bind
-            self.bind_states(stage_turn, &avatar, &senses_info);
-        }
 
         Ok(StageCommandResult {
             stage_turn,
             limbos,
             logs: vec![],
-            senses_info,
+            senses_info: info,
             action,
-            transition: avatar.transition,
+            transition,
             timeline: self.timeline(),
         })
     }
 
     /// Recomputes the states from the given turn and forward
-    fn rollback_from(&mut self, turn: Turn) -> Option<()> {
-        // Get the previous state available
-        let (turn, state) = self
-            .states
-            .range((Bound::Unbounded, Bound::Excluded(turn)))
-            .next_back()?;
-
-        let turn = *turn;
-        let mut state = state.clone();
+    fn rollback_from(&mut self, turn: StageTurn) -> Option<()> {
+        let mut state = self.states[&turn].clone();
 
         let mut turns_to_save = self
-            .avatar_trackers
+            .players
             .values()
             .map(|tr| tr.turn)
             .collect::<BTreeSet<_>>();
 
         turns_to_save.insert(self.head_turn);
-        self.states.retain(|key, _| turns_to_save.contains(key));
 
         for turn in (turn + 1)..(self.head_turn + 1) {
             let index = self.diff_index(turn);
@@ -217,7 +234,6 @@ impl Stage {
         Some(())
     }
 
-    /// TODO: make it optional
     pub fn diff_index(&self, turn: StageTurn) -> usize {
         let turn_diff = self.head_turn - turn;
         self.diffs.len() - 1 - turn_diff as usize
@@ -225,7 +241,7 @@ impl Stage {
 
     /// Remove old states that are no more used: e.g. turns older than the earliest avatar turn
     fn clean_history(&mut self) {
-        if let Some(oldest_turn) = self.avatar_trackers.values().map(|tr| tr.turn).min() {
+        if let Some(oldest_turn) = self.players.values().map(|tr| tr.turn).min() {
             let index = self.diff_index(oldest_turn);
             self.diffs.drain(0..index);
             let tail = self.tail_turn();
@@ -240,18 +256,8 @@ impl Stage {
         }
     }
 
-    fn gather_info(&self, aid: PlayerId, senses: &Senses) -> Result<SensesInfo> {
-        let state = self
-            .state_for(aid)
-            .ok_or_else(|| anyhow!("Could not find state for {aid}"))?;
-
-        let tail_state = self.tail_state();
-
-        let avatar = &state.avatars[&aid];
-        if !avatar.tired {
-            return Ok(gather(senses, avatar, self, &state, tail_state));
-        }
-        Ok(Default::default())
+    fn gather_info(&self, pid: PlayerId, senses: &Senses) -> Result<SensesInfo> {
+        Ok(gather(senses, self, pid))
     }
 
     /// Update a state based on the diff
@@ -292,7 +298,6 @@ impl Stage {
             let mut avatar = avatar.clone();
 
             // Regen
-            avatar.focus = (avatar.focus + FOCUS_REGEN).min(FOCUS_MAX);
             if state.turn.is_multiple_of(TURN_FOR_HP_REGEN) {
                 avatar.hp = (avatar.hp + 1).min(HP_MAX);
             }
@@ -302,38 +307,33 @@ impl Stage {
 
             // Orb on tile
             if avatar.position == state.orb.position {
-                state.orb.position = orb_spawn(self, state.turn);
-                avatar.transition = Some(Transition::Orb);
-            }
-
-            // Sense cost
-            let cost = senses.cost();
-            avatar.tired = avatar.focus < cost;
-            if !avatar.tired {
-                avatar.focus = avatar.focus.saturating_sub(cost);
+                state.orb.excited = true;
+                if let Some(ref mut player) = state.player {
+                    player.transition = Some(Transition::Orb);
+                }
             }
 
             // Orb in sight
-            if !avatar.tired
-                && fov::can_see(
-                    &self.template.tiles,
-                    avatar.position,
-                    state.orb.position,
-                    senses.sight.get(),
-                )
-            {
+            if fov::can_see(
+                &self.template.tiles,
+                avatar.position,
+                state.orb.position,
+                senses.sight.get(),
+            ) {
                 state.orb.excited = true;
                 // TODO: logs
             }
 
-            // If pylon is adjacent, recharges focus
-            for x in -1..2 {
-                for y in -1..2 {
-                    let offset = Offset { x, y };
-                    let position = avatar.position + offset;
-                    let tile = self.template.tiles.get(position);
-                    if matches!(tile, Tile::Pylon) {
-                        avatar.focus = FOCUS_MAX;
+            if let Some(ref mut player) = state.player {
+                // If pylon is adjacent, recharges focus
+                for x in -1..2 {
+                    for y in -1..2 {
+                        let offset = Offset { x, y };
+                        let position = avatar.position + offset;
+                        let tile = self.template.tiles.get(position);
+                        if matches!(tile, Tile::Pylon) {
+                            player.focus = FOCUS_MAX;
+                        }
                     }
                 }
             }
@@ -384,13 +384,13 @@ impl Stage {
         for status in statuses.iter() {
             match status {
                 Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
-                    self.avatar_trackers.remove(&avatar.player_id);
+                    self.players.remove(&avatar.player_id);
                 }
                 &Limbo::MaybeDead(aid) => {
-                    self.avatar_trackers.get_mut(&aid).unwrap().limbo = true;
+                    self.players.get_mut(&aid).unwrap().limbo = true;
                 }
                 &Limbo::Averted(aid, _) => {
-                    self.avatar_trackers.get_mut(&aid).unwrap().limbo = false;
+                    self.players.get_mut(&aid).unwrap().limbo = false;
                 }
             }
         }
@@ -401,8 +401,7 @@ impl Stage {
     /// Returns deaths, maybedeaths and reverted deaths
     fn limbo_check(&mut self) -> Vec<Limbo> {
         // Sort avatars by turn (earliest to latest)
-        let mut aid_n_trackers: Vec<_> =
-            self.avatar_trackers.iter().map(|(a, b)| (*a, b)).collect();
+        let mut aid_n_trackers: Vec<_> = self.players.iter().map(|(a, b)| (*a, b)).collect();
         aid_n_trackers.sort_by_key(|(_, tr)| tr.turn);
 
         let mut has_earlier_alive = false;
@@ -489,7 +488,7 @@ impl Stage {
     pub fn get_all_infos(&self) -> Vec<(PlayerId, StageTurn, SensesInfo)> {
         let mut results = vec![];
 
-        for (&pid, tracker) in &self.avatar_trackers {
+        for (&pid, tracker) in &self.players {
             let index = self.diff_index(tracker.turn);
             let senses = self
                 .diffs
@@ -507,22 +506,27 @@ impl Stage {
     }
 }
 
+/// State of the player in this stage
 #[derive(Clone)]
-pub struct AvatarTracker {
+pub struct StagePlayer {
     pub turn: StageTurn,
     /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
     /// cancelation/confirmation
     limbo: bool,
     /// Needed to have access to the player name in info gathering
     pub player_name: String,
+    pub focus: u8,
+    pub transition: Option<Transition>,
 }
 
-impl AvatarTracker {
+impl StagePlayer {
     fn new(player: &Player, turn: Turn) -> Self {
         Self {
             player_name: player.name.clone(),
             turn,
             limbo: false,
+            focus: FOCUS_MAX,
+            transition: None,
         }
     }
 }
@@ -534,6 +538,10 @@ pub struct StageState {
     pub foes: Vec<Foe>,
     pub orb: Orb,
     pub avatars: BTreeMap<PlayerId, Avatar>,
+
+    /// The player that is currently playing. only set on the current's player turn. Empty for
+    /// rollbacks.
+    pub player: Option<StagePlayer>,
 }
 
 impl StageState {
@@ -548,6 +556,7 @@ impl StageState {
 /// What's needed to recompute a stage state
 #[derive(Clone, Default)]
 pub struct TurnDiff {
+    // TODO: commands should keep the order they came in to keep  consistency
     pub cmd_by_avatar: BTreeMap<AvatarId, AvatarCmd>,
     new_avatar: Option<Avatar>,
 }
@@ -561,7 +570,7 @@ pub struct AvatarCmd {
 pub struct StageCommandResult {
     pub stage_turn: StageTurn,
     pub limbos: Vec<Limbo>,
-    pub senses_info: SensesInfo,
+    pub senses_info: Option<SensesInfo>,
     pub action: ServerAction,
     pub logs: Vec<(StageTurn, GameLogEvent)>,
     pub transition: Option<Transition>,

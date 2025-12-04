@@ -189,7 +189,7 @@ pub fn load_tutorial() -> Result<World> {
 
 #[allow(unused)]
 pub fn load_arena() -> Result<World> {
-    load_world(&["arena_corridor"])
+    load_world(&["arena_corridor", "arena"])
 }
 
 pub fn load_world(stage_ids: &[&str]) -> Result<World> {

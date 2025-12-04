@@ -52,7 +52,7 @@ pub enum CommandResultOutcome {
     Turn {
         stage: StageId,
         stage_turn: StageTurn,
-        info: SensesInfo,
+        info: Option<SensesInfo>,
         action: ServerAction,
         logs: Vec<(StageTurn, GameLogEvent)>,
         timeline: Timeline,
@@ -60,7 +60,7 @@ pub enum CommandResultOutcome {
     Transition {
         stage: StageId,
         stage_turn: StageTurn,
-        info: SensesInfo,
+        info: Option<SensesInfo>,
         timeline: Timeline,
     },
     Gameover(GameOver),

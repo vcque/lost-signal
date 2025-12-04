@@ -212,7 +212,6 @@ pub struct Avatar {
     pub player_id: PlayerId,
     pub position: Position,
     pub hp: u8,
-    pub focus: u8,
 
     /// flag to represent an avatar which could not pay the cost of its senses
     pub tired: bool,
@@ -237,7 +236,6 @@ impl Avatar {
             player_id,
             position: Position { x: 1, y: 1 },
             hp: HP_MAX,
-            focus: FOCUS_MAX,
             tired: false,
             turns: 1,
             transition: None,

@@ -108,7 +108,7 @@ impl WorldView {
         match diff {
             i if self.history.len() > i as usize => {
                 let index = self.history.len() - i as usize - 1;
-                self.history[index].info = Some(info);
+                self.history[index].info = info;
                 self.history[index].server_action = Some(action);
                 self.rebuild_current_state();
             }
@@ -140,7 +140,7 @@ impl WorldView {
         self.history.push(WorldHistory {
             action: ClientAction::Wait,
             server_action: Some(ServerAction::Wait),
-            info: Some(info),
+            info,
         });
         self.timeline = timeline;
         self.rebuild_current_state();

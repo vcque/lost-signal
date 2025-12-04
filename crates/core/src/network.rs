@@ -28,7 +28,7 @@ pub struct TurnMessage {
     /// The stage turn, interesting info to know where people are relative to each other
     pub stage_turn: Turn,
     pub stage: StageId,
-    pub info: SensesInfo,
+    pub info: Option<SensesInfo>,
     pub action: ServerAction,
     pub logs: GameLogsMessage,
     pub timeline: Timeline,
@@ -43,7 +43,7 @@ pub struct TransitionMessage {
     pub stage_turn: Turn,
     pub stage: StageId,
     /// Senses info gathered when entering the stage
-    pub info: SensesInfo,
+    pub info: Option<SensesInfo>,
     pub timeline: Timeline,
 }
 

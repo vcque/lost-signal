@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub const HP_MAX: u8 = 10;
 pub const FOCUS_MAX: u8 = 100;
 
-pub const FOCUS_REGEN: u8 = 2;
+pub const FOCUS_REGEN: u8 = 4;
 pub const TURN_FOR_HP_REGEN: u64 = 10;
 
 /**

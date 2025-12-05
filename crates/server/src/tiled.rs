@@ -32,6 +32,8 @@ const STAGES: &[(&str, &[u8])] = include_stages![
     "arena",
     "arena_corridor",
     "arena_big",
+    "lvl_1",
+    "lvl_2",
 ];
 
 const MINDSNARE_ID: u32 = 1;
@@ -191,6 +193,11 @@ pub fn load_tutorial() -> Result<World> {
 #[allow(unused)]
 pub fn load_arena() -> Result<World> {
     load_world(&["arena", "arena_corridor", "arena_big"])
+}
+
+#[allow(unused)]
+pub fn load_remi() -> Result<World> {
+    load_world(&["lvl_1", "lvl_2", "tuto_hearing", "tuto_sight", "arena_big"])
 }
 
 pub fn load_world(stage_ids: &[&str]) -> Result<World> {

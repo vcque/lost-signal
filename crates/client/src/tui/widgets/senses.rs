@@ -207,23 +207,38 @@ impl<'a> Widget for HearingSenseWidget<'a> {
         );
 
         // Render content
-        let status = self
-            .info
-            .map(|str| match str.range {
-                Some(range) => match range.get() {
-                    1 => Line::from("The orb is buzzing nearby!"),
-                    2 => Line::from("The orb is buzzing somewhat close"),
-                    3 => Line::from("The orb is buzzing"),
-                    4 => Line::from("The orb is buzzing distantly"),
-                    5 => Line::from("The orb is buzzing in the far distance"),
-                    _ => unreachable!(),
-                }
-                .style(THEME.palette.important),
-                None => Line::from("Nothing"),
-            })
-            .unwrap_or(Line::from("-").style(THEME.palette.ui_disabled));
+        if let Some(info) = self.info {
+            match info.range {
+                Some(range) => {
+                    // Split into left and right parts
+                    let content_layout = Layout::horizontal([Constraint::Min(0), Constraint::Min(0)]);
+                    let [left, right] = content_layout.areas(second);
 
-        status.right_aligned().render(second, buf);
+                    // Left part: "o: The orb"
+                    Line::from(vec![
+                        Span::from("o").style(THEME.palette.important),
+                        Span::from(": The orb"),
+                    ])
+                    .render(left, buf);
+
+                    // Right part: "< {dist}"
+                    if let Some(dist) = losig_core::sense::HearingInfo::dist(range.get()) {
+                        Line::from(format!("< {}", dist))
+                            .style(THEME.palette.important)
+                            .right_aligned()
+                            .render(right, buf);
+                    }
+                }
+                None => {
+                    Line::from("Nothing").render(second, buf);
+                }
+            }
+        } else {
+            Line::from("-")
+                .style(THEME.palette.ui_disabled)
+                .right_aligned()
+                .render(second, buf);
+        }
     }
 }
 

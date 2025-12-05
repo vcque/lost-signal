@@ -22,7 +22,7 @@ impl TimelineWidget {
     }
 
     fn as_line(&self) -> Line<'static> {
-        let turn_span = Span::from(format!("turn {}: ", self.current));
+        let turn_span = Span::from(format!("Turn {}: ", self.current));
 
         let mut timelines_spans: Vec<Span> = vec![turn_span];
         let chars_before = self.current.saturating_sub(self.timeline.tail).div_ceil(5);

@@ -97,18 +97,18 @@ impl WorldView {
             stage,
             info,
             action,
-            logs,
+            events,
             timeline,
         }: TurnMessage,
     ) {
         let diff = turn.abs_diff(self.turn);
-        let turn_diff = (turn as i64) - (stage_turn as i64);
 
         // Calculate latency if this is a response to our action
         if diff == 0
-            && let Some(sent_at) = self.action_sent_at.take() {
-                self.last_latency = Some(sent_at.elapsed());
-            }
+            && let Some(sent_at) = self.action_sent_at.take()
+        {
+            self.last_latency = Some(sent_at.elapsed());
+        }
 
         // Update global info
         if diff == 0 {
@@ -118,8 +118,8 @@ impl WorldView {
             self.stage = stage;
         }
 
-        // Merge server logs
-        self.logs.merge(logs, self.turn, turn_diff);
+        self.logs.add_server_events(turn, events);
+
         match diff {
             i if self.history.len() > i as usize => {
                 let index = self.history.len() - i as usize - 1;

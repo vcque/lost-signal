@@ -8,6 +8,7 @@ use crate::tui::GameTui;
 mod action;
 mod command;
 mod dispatch;
+mod events;
 mod foes;
 mod game;
 mod sense;

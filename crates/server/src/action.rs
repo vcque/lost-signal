@@ -1,8 +1,12 @@
-use losig_core::types::{
-    Avatar, ClientAction, Direction, HP_MAX, PlayerId, Position, ServerAction,
+use losig_core::{
+    events::{GameEvent, Target},
+    types::{Avatar, ClientAction, Direction, HP_MAX, PlayerId, Position, ServerAction},
 };
 
-use crate::stage::{Stage, StageState};
+use crate::{
+    events::{EventSenses, EventSource, GameEventSource},
+    stage::{Stage, StageState},
+};
 
 /// Execute an action for an avatar
 pub fn act(action: &ServerAction, avatar: &mut Avatar, state: &mut StageState, stage: &Stage) {
@@ -30,6 +34,30 @@ fn act_attack(avatar: &mut Avatar, target_index: usize, state: &mut StageState) 
         && foe.position.dist(&avatar.position) <= 1
     {
         foe.hp = foe.hp.saturating_sub(1);
+
+        let event = if foe.alive() {
+            GameEvent::Attack {
+                subject: Target::Foe(foe.foe_type),
+                source: Target::Avatar(avatar.player_id),
+            }
+        } else {
+            GameEvent::Kill {
+                subject: Target::Foe(foe.foe_type),
+                source: Target::Avatar(avatar.player_id),
+            }
+        };
+
+        state.events.add(GameEventSource {
+            senses: EventSenses::All,
+            source: EventSource::Position(foe.position),
+            event,
+        });
+    } else {
+        state.events.add(GameEventSource {
+            senses: EventSenses::All,
+            source: EventSource::Position(avatar.position),
+            event: GameEvent::Fumble(Target::Avatar(avatar.player_id)),
+        });
     }
 }
 

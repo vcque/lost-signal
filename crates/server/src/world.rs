@@ -4,10 +4,11 @@ use anyhow::{Result, anyhow};
 use grid::Grid;
 use log::{info, warn};
 use losig_core::{
+    events::GEvent,
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, ClientAction, Foe, GameLogEvent, GameOver, GameOverStatus, PlayerId, ServerAction,
-        StageId, StageTurn, Tiles, Timeline, Transition,
+        Avatar, ClientAction, Foe, GameOver, GameOverStatus, PlayerId, ServerAction, StageId,
+        StageTurn, Tiles, Timeline, Transition,
     },
 };
 
@@ -54,7 +55,7 @@ pub enum CommandResultOutcome {
         stage_turn: StageTurn,
         info: Option<SensesInfo>,
         action: ServerAction,
-        logs: Vec<(StageTurn, GameLogEvent)>,
+        events: Vec<GEvent>,
         timeline: Timeline,
     },
     Transition {
@@ -173,7 +174,7 @@ impl World {
                     stage_turn: scr.stage_turn,
                     info: scr.senses_info,
                     action: scr.action,
-                    logs: scr.logs,
+                    events: scr.events,
                     timeline: scr.timeline,
                 },
             }

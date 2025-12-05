@@ -1,3 +1,4 @@
+pub mod events;
 pub mod fov;
 pub mod leaderboard;
 pub mod network;

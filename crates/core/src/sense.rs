@@ -3,6 +3,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::types::{FoeId, FoeType, Offset, StageTurn, Tiles, Turn};
 
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Copy)]
+pub enum SenseType {
+    SelfSense,
+    Sight,
+    Touch,
+    Hearing,
+}
+
 /// Describe information that an avatar want retrieved for a given turn
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Senses {
@@ -135,6 +143,10 @@ pub trait SenseStrength: Eq + Sized {
 
     fn is_min(&self) -> bool {
         *self == Self::min()
+    }
+
+    fn is_active(&self) -> bool {
+        !self.is_min()
     }
 }
 

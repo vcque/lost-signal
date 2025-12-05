@@ -1,11 +1,13 @@
 use std::collections::{BTreeMap, btree_map::Entry};
 use std::fmt;
 
+use losig_core::events::GameEvent;
 use losig_core::{
     sense::{SelfInfo, SightInfo},
     types::{Avatar, Foe, FoeId, PlayerId, Position, StageTurn},
 };
 
+use crate::events::{EventSenses, EventSource, GameEventSource};
 use crate::stage::StageState;
 
 /// When a player witness some states, it creates bindings on the previous states to ensure that
@@ -75,16 +77,26 @@ impl SenseBounds {
 
         // Enforce foe death bounds
         for (foe_id, death_bound) in &self.death_bounds {
-            if let Some(foe) = state.foes.get_mut(*foe_id) {
-                death_bound.enforce(state.turn, foe);
-            }
+            if let Some(foe) = state.foes.get_mut(*foe_id)
+                && death_bound.enforce(state.turn, foe) {
+                    state.events.add(GameEventSource {
+                        senses: EventSenses::All,
+                        source: EventSource::Position(foe.position),
+                        event: GameEvent::ParadoxDeath(foe.foe_type),
+                    });
+                }
         }
 
         // Enforce foe position bounds
         for ((foe_id, _player_id), position_bound) in &self.position_bounds {
-            if let Some(foe) = state.foes.get_mut(*foe_id) {
-                position_bound.enforce(state.turn, foe);
-            }
+            if let Some(foe) = state.foes.get_mut(*foe_id)
+                && position_bound.enforce(state.turn, foe) {
+                    state.events.add(GameEventSource {
+                        senses: EventSenses::All,
+                        source: EventSource::Position(foe.position),
+                        event: GameEvent::ParadoxTeleport(foe.foe_type),
+                    });
+                }
         }
     }
 
@@ -119,9 +131,12 @@ pub struct PositionBound {
 }
 
 impl PositionBound {
-    pub fn enforce(&self, turn: StageTurn, foe: &mut Foe) {
-        if turn == self.turn {
-            foe.position = self.value
+    pub fn enforce(&self, turn: StageTurn, foe: &mut Foe) -> bool {
+        if turn == self.turn && foe.position != self.value {
+            foe.position = self.value;
+            true
+        } else {
+            false
         }
     }
 }
@@ -137,9 +152,14 @@ impl fmt::Display for PositionBound {
 }
 
 impl DeathBound {
-    pub fn enforce(&self, turn: StageTurn, foe: &mut Foe) {
-        if turn == self.turn {
+    pub fn enforce(&self, turn: StageTurn, foe: &mut Foe) -> bool {
+        log::debug!("checking bounds {turn} -> {:?}", self);
+        if turn == self.turn && foe.alive() {
+            log::debug!("bound enforced");
             foe.hp = 0;
+            true
+        } else {
+            false
         }
     }
 }

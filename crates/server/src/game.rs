@@ -1,6 +1,6 @@
 use anyhow::Result;
 use losig_core::{
-    network::{CommandMessage, GameLogsMessage, ServerMessage, TransitionMessage, TurnMessage},
+    network::{CommandMessage, ServerMessage, TransitionMessage, TurnMessage},
     types::{GameOver, GameOverStatus, PlayerId},
 };
 
@@ -49,7 +49,7 @@ impl Game {
                 stage_turn,
                 info,
                 action,
-                logs,
+                events,
                 timeline,
             } => {
                 // Send turn result with senses info
@@ -60,7 +60,7 @@ impl Game {
                     stage,
                     action,
                     info,
-                    logs: GameLogsMessage { from: 0, logs },
+                    events,
                     timeline,
                 };
                 let msg = ServerMessageWithRecipient {

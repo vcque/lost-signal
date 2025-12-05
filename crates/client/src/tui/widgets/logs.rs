@@ -1,15 +1,18 @@
-use losig_core::types::{GameLogEvent, Target};
+use losig_core::{
+    events::{GameEvent, Target},
+    types::FoeType,
+};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Style, Stylize},
-    text::{Line, Span},
+    style::Stylize,
+    text::Line,
     widgets::Widget,
 };
 
 use crate::{
-    logs::{ClientLog, GameLog, LOG_RECENT_THRESHOLD, LogEvent},
-    tui::THEME,
+    logs::{ClientLog, GameLog, LogEvent},
+    tui::{THEME, theme::FoeTypeRender},
 };
 
 pub struct LogsWidget<'a> {
@@ -29,91 +32,106 @@ impl<'a> Widget for LogsWidget<'a> {
             }
 
             let y = area.y + i as u16;
-
-            // Determine the turn to display and whether the log is averted or out-of-time
-            let (is_averted, is_revision, is_recent) = match &log.log {
-                LogEvent::Client(_) => (false, false, false),
-                LogEvent::Server {
-                    received, averted, ..
-                } => {
-                    let averted = averted.is_some();
-                    let revision = !averted && received.abs_diff(log.turn) > 1;
-                    let recent = received + LOG_RECENT_THRESHOLD > self.current_turn;
-                    (averted, revision, recent)
-                }
-            };
-
-            let (message, mut message_style) = format_log(&log.log);
-            if is_averted {
-                // I'd prefer the possibility to overload style from the line but... here we are.
-                message_style = Default::default();
-            }
-
-            let mut turn_style = Style::default();
-            if is_recent {
-                // Apply crossed-out style for averted logs
-                if is_revision {
-                    // Out-of-time logs: cyan background, black foreground for turn text
-                    turn_style = turn_style
-                        .bg(THEME.palette.log_revision_bg)
-                        .fg(THEME.palette.log_revision_fg);
-                }
-            }
-
-            let turn_span = Span::from(format!("turn {}", log.turn)).style(turn_style);
-            let log_span = Span::from(message).style(message_style);
-
-            let mut line = Line::from(vec![turn_span, Span::from(": "), log_span]);
-            if is_averted {
-                let averted_style = Style::from(THEME.palette.log_averted).crossed_out();
-                line = line.style(averted_style);
-            }
-
             let line_area = Rect {
                 x: area.x,
                 y,
-                width: line.width() as u16,
+                width: area.width,
                 height: 1,
             };
-            line.render(line_area, buf);
+            format_log(&log.log).render(line_area, buf);
         }
     }
 }
 
-fn format_log(log: &LogEvent) -> (&'static str, Style) {
+fn format_log(log: &LogEvent) -> Line<'_> {
     match log {
-        LogEvent::Client(ClientLog::Help) => (
-            "Press '?' for help",
-            Style::default().fg(THEME.palette.log_info),
-        ),
-        LogEvent::Server { event, .. } => match event {
-            GameLogEvent::Attack { from, to } => match (from, to) {
-                (Target::You, Target::Foe(_)) => {
-                    ("You attacked!", Style::default().fg(THEME.palette.log_info))
-                }
-                (Target::Foe(_), Target::You) => (
-                    "You were attacked!",
-                    Style::default().fg(THEME.palette.log_grave),
-                ),
-                _ => ("Attack!", Style::default()),
-            },
-            GameLogEvent::StageUp(_) => ("Stage up!", Style::default().fg(THEME.palette.important)),
-            GameLogEvent::Defeated { from, to } => match (from, to) {
-                (Target::You, Target::Foe(_)) => (
-                    "You defeated an enemy!",
-                    Style::default().fg(THEME.palette.log_info),
-                ),
-                (Target::Foe(_), Target::You) => (
-                    "You were defeated!",
-                    Style::default().fg(THEME.palette.log_grave),
-                ),
-                _ => ("Defeated!", Style::default()),
-            },
-            GameLogEvent::OrbSeen => (
-                "The orb glitches as you gaze upon it!",
-                Style::default().fg(THEME.palette.important),
-            ),
-            GameLogEvent::Spawn => ("Respawned", Style::default().fg(THEME.palette.ui_text)),
-        },
+        LogEvent::Client(client_log) => format_client_log(client_log),
+        LogEvent::Server(event) => format_game_event(event.event()),
     }
+}
+
+fn format_client_log(log: &ClientLog) -> Line<'_> {
+    match log {
+        ClientLog::Help => Line::from("Press '?' for help"),
+    }
+}
+
+fn format_game_event(event: &GameEvent) -> Line<'_> {
+    let (line, style) = match event {
+        GameEvent::Attack { subject, source } => (
+            format!(
+                "{} attacked {}.",
+                format_target(source),
+                format_target(subject)
+            ),
+            None,
+        ),
+        GameEvent::Fumble(target) => (
+            format!("{} fumbled his attack.", format_target(target)),
+            Some(THEME.palette.log_averted),
+        ),
+        GameEvent::Kill { subject, source } => (
+            format!(
+                "{} killed {}.",
+                format_target(source),
+                format_target(subject)
+            ),
+            None,
+        ),
+        GameEvent::ParadoxDeath(foe_type) => (
+            format!("{} died from a heart attack.", format_foe_type(*foe_type)),
+            Some(THEME.palette.log_averted),
+        ),
+        GameEvent::ParadoxTeleport(foe_type) => (
+            format!("{} was teleported.", format_foe_type(*foe_type)),
+            None,
+        ),
+        GameEvent::OrbSeen => (
+            "The orb shakes violently as you gaze upon it.".to_string(),
+            Some(THEME.palette.important),
+        ),
+        GameEvent::OrbTaken(Target::You) => (
+            "The world fades around you as you lay your hands on the orb.".to_string(),
+            Some(THEME.palette.important),
+        ),
+        GameEvent::OrbTaken(other) => (
+            format!(
+                "{} collapses as he lay his hands on the orb.",
+                format_target(other)
+            ),
+            Some(THEME.palette.important),
+        ),
+    };
+
+    let mut result = Line::from(capitalize_first(&line));
+    if let Some(color) = style {
+        result = result.fg(color);
+    }
+    if matches!(event, GameEvent::OrbSeen) {
+        result = result.bold();
+    }
+    result
+}
+
+fn capitalize_first(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        None => String::new(),
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+    }
+}
+
+fn format_target(target: &Target) -> String {
+    match target {
+        Target::Foe(foe_type) => format_foe_type(*foe_type),
+        Target::You => "you".to_string(),
+        Target::Player(_id, name) => name.clone(),
+        Target::DiscardedAvatar => "a discarded avatar".to_string(),
+        Target::Unknown => "something".to_string(),
+        Target::Avatar(_) => unreachable!("Avatar target cannot be sent by server."),
+    }
+}
+
+fn format_foe_type(ftype: FoeType) -> String {
+    format!("the {}", ftype.label())
 }

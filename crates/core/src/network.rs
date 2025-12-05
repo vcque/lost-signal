@@ -1,12 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    events::GEvent,
     leaderboard::Leaderboard,
     sense::{Senses, SensesInfo},
-    types::{
-        ClientAction, GameLogEvent, GameOver, PlayerId, ServerAction, StageId, StageTurn, Timeline,
-        Turn,
-    },
+    types::{ClientAction, GameOver, PlayerId, ServerAction, StageId, StageTurn, Timeline, Turn},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,7 +28,7 @@ pub struct TurnMessage {
     pub stage: StageId,
     pub info: Option<SensesInfo>,
     pub action: ServerAction,
-    pub logs: GameLogsMessage,
+    pub events: Vec<GEvent>,
     pub timeline: Timeline,
 }
 
@@ -87,5 +85,5 @@ pub struct GameLogsMessage {
     pub from: StageTurn,
 
     /// Logs computed from server. Ordered incr by stage turn
-    pub logs: Vec<(StageTurn, GameLogEvent)>,
+    pub logs: Vec<(StageTurn, GEvent)>,
 }

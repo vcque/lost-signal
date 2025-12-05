@@ -3,17 +3,19 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{Result, anyhow};
 use log::warn;
 use losig_core::{
+    events::GEvent,
     fov,
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, ClientAction, FOCUS_MAX, FOCUS_REGEN, Foe, GameLogEvent, HP_MAX, Offset, Orb,
-        PlayerId, Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline, Transition,
-        Turn,
+        Avatar, ClientAction, FOCUS_MAX, FOCUS_REGEN, Foe, HP_MAX, Offset, Orb, PlayerId, Position,
+        ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline, Transition, Turn,
     },
 };
 
 use crate::{
-    action, foes,
+    action,
+    events::{GameEventSource, gather_events},
+    foes,
     sense::gather,
     sense_bounds::SenseBounds,
     world::{Limbo, Player, StageTemplate},
@@ -66,6 +68,7 @@ impl Stage {
             },
             avatars,
             player: None,
+            events: EventManager::default(),
         };
         new.states.insert(head_turn, state);
         new
@@ -181,12 +184,15 @@ impl Stage {
         self.players.insert(pid, player);
 
         // Gather info, update bounds
-        let info = if has_focus {
+        let (info, events) = if has_focus {
             let info = gather(&senses, self, pid);
+
+            let state = &self.states[&stage_turn];
+            let events = gather_events(&senses, self, state, pid);
             self.bind_states(stage_turn, &avatar, &info);
-            Some(info)
+            (Some(info), events)
         } else {
-            None
+            (None, vec![])
         };
 
         // Rollback
@@ -201,7 +207,7 @@ impl Stage {
         Ok(StageCommandResult {
             stage_turn,
             limbos,
-            logs: vec![],
+            events,
             senses_info: info,
             action,
             transition,
@@ -225,7 +231,6 @@ impl Stage {
             let index = self.diff_index(turn);
             let diff = &self.diffs[index];
             self.enact_turn(&mut state, diff);
-            self.bounds.enforce(&mut state);
             if turns_to_save.contains(&turn) {
                 self.states.insert(turn, state.clone());
             }
@@ -256,6 +261,7 @@ impl Stage {
     /// Update a state based on the diff
     fn enact_turn(&self, state: &mut StageState, diff: &TurnDiff) {
         state.turn += 1;
+        state.events.clear();
         // Turn init
         if state.orb.excited {
             state.orb.position = orb_spawn(self, state.turn);
@@ -268,6 +274,8 @@ impl Stage {
         if let Some(ref new_avatar) = diff.new_avatar {
             self.welcome_avatar(state, new_avatar);
         }
+
+        self.bounds.enforce(state);
     }
 
     /// Apply the turn of each avatar
@@ -314,7 +322,6 @@ impl Stage {
                 senses.sight.get(),
             ) {
                 state.orb.excited = true;
-                // TODO: logs
             }
 
             if let Some(ref mut player) = state.player {
@@ -535,6 +542,8 @@ pub struct StageState {
     /// The player that is currently playing. only set on the current's player turn. Empty for
     /// rollbacks.
     pub player: Option<StagePlayer>,
+
+    pub events: EventManager,
 }
 
 impl StageState {
@@ -544,6 +553,25 @@ impl StageState {
             .enumerate()
             .filter(|f| f.1.alive())
             .find(|(_, f)| f.position == position)
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct EventManager {
+    inner: Vec<GameEventSource>,
+}
+
+impl EventManager {
+    pub fn add(&mut self, event: GameEventSource) {
+        self.inner.push(event);
+    }
+
+    pub fn clear(&mut self) {
+        self.inner.clear();
+    }
+
+    pub fn get(&self) -> &[GameEventSource] {
+        &self.inner
     }
 }
 
@@ -566,7 +594,7 @@ pub struct StageCommandResult {
     pub limbos: Vec<Limbo>,
     pub senses_info: Option<SensesInfo>,
     pub action: ServerAction,
-    pub logs: Vec<(StageTurn, GameLogEvent)>,
+    pub events: Vec<GEvent>,
     pub transition: Option<Transition>,
     pub timeline: Timeline,
 }

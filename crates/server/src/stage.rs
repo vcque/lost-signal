@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{Result, anyhow};
 use log::warn;
 use losig_core::{
-    events::GEvent,
+    events::{GEvent, GameEvent},
     fov,
     sense::{Senses, SensesInfo},
     types::{
@@ -14,7 +14,7 @@ use losig_core::{
 
 use crate::{
     action,
-    events::{GameEventSource, gather_events},
+    events::{EventSenses, EventSource, GameEventSource, gather_events},
     foes,
     sense::gather,
     sense_bounds::SenseBounds,
@@ -320,8 +320,14 @@ impl Stage {
                 avatar.position,
                 state.orb.position,
                 senses.sight.get(),
-            ) {
+            ) & !state.orb.excited
+            {
                 state.orb.excited = true;
+                state.events.add(GameEventSource {
+                    senses: EventSenses::All,
+                    source: EventSource::Position(state.orb.position),
+                    event: GameEvent::OrbSeen,
+                });
             }
 
             if let Some(ref mut player) = state.player {

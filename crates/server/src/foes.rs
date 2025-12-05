@@ -1,7 +1,11 @@
 use grid::Grid;
-use losig_core::types::{Avatar, Direction, Foe, FoeType, Position, StageTurn};
+use losig_core::{
+    events::{GameEvent, Target},
+    types::{Avatar, Direction, Foe, FoeType, Position, StageTurn},
+};
 
 use crate::{
+    events::{EventSenses, EventSource, GameEventSource},
     sense_bounds::SenseBounds,
     stage::{AvatarId, Stage, StageState},
 };
@@ -22,6 +26,22 @@ pub fn act(
         FoeAction::Attack(aid) => {
             if let Some(avatar) = state.avatars.get_mut(&aid) {
                 avatar.hp = avatar.hp.saturating_sub(foe.attack);
+                let event = if avatar.is_dead() {
+                    GameEvent::Kill {
+                        subject: Target::Avatar(avatar.player_id),
+                        source: Target::Foe(foe.foe_type),
+                    }
+                } else {
+                    GameEvent::Attack {
+                        subject: Target::Avatar(avatar.player_id),
+                        source: Target::Foe(foe.foe_type),
+                    }
+                };
+                state.events.add(GameEventSource {
+                    senses: EventSenses::All,
+                    source: EventSource::Position(foe.position),
+                    event,
+                });
             }
         }
         FoeAction::Wait => {}
@@ -111,10 +131,9 @@ fn compute_possible_actions(
 
                 // Check if the tile is walkable and not occupied by another foe
                 let tile = stage.template.tiles.get(new_pos);
-                if tile.can_travel()
-                    && !matches!(state.find_foe(new_pos), Some(f) if f.1.alive()) {
-                        actions.push(FoeAction::Move(new_pos));
-                    }
+                if tile.can_travel() && !matches!(state.find_foe(new_pos), Some(f) if f.1.alive()) {
+                    actions.push(FoeAction::Move(new_pos));
+                }
             }
         }
     }

@@ -72,9 +72,9 @@ fn format_game_event(event: &GameEvent) -> Line<'_> {
         ),
         GameEvent::Kill { subject, source } => (
             format!(
-                "{} killed {}.",
-                format_target(source),
-                format_target(subject)
+                "{} was killed by {}.",
+                format_target(subject),
+                format_target(source)
             ),
             None,
         ),
@@ -87,18 +87,15 @@ fn format_game_event(event: &GameEvent) -> Line<'_> {
             Some(THEME.palette.log_paradox),
         ),
         GameEvent::OrbSeen => (
-            "The orb shakes violently as you gaze upon it.".to_string(),
+            "The orb glitches as you gaze upon it.".to_string(),
             Some(THEME.palette.important),
         ),
         GameEvent::OrbTaken(Target::You) => (
-            "The world fades around you as you lay your hands on the orb.".to_string(),
+            "The world fades as you lay your hands on the orb.".to_string(),
             Some(THEME.palette.important),
         ),
         GameEvent::OrbTaken(other) => (
-            format!(
-                "{} collapses as he lay his hands on the orb.",
-                format_target(other)
-            ),
+            format!("{} lays his hands on the orb.", format_target(other)),
             Some(THEME.palette.important),
         ),
         GameEvent::AvatarFadedOut(target) => (

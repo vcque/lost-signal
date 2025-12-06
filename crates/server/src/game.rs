@@ -1,7 +1,7 @@
 use anyhow::Result;
 use losig_core::{
     network::{CommandMessage, ServerMessage, TransitionMessage, TurnMessage},
-    types::{GameOver, GameOverStatus, PlayerId},
+    types::{Avatar, GameOver, GameOverStatus, PlayerId},
 };
 
 use crate::{
@@ -119,11 +119,11 @@ impl Game {
 
         for limbo in limbos {
             match limbo {
-                Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
+                Limbo::Dead(player_id) | Limbo::TooFarBehind(player_id) => {
                     let msg = ServerMessageWithRecipient {
-                        recipient: Recipient::Single(avatar.player_id),
+                        recipient: Recipient::Single(player_id),
                         message: ServerMessage::GameOver(GameOver::new(
-                            &avatar,
+                            &Avatar::new(player_id),
                             GameOverStatus::Dead,
                             1,
                         )),

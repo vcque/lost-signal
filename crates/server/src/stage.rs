@@ -254,6 +254,10 @@ impl Stage {
         }
     }
 
+    pub fn reset(&mut self) {
+        *self = Self::new(self.template.clone());
+    }
+
     fn gather_info(&self, pid: PlayerId, senses: &Senses) -> Result<SensesInfo> {
         Ok(gather(senses, self, pid))
     }
@@ -389,8 +393,8 @@ impl Stage {
         let statuses = self.limbo_check();
         for status in statuses.iter() {
             match status {
-                Limbo::Dead(avatar) | Limbo::TooFarBehind(avatar) => {
-                    self.players.remove(&avatar.player_id);
+                Limbo::Dead(pid) | Limbo::TooFarBehind(pid) => {
+                    self.players.remove(pid);
                 }
                 &Limbo::MaybeDead(aid) => {
                     self.players.get_mut(&aid).unwrap().limbo = true;
@@ -425,14 +429,14 @@ impl Stage {
             };
 
             if tracker.turn.abs_diff(self.head_turn) > 100 {
-                results.push(Limbo::TooFarBehind(avatar));
+                results.push(Limbo::TooFarBehind(avatar.player_id));
                 continue;
             }
 
             let in_limbo = tracker.limbo;
             let dead = avatar.is_dead();
             let status = match (has_earlier_alive, in_limbo, avatar.is_dead()) {
-                (false, _, true) => Some(Limbo::Dead(avatar.clone())),
+                (false, _, true) => Some(Limbo::Dead(avatar.player_id)),
                 (_, true, false) => {
                     // Get senses from the diff at this turn
                     let index = self.diff_index(tracker.turn);

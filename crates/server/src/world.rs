@@ -35,10 +35,10 @@ impl StageTemplate {
 }
 
 pub enum Limbo {
-    Dead(Avatar),
+    Dead(PlayerId),
     MaybeDead(PlayerId),
     Averted(PlayerId, SensesInfo),
-    TooFarBehind(Avatar),
+    TooFarBehind(PlayerId),
 }
 
 /// Info returned by add_command. Game over data might concern other players as they can be saved
@@ -181,20 +181,27 @@ impl World {
         };
 
         self.handle_limbos(&result.limbos, stage_id);
+
+        let stage = &mut self.stages[stage_id];
+        if stage.players.is_empty() {
+            stage.reset();
+        }
         Ok(result)
     }
 
     fn handle_limbos(&mut self, limbos: &[Limbo], stage_id: StageId) {
         for status in limbos {
-            if let Limbo::Dead(avatar) = status {
-                let player_id = avatar.player_id;
+            if let Limbo::Dead(player_id) = status {
                 let Some(player) = self.player_by_id.get_mut(&player_id) else {
                     warn!("Could not find player {player_id} for handling limbo");
                     continue;
                 };
 
-                player.gameover = Some(GameOver::new(avatar, GameOverStatus::Dead, stage_id));
-                player.last_avatar = avatar.clone();
+                player.gameover = Some(GameOver::new(
+                    &player.last_avatar,
+                    GameOverStatus::Dead,
+                    stage_id,
+                ));
                 player.stage = None;
             }
         }

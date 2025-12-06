@@ -150,6 +150,7 @@ impl Stage {
         let avatar_diff = AvatarCmd {
             action,
             senses: senses.clone(),
+            leaves: false,
         };
 
         // Add turns to head if player is at the head
@@ -171,6 +172,14 @@ impl Stage {
         self.enact_turn(&mut state, turn_diff);
         let mut player = state.player.take().unwrap();
         let transition = player.transition.take();
+        if transition.is_some() {
+            self.diffs[diff_index]
+                .cmd_by_avatar
+                .iter_mut()
+                .find_map(|(aid, cmd)| if *aid == pid { Some(cmd) } else { None })
+                .unwrap()
+                .leaves = true;
+        }
 
         let avatar = state.avatars[&pid].clone();
 
@@ -306,6 +315,7 @@ impl Stage {
             AvatarCmd {
                 action: player_action,
                 senses,
+                leaves: transitions,
             },
         ) in diff.cmd_by_avatar.iter()
         {
@@ -331,7 +341,9 @@ impl Stage {
             // Orb on tile
             if avatar.position == state.orb.position {
                 state.orb.excited = true;
-                if let Some(ref mut player) = state.player {
+                if let Some(ref mut player) = state.player
+                    && avatar.player_id == player.id
+                {
                     player.transition = Some(Transition::Orb);
                 }
             }
@@ -367,7 +379,12 @@ impl Stage {
             }
 
             avatar.turns += 1;
-            state.avatars.insert(*aid, avatar);
+
+            if *transitions {
+                state.avatars.remove(aid);
+            } else {
+                state.avatars.insert(*aid, avatar);
+            }
         }
     }
 
@@ -537,6 +554,7 @@ impl Stage {
 /// State of the player in this stage
 #[derive(Clone)]
 pub struct StagePlayer {
+    pub id: PlayerId,
     pub turn: StageTurn,
     /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
     /// cancelation/confirmation
@@ -550,6 +568,7 @@ pub struct StagePlayer {
 impl StagePlayer {
     fn new(player: &Player, turn: Turn) -> Self {
         Self {
+            id: player.id,
             player_name: player.name.clone(),
             turn,
             limbo: false,
@@ -623,6 +642,7 @@ impl TurnDiff {
 pub struct AvatarCmd {
     pub action: ServerAction,
     pub senses: Senses,
+    pub leaves: bool,
 }
 
 pub struct StageCommandResult {

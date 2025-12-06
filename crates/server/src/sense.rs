@@ -94,7 +94,7 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
             stage
                 .diffs
                 .get(i)
-                .and_then(|d| d.cmd_by_avatar.get(&ally.player_id))
+                .and_then(|d| d.get_avatar_diff(ally.player_id))
                 .and_then(|cmd| match cmd.action {
                     ServerAction::Move(pos) => Some(pos),
                     _ => None,

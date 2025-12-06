@@ -166,7 +166,7 @@ impl Stage {
         let diff_index = self.diff_index(player.turn);
         self.diffs[diff_index]
             .cmd_by_avatar
-            .insert(pid, avatar_diff);
+            .push((pid, avatar_diff));
         let turn_diff = &self.diffs[diff_index];
 
         // Update state based on diff
@@ -443,7 +443,7 @@ impl Stage {
                     let senses = self
                         .diffs
                         .get(index)
-                        .and_then(|diff| diff.cmd_by_avatar.get(&aid))
+                        .and_then(|diff| diff.get_avatar_diff(aid))
                         .map(|avatar_diff| &avatar_diff.senses)
                         .cloned()
                         .unwrap_or_default();
@@ -503,7 +503,7 @@ impl Stage {
             let senses = self
                 .diffs
                 .get(index)
-                .and_then(|diff| diff.cmd_by_avatar.get(&pid))
+                .and_then(|diff| diff.get_avatar_diff(pid))
                 .map(|avatar_diff| &avatar_diff.senses)
                 .cloned()
                 .unwrap_or_default();
@@ -588,9 +588,17 @@ impl EventManager {
 /// What's needed to recompute a stage state
 #[derive(Clone, Default)]
 pub struct TurnDiff {
-    // TODO: commands should keep the order they came in to keep  consistency
-    pub cmd_by_avatar: BTreeMap<AvatarId, AvatarCmd>,
+    pub cmd_by_avatar: Vec<(AvatarId, AvatarCmd)>,
     new_avatar: Option<Avatar>,
+}
+
+impl TurnDiff {
+    pub fn get_avatar_diff(&self, avatar_id: AvatarId) -> Option<&AvatarCmd> {
+        self.cmd_by_avatar
+            .iter()
+            .find(|(aid, _)| *aid == avatar_id)
+            .map(|(_, cmd)| cmd)
+    }
 }
 
 #[derive(Clone, Debug)]

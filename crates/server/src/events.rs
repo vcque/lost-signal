@@ -174,5 +174,6 @@ fn transform_event_targets(
         ParadoxTeleport(foe_type) => ParadoxTeleport(*foe_type),
         OrbSeen => OrbSeen,
         OrbTaken(target) => OrbTaken(transform_target(target)),
+        AvatarFadedOut(target) => AvatarFadedOut(transform_target(target)),
     }
 }

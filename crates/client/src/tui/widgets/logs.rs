@@ -5,7 +5,7 @@ use losig_core::{
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Stylize,
+    style::{Color, Stylize},
     text::Line,
     widgets::Widget,
 };
@@ -100,6 +100,13 @@ fn format_game_event(event: &GameEvent) -> Line<'_> {
                 format_target(other)
             ),
             Some(THEME.palette.important),
+        ),
+        GameEvent::AvatarFadedOut(target) => (
+            format!(
+                "{} fades out as you move forward in time.",
+                format_target(target)
+            ),
+            Some(Color::from_hsl(THEME.palette.timeline_tail)),
         ),
     };
 

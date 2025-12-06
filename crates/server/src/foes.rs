@@ -1,13 +1,13 @@
 use grid::Grid;
 use losig_core::{
     events::{GameEvent, Target},
-    types::{Avatar, Direction, Foe, FoeType, Position, StageTurn},
+    types::{Avatar, AvatarId, Direction, Foe, FoeType, Position, StageTurn},
 };
 
 use crate::{
     events::{EventSenses, EventSource, GameEventSource},
     sense_bounds::SenseBounds,
-    stage::{AvatarId, Stage, StageState},
+    stage::{Stage, StageState},
 };
 
 pub fn act(

@@ -44,6 +44,7 @@ pub enum GameEvent {
     ParadoxTeleport(FoeType),
     OrbSeen,
     OrbTaken(Target),
+    AvatarFadedOut(Target),
 }
 impl GameEvent {
     pub fn has_player(&self, pid: PlayerId) -> bool {

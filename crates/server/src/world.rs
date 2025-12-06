@@ -192,7 +192,7 @@ impl World {
     fn handle_limbos(&mut self, limbos: &[Limbo], stage_id: StageId) {
         for status in limbos {
             if let Limbo::Dead(player_id) = status {
-                let Some(player) = self.player_by_id.get_mut(&player_id) else {
+                let Some(player) = self.player_by_id.get_mut(player_id) else {
                     warn!("Could not find player {player_id} for handling limbo");
                     continue;
                 };

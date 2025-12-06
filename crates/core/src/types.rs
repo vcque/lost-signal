@@ -204,15 +204,22 @@ pub type Turn = u64;
 pub type StageTurn = u64;
 
 pub type PlayerId = u32;
+pub type AvatarId = PlayerId;
 pub type StageId = usize;
 pub type FoeId = usize;
 
 #[derive(Clone)]
 pub struct Avatar {
+    pub id: AvatarId,
     pub player_id: PlayerId,
     pub position: Position,
     pub hp: u8,
+    /// TODO: put in player instead of avatar
     pub turns: Turn,
+
+    /// Number of turn that have passed without any player command (not even wait). Will phase out
+    /// the avatar after a number of turns have passed
+    pub turns_not_played: Turn,
 }
 
 /// A transition is the move of an avatar from one stage to another.
@@ -226,10 +233,12 @@ pub enum Transition {
 impl Avatar {
     pub fn new(player_id: PlayerId) -> Self {
         Avatar {
+            id: player_id,
             player_id,
             position: Position { x: 1, y: 1 },
             hp: HP_MAX,
             turns: 1,
+            turns_not_played: 0,
         }
     }
 

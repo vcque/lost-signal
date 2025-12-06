@@ -3,12 +3,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use anyhow::{Result, anyhow};
 use log::warn;
 use losig_core::{
-    events::{GEvent, GameEvent},
+    events::{GEvent, GameEvent, Target},
     fov,
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, ClientAction, FOCUS_MAX, FOCUS_REGEN, Foe, HP_MAX, Offset, Orb, PlayerId, Position,
-        ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline, Transition, Turn,
+        Avatar, AvatarId, ClientAction, FOCUS_MAX, FOCUS_REGEN, Foe, HP_MAX, Offset, Orb, PlayerId,
+        Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline, Transition, Turn,
     },
 };
 
@@ -20,10 +20,6 @@ use crate::{
     sense_bounds::SenseBounds,
     world::{Limbo, Player, StageTemplate},
 };
-
-// For now avatar has the id of the player. But this will have to change when we want timetravel
-// shenanigans
-pub(crate) type AvatarId = PlayerId;
 
 /// Stage that can handle async actions from players
 pub struct Stage {
@@ -265,6 +261,9 @@ impl Stage {
     /// Update a state based on the diff
     fn enact_turn(&self, state: &mut StageState, diff: &TurnDiff) {
         state.turn += 1;
+        for avatar in state.avatars.values_mut() {
+            avatar.turns_not_played += 1;
+        }
         state.events.clear();
         // Turn init
         if state.orb.excited {
@@ -280,6 +279,23 @@ impl Stage {
         }
 
         self.bounds.enforce(state);
+
+        // Phase out avatars behind in time
+        let mut to_phase_out: Vec<AvatarId> = vec![];
+        for avatar in state.avatars.values() {
+            if avatar.turns_not_played > 5 {
+                state.events.add(GameEventSource {
+                    senses: EventSenses::All,
+                    source: EventSource::Position(avatar.position),
+                    event: GameEvent::AvatarFadedOut(Target::Avatar(avatar.player_id)),
+                });
+                to_phase_out.push(avatar.id);
+            }
+        }
+
+        for aid in to_phase_out {
+            state.avatars.remove(&aid);
+        }
     }
 
     /// Apply the turn of each avatar
@@ -301,6 +317,7 @@ impl Stage {
             }
 
             let mut avatar = avatar.clone();
+            avatar.turns_not_played = 0;
 
             // Regen
             if state.turn.is_multiple_of(TURN_FOR_HP_REGEN) {

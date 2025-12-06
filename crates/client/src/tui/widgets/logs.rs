@@ -24,13 +24,10 @@ impl<'a> Widget for LogsWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let max_lines = area.height as usize;
 
-        let logs_to_show: Vec<_> = self.logs.iter().rev().take(max_lines).collect();
+        let start = self.logs.len().saturating_sub(max_lines);
+        let logs_to_show = &self.logs[start..];
 
         for (i, log) in logs_to_show.iter().enumerate() {
-            if i >= max_lines {
-                break;
-            }
-
             let y = area.y + i as u16;
             let line_area = Rect {
                 x: area.x,

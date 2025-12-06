@@ -36,6 +36,7 @@ pub struct ThemePalette {
     pub log_warn: Color,
     pub log_grave: Color,
     pub log_averted: Color,
+    pub log_paradox: Color,
     pub log_revision_bg: Color,
     pub log_revision_fg: Color,
 
@@ -79,6 +80,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
         log_warn: Color::from_hsl(Hsl::new(40.0, 1.0, 0.5)),
         log_grave: Color::from_hsl(Hsl::new(0.0, 1.0, 0.5)),
         log_averted: Color::Rgb(139, 69, 19), // Dark brown
+        log_paradox: Color::from_hsl(Hsl::new(330.0, 1.0, 0.5)), // Bright pink
         log_revision_bg: Color::Cyan,
         log_revision_fg: Color::Black,
 

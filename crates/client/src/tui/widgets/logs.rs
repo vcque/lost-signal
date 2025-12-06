@@ -80,11 +80,11 @@ fn format_game_event(event: &GameEvent) -> Line<'_> {
         ),
         GameEvent::ParadoxDeath(foe_type) => (
             format!("{} died from a heart attack.", format_foe_type(*foe_type)),
-            Some(THEME.palette.log_averted),
+            Some(THEME.palette.log_paradox),
         ),
         GameEvent::ParadoxTeleport(foe_type) => (
             format!("{} was teleported.", format_foe_type(*foe_type)),
-            None,
+            Some(THEME.palette.log_paradox),
         ),
         GameEvent::OrbSeen => (
             "The orb shakes violently as you gaze upon it.".to_string(),

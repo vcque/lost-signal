@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 
 use itertools::Itertools;
 use log::info;
@@ -16,7 +15,7 @@ use ratatui::{
 
 use crate::{
     tui::{
-        GameOverState, InputServices, RenderServices, THEME,
+        GameOverState, InputServices, RenderServices, THEME, ally_color,
         state::{LimboState, TuiState},
         utils::center,
         widgets::{
@@ -336,11 +335,7 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 let y = center_y + ally.offset.y;
 
                 let color = match ally.status {
-                    SightedAllyStatus::Controlled { turn, .. } => match turn.cmp(&w.stage_turn) {
-                        Ordering::Less => THEME.palette.ally_trailing,
-                        Ordering::Equal => THEME.palette.ally_sync,
-                        Ordering::Greater => THEME.palette.ally_leading,
-                    },
+                    SightedAllyStatus::Controlled { turn, .. } => ally_color(turn, w.stage_turn),
                     SightedAllyStatus::Discarded => THEME.palette.ally_discarded,
                 };
                 buf.set_string(area.x + x as u16, area.y + y as u16, "@", color);

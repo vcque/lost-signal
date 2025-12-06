@@ -1,6 +1,6 @@
-use std::sync::LazyLock;
+use std::{cmp::Ordering, sync::LazyLock};
 
-use losig_core::types::FoeType;
+use losig_core::types::{FoeType, MAX_WITHOUT_PLAY, StageTurn};
 use palette::Hsl;
 use ratatui::style::Color;
 
@@ -108,5 +108,17 @@ impl FoeTypeRender for FoeType {
             FoeType::MindSnare => "mindsnare",
             FoeType::Simple => "simple foe",
         }
+    }
+}
+
+pub fn ally_color(ally: StageTurn, player: StageTurn) -> Color {
+    match ally.cmp(&player) {
+        Ordering::Less => Color::from_hsl(Hsl::new(
+            180.0,
+            1.0,
+            0.5 * (1.0 - ally.abs_diff(player) as f32 / (MAX_WITHOUT_PLAY as f32 + 1.0)),
+        )),
+        Ordering::Equal => THEME.palette.ally_sync,
+        Ordering::Greater => THEME.palette.ally_leading,
     }
 }

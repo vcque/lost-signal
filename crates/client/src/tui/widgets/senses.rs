@@ -14,7 +14,7 @@ use ratatui::{
     widgets::Widget,
 };
 
-use crate::tui::{FoeTypeRender, THEME};
+use crate::tui::{FoeTypeRender, THEME, ally_color};
 
 /// Renders the common header line for a sense widget (label, indicator, selection styling)
 fn render_sense_header(
@@ -296,11 +296,12 @@ fn render_sight_line<'a>(l: SightWidgetLine, stage_turn: u64) -> Line<'a> {
         ]),
         SightWidgetLine::Ally(turn, name) => {
             let diff = turn.abs_diff(stage_turn);
-            let (color, label) = match turn.cmp(&stage_turn) {
-                Ordering::Greater => (THEME.palette.ally_leading, format!("{diff} turns ahead")),
-                Ordering::Equal => (THEME.palette.ally_sync, "on the same turn".to_owned()),
-                Ordering::Less => (THEME.palette.ally_trailing, format!("{diff} turns behind")),
+            let label = match turn.cmp(&stage_turn) {
+                Ordering::Greater => format!("{diff} turns ahead"),
+                Ordering::Equal => "on the same turn".to_owned(),
+                Ordering::Less => format!("{diff} turns behind"),
             };
+            let color = ally_color(turn, stage_turn);
 
             Line::from(vec![
                 Span::from("@").style(color),

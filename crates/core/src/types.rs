@@ -208,6 +208,8 @@ pub type AvatarId = PlayerId;
 pub type StageId = usize;
 pub type FoeId = usize;
 
+pub const MAX_WITHOUT_PLAY: Turn = 5;
+
 #[derive(Clone)]
 pub struct Avatar {
     pub id: AvatarId,

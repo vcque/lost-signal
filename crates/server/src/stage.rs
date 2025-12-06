@@ -7,8 +7,9 @@ use losig_core::{
     fov,
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, AvatarId, ClientAction, FOCUS_MAX, FOCUS_REGEN, Foe, HP_MAX, Offset, Orb, PlayerId,
-        Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline, Transition, Turn,
+        Avatar, AvatarId, ClientAction, FOCUS_MAX, FOCUS_REGEN, Foe, HP_MAX, MAX_WITHOUT_PLAY,
+        Offset, Orb, PlayerId, Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile,
+        Timeline, Transition, Turn,
     },
 };
 
@@ -283,7 +284,7 @@ impl Stage {
         // Phase out avatars behind in time
         let mut to_phase_out: Vec<AvatarId> = vec![];
         for avatar in state.avatars.values() {
-            if avatar.turns_not_played > 5 {
+            if avatar.turns_not_played > MAX_WITHOUT_PLAY {
                 state.events.add(GameEventSource {
                     senses: EventSenses::All,
                     source: EventSource::Position(avatar.position),

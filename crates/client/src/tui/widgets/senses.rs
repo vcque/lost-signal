@@ -211,7 +211,8 @@ impl<'a> Widget for HearingSenseWidget<'a> {
             match info.range {
                 Some(range) => {
                     // Split into left and right parts
-                    let content_layout = Layout::horizontal([Constraint::Min(0), Constraint::Min(0)]);
+                    let content_layout =
+                        Layout::horizontal([Constraint::Min(0), Constraint::Min(0)]);
                     let [left, right] = content_layout.areas(second);
 
                     // Left part: "o: The orb"
@@ -368,7 +369,7 @@ impl<'a> Widget for SensesWidget<'a> {
     {
         let rows = Layout::vertical(vec![
             Constraint::Length(2),
-            Constraint::Length(2),
+            Constraint::Length(4),
             Constraint::Length(2),
             Constraint::Min(2),
         ])

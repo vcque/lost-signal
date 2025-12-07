@@ -29,6 +29,7 @@ pub enum ServerAction {
     Move(Position),
     /// foe id, should stay server side though
     Attack(usize),
+    Enter,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]

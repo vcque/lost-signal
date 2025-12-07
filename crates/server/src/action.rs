@@ -15,6 +15,7 @@ pub fn act(action: &ServerAction, avatar: &mut Avatar, state: &mut StageState, s
         ServerAction::Move(position) => act_move(avatar, *position),
         ServerAction::Attack(target_index) => act_attack(avatar, *target_index, state),
         ServerAction::Wait => {}
+        ServerAction::Enter => unreachable!(),
     }
 }
 

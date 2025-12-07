@@ -84,7 +84,7 @@ impl MenuPage {
         self,
         key: &crate::tui_adapter::KeyEvent,
         state: &mut TuiState,
-        mut services: InputServices,
+        services: InputServices,
     ) -> bool {
         match key.code {
             KeyCode::Char(c) => {
@@ -102,7 +102,6 @@ impl MenuPage {
                     Some(state.menu.name.clone())
                 };
                 services.new_game(name);
-                services.act(ClientAction::Wait, Default::default());
                 state.menu.entering_name = false;
                 state.page = PageSelection::Game;
             }

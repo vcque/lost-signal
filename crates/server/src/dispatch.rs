@@ -29,7 +29,9 @@ impl Dispatch {
             while let Ok(msg) = self.cm_rx.recv() {
                 match msg.content {
                     ClientMessageContent::Start(pid, name) => {
-                        game.new_player(pid, name);
+                        if let Err(e) = game.new_player(pid, name) {
+                            error!("Error while creating new player: {e}");
+                        }
                     }
                     ClientMessageContent::Command(cmd) => {
                         let player_id = cmd.player_id;

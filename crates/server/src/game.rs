@@ -20,9 +20,13 @@ impl Game {
         Game { services }
     }
 
-    pub fn new_player(&mut self, pid: PlayerId, name: Option<String>) {
-        let mut world = self.services.world.lock().unwrap();
-        world.new_player(pid, name);
+    pub fn new_player(&mut self, pid: PlayerId, name: Option<String>) -> Result<()> {
+        let result = {
+            let mut world = self.services.world.lock().unwrap();
+            world.new_player(pid, name)?
+        };
+        // Use turn 1 for new player messages
+        self.handle_command_result(pid, 1, result)
     }
 
     pub fn player_command(
@@ -34,15 +38,23 @@ impl Game {
             senses,
         }: CommandMessage,
     ) -> Result<()> {
-        let mut world = self.services.world.lock().unwrap();
-        let result = world.add_command(player_id, action, senses);
+        let result = {
+            let mut world = self.services.world.lock().unwrap();
+            world.add_command(player_id, action, senses)?
+        };
+        self.handle_command_result(player_id, turn, result)
+    }
 
-        let CommandResult {
+    fn handle_command_result(
+        &mut self,
+        player_id: PlayerId,
+        turn: u64,
+        CommandResult {
             timeline_updates,
             limbos,
             outcome,
-        } = result?;
-
+        }: CommandResult,
+    ) -> Result<()> {
         match outcome {
             CommandResultOutcome::Turn {
                 stage,
@@ -100,7 +112,10 @@ impl Game {
             }
         }
         for (stage_id, timeline) in timeline_updates {
-            let infos = world.get_all_infos_for_stage(stage_id);
+            let infos = {
+                let world = self.services.world.lock().unwrap();
+                world.get_all_infos_for_stage(stage_id)
+            };
             for (pid, stage_turn, senses_info) in infos {
                 if pid == player_id {
                     // Don't send timeline update to player

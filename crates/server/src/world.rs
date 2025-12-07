@@ -128,7 +128,7 @@ impl World {
         }
     }
 
-    pub fn new_player(&mut self, pid: PlayerId, name: Option<String>) {
+    pub fn new_player(&mut self, pid: PlayerId, name: Option<String>) -> Result<CommandResult> {
         // Retire player if present
         self.retire_player(pid);
 
@@ -149,9 +149,21 @@ impl World {
         };
 
         let stage = &mut self.stages[0];
-        stage.add_player(&new_player);
+        let scr = stage.add_player(&new_player, Senses::default())?;
 
         self.player_by_id.insert(pid, new_player);
+
+        Ok(CommandResult {
+            limbos: scr.limbos,
+            timeline_updates: vec![(0, scr.timeline)],
+            outcome: CommandResultOutcome::Transition {
+                stage_id: 0,
+                stage_info: (&stage.template).into(),
+                stage_turn: scr.stage_turn,
+                info: scr.senses_info,
+                timeline: scr.timeline,
+            },
+        })
     }
 
     pub fn retire_player(&mut self, pid: PlayerId) -> Option<GameOver> {
@@ -282,8 +294,7 @@ impl World {
                 player.stage = Some(stage_id);
                 let next_stage = &mut self.stages[stage_id];
 
-                next_stage.add_player(player);
-                let mut scr = next_stage.add_command(pid, ClientAction::Wait, senses)?;
+                let mut scr = next_stage.add_player(player, senses.clone())?;
                 scr.limbos.extend(limbos_from_leave);
 
                 Ok(CommandResult {

@@ -7,9 +7,9 @@ use losig_core::{
     fov,
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, AvatarId, ClientAction, FOCUS_MAX, Foe, HP_MAX, MAX_WITHOUT_PLAY,
-        Offset, Orb, PlayerId, Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile,
-        Timeline, Transition, Turn,
+        Avatar, AvatarId, ClientAction, FOCUS_MAX, Foe, HP_MAX, MAX_WITHOUT_PLAY, Offset, Orb,
+        PlayerId, Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline, Transition,
+        Turn,
     },
 };
 
@@ -84,17 +84,11 @@ impl Stage {
         Some(self.states.get(&tracker.turn)?.clone())
     }
 
-    pub fn add_player(&mut self, player: &Player) {
-        let avatar = player.last_avatar.clone();
-        self.head_turn += 1;
-        self.diffs.push(TurnDiff {
-            cmd_by_avatar: Default::default(),
-            new_avatar: Some(avatar),
-        });
-
+    pub fn add_player(&mut self, player: &Player, senses: Senses) -> Result<StageCommandResult> {
         self.players
             .insert(player.id, StagePlayer::new(player, self.head_turn));
-        self.rollback_from(*self.states.last_key_value().unwrap().0);
+
+        self.player_turn(player.id, ServerAction::Enter, senses)
     }
 
     pub fn remove_player(&mut self, pid: PlayerId) -> Option<Avatar> {
@@ -111,10 +105,18 @@ impl Stage {
         &mut self,
         pid: PlayerId,
         action: ClientAction,
-        mut senses: Senses,
+        senses: Senses,
     ) -> Result<StageCommandResult> {
         let action = action::convert_client(action, self, pid);
+        self.player_turn(pid, action, senses)
+    }
 
+    pub fn player_turn(
+        &mut self,
+        pid: PlayerId,
+        action: ServerAction,
+        mut senses: Senses,
+    ) -> Result<StageCommandResult> {
         let mut player = self
             .players
             .get(&pid)
@@ -284,9 +286,7 @@ impl Stage {
         self.enact_avatars(state, diff);
         self.enact_foes(state, &self.bounds);
 
-        if let Some(ref new_avatar) = diff.new_avatar {
-            self.welcome_avatar(state, new_avatar);
-        }
+        self.welcome_avatar(state, diff);
 
         self.bounds.enforce(state);
 
@@ -398,15 +398,18 @@ impl Stage {
         }
     }
 
-    /// Update the world to spawn the userMoi c'est pareil, j'avais oublié que je m'étais
-    fn welcome_avatar(&self, state: &mut StageState, avatar: &Avatar) {
-        let pid = avatar.player_id;
-        let spawn_position = self.find_spawns();
-        let position = spawn_position[pid as usize % spawn_position.len()];
+    fn welcome_avatar(&self, state: &mut StageState, diff: &TurnDiff) {
+        for (pid, cmd) in diff.cmd_by_avatar.iter() {
+            let pid = *pid;
+            if cmd.action == ServerAction::Enter {
+                let spawn_position = self.find_spawns();
+                let position = spawn_position[pid as usize % spawn_position.len()];
 
-        let mut avatar = avatar.clone();
-        avatar.position = position;
-        state.avatars.insert(pid, avatar);
+                let mut avatar = Avatar::new(pid);
+                avatar.position = position;
+                state.avatars.insert(pid, avatar);
+            }
+        }
     }
 
     pub fn find_spawns(&self) -> Vec<Position> {
@@ -556,13 +559,13 @@ impl Stage {
 pub struct StagePlayer {
     pub id: PlayerId,
     pub turn: StageTurn,
-    /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
-    /// cancelation/confirmation
-    limbo: bool,
     /// Needed to have access to the player name in info gathering
     pub player_name: String,
     pub focus: u8,
     pub transition: Option<Transition>,
+    /// Limbo means a message of MaybeDead has been sent to the player and is awaiting
+    /// cancelation/confirmation
+    limbo: bool,
 }
 
 impl StagePlayer {
@@ -626,7 +629,6 @@ impl EventManager {
 #[derive(Clone, Default)]
 pub struct TurnDiff {
     pub cmd_by_avatar: Vec<(AvatarId, AvatarCmd)>,
-    new_avatar: Option<Avatar>,
 }
 
 impl TurnDiff {

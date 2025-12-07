@@ -7,7 +7,7 @@ use losig_core::{
     fov,
     sense::{Senses, SensesInfo},
     types::{
-        Avatar, AvatarId, ClientAction, FOCUS_MAX, FOCUS_REGEN, Foe, HP_MAX, MAX_WITHOUT_PLAY,
+        Avatar, AvatarId, ClientAction, FOCUS_MAX, Foe, HP_MAX, MAX_WITHOUT_PLAY,
         Offset, Orb, PlayerId, Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile,
         Timeline, Transition, Turn,
     },
@@ -135,7 +135,7 @@ impl Stage {
         };
 
         // Focus handling
-        player.focus = (player.focus + FOCUS_REGEN).min(FOCUS_MAX);
+        player.focus = (player.focus + self.template.fp_regen as u8).min(FOCUS_MAX);
         let focus_cost = senses.cost();
         let has_focus = focus_cost <= player.focus;
         if has_focus {
@@ -463,7 +463,7 @@ impl Stage {
                 continue;
             };
 
-            if tracker.turn.abs_diff(self.head_turn) > 100 {
+            if tracker.turn.abs_diff(self.head_turn) > self.template.timeline_length as u64 {
                 results.push(Limbo::TooFarBehind(avatar.player_id));
                 continue;
             }

@@ -70,7 +70,8 @@ impl Game {
                 self.services.sender.send(msg).unwrap();
             }
             CommandResultOutcome::Transition {
-                stage,
+                stage_id,
+                stage_info,
                 stage_turn,
                 info,
                 timeline,
@@ -78,8 +79,9 @@ impl Game {
                 let msg = TransitionMessage {
                     player_id,
                     turn,
+                    stage_id,
+                    stage_info,
                     stage_turn,
-                    stage,
                     info,
                     timeline,
                 };

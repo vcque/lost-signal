@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize};
 
 pub const HP_MAX: u8 = 10;
 pub const FOCUS_MAX: u8 = 100;
-
-pub const FOCUS_REGEN: u8 = 4;
 pub const TURN_FOR_HP_REGEN: u64 = 10;
 
 /**
@@ -209,6 +207,28 @@ pub type StageId = usize;
 pub type FoeId = usize;
 
 pub const MAX_WITHOUT_PLAY: Turn = 5;
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub enum TimelineType {
+    /// Anytime a player acts, the state moves forward for every player (other players pass). There
+    /// is no timeline
+    Immediate,
+    /// Default mode: each player play at their pace. If a player falls x turns behind he goes into
+    /// limbo
+    Asynchronous,
+}
+
+impl std::str::FromStr for TimelineType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Immediate" => Ok(TimelineType::Immediate),
+            "Asynchronous" => Ok(TimelineType::Asynchronous),
+            _ => Err(format!("Unknown timeline type: {}", s)),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct Avatar {

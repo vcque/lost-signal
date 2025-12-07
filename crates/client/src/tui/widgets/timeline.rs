@@ -11,6 +11,7 @@ use crate::{tui::THEME, world::WorldView};
 pub struct TimelineWidget {
     timeline: Timeline,
     current: StageTurn,
+    stage_name: String,
 }
 
 impl TimelineWidget {
@@ -18,13 +19,15 @@ impl TimelineWidget {
         Self {
             timeline: world.timeline,
             current: world.stage_turn,
+            stage_name: world.stage_info.name.clone(),
         }
     }
 
     fn as_line(&self) -> Line<'static> {
+        let stage_span = Span::from(format!("{} - ", self.stage_name));
         let turn_span = Span::from(format!("Turn {}: ", self.current));
 
-        let mut timelines_spans: Vec<Span> = vec![turn_span];
+        let mut timelines_spans: Vec<Span> = vec![stage_span, turn_span];
         let chars_before = self.current.saturating_sub(self.timeline.tail).div_ceil(5);
 
         for i in (0..chars_before).rev() {

@@ -5,10 +5,11 @@ use grid::Grid;
 use log::{info, warn};
 use losig_core::{
     events::GEvent,
-    sense::{Senses, SensesInfo},
+    network::StageInfo,
+    sense::{SenseType, Senses, SensesInfo},
     types::{
         Avatar, ClientAction, Foe, GameOver, GameOverStatus, PlayerId, ServerAction, StageId,
-        StageTurn, Tiles, Timeline, Transition,
+        StageTurn, Tiles, Timeline, TimelineType, Transition,
     },
 };
 
@@ -18,18 +19,48 @@ use crate::stage::Stage;
 #[derive(Debug, Clone)]
 pub struct StageTemplate {
     pub id: String,
+    pub name: String,
     pub tiles: Tiles,
     pub orb_spawns: Grid<bool>,
     pub foes: Vec<Foe>,
+    pub fp_regen: u32,
+    pub senses: Vec<SenseType>,
+    pub timeline_length: u32,
+    pub timeline_type: TimelineType,
 }
 
 impl StageTemplate {
-    pub fn new(id: String, tiles: Tiles, orb_spawns: Grid<bool>, foes: Vec<Foe>) -> Self {
+    pub fn new(
+        id: String,
+        name: String,
+        tiles: Tiles,
+        orb_spawns: Grid<bool>,
+        foes: Vec<Foe>,
+        fp_regen: u32,
+        senses: Vec<SenseType>,
+        timeline_length: u32,
+        timeline_type: TimelineType,
+    ) -> Self {
         Self {
             id,
+            name,
             tiles,
             foes,
             orb_spawns,
+            fp_regen,
+            senses,
+            timeline_length,
+            timeline_type,
+        }
+    }
+}
+
+impl From<&StageTemplate> for StageInfo {
+    fn from(value: &StageTemplate) -> Self {
+        StageInfo {
+            name: value.name.clone(),
+            timeline_length: value.timeline_length,
+            senses: value.senses.clone(),
         }
     }
 }
@@ -59,7 +90,8 @@ pub enum CommandResultOutcome {
         timeline: Timeline,
     },
     Transition {
-        stage: StageId,
+        stage_id: StageId,
+        stage_info: StageInfo,
         stage_turn: StageTurn,
         info: Option<SensesInfo>,
         timeline: Timeline,
@@ -258,7 +290,8 @@ impl World {
                     limbos: scr.limbos,
                     timeline_updates: vec![(stage_id, scr.timeline)],
                     outcome: CommandResultOutcome::Transition {
-                        stage: stage_id,
+                        stage_id,
+                        stage_info: (&next_stage.template).into(),
                         stage_turn: scr.stage_turn,
                         info: scr.senses_info,
                         timeline: scr.timeline,

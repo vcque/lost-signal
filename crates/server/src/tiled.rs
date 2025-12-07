@@ -1,10 +1,12 @@
 //! Tiled related code
 
 use std::io::Cursor;
+use std::str::FromStr;
 
 use anyhow::{Result, anyhow};
 use grid::Grid;
-use losig_core::types::{Foe, FoeType, Position, Tile, Tiles};
+use losig_core::sense::SenseType;
+use losig_core::types::{Foe, FoeType, Position, Tile, TimelineType, Tiles};
 use tiled::{Layer, Loader};
 
 use crate::world::{StageTemplate, World};
@@ -108,11 +110,74 @@ fn convert_map(id: String, value: &tiled::Map) -> Result<StageTemplate> {
         .and_then(Layer::as_tile_layer)
         .ok_or(anyhow!("No Orb layer"))?;
 
+    // Read custom properties
+    let name = value
+        .properties
+        .get("name")
+        .and_then(|p| match p {
+            tiled::PropertyValue::StringValue(s) => Some(s.as_str()),
+            _ => None,
+        })
+        .unwrap_or(&id)
+        .to_string();
+
+    let fp_regen = value
+        .properties
+        .get("fp_regen")
+        .and_then(|p| match p {
+            tiled::PropertyValue::IntValue(v) => Some(*v as u32),
+            _ => None,
+        })
+        .unwrap_or(4);
+
+    let senses = value
+        .properties
+        .get("senses")
+        .and_then(|p| match p {
+            tiled::PropertyValue::StringValue(s) => Some(s.as_str()),
+            _ => None,
+        })
+        .map(|s| {
+            s.split(';')
+                .filter_map(|sense| SenseType::from_str(sense.trim()).ok())
+                .collect()
+        })
+        .unwrap_or_else(|| vec![
+            SenseType::SelfSense,
+            SenseType::Sight,
+            SenseType::Touch,
+            SenseType::Hearing,
+        ]);
+
+    let timeline_length = value
+        .properties
+        .get("timeline_length")
+        .and_then(|p| match p {
+            tiled::PropertyValue::IntValue(v) => Some(*v as u32),
+            _ => None,
+        })
+        .unwrap_or(100);
+
+    let timeline_type = value
+        .properties
+        .get("timeline_type")
+        .and_then(|p| match p {
+            tiled::PropertyValue::StringValue(s) => Some(s.as_str()),
+            _ => None,
+        })
+        .and_then(|s| TimelineType::from_str(s).ok())
+        .unwrap_or(TimelineType::Asynchronous);
+
     Ok(StageTemplate::new(
         id,
+        name,
         convert_tiled(&terrain_layer)?,
         get_orb_spawns(&orb_layer)?,
         get_foes(&foes_layer)?,
+        fp_regen,
+        senses,
+        timeline_length,
+        timeline_type,
     ))
 }
 
@@ -225,5 +290,31 @@ mod tests {
 
         let world = world.unwrap();
         assert!(world.stages.len() > 0);
+    }
+
+    #[test]
+    fn load_properties_test() {
+        use losig_core::sense::SenseType;
+        use losig_core::types::TimelineType;
+
+        let world = load_arena();
+        assert!(world.is_ok());
+
+        let world = world.unwrap();
+        let template = &world.stages[0].template;
+
+        assert_eq!(template.name, "Arena");
+        assert_eq!(template.fp_regen, 4);
+        assert_eq!(template.timeline_length, 100);
+        assert_eq!(template.timeline_type, TimelineType::Asynchronous);
+        assert_eq!(
+            template.senses,
+            vec![
+                SenseType::SelfSense,
+                SenseType::Sight,
+                SenseType::Touch,
+                SenseType::Hearing
+            ]
+        );
     }
 }

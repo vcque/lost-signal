@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use bounded_integer::BoundedU8;
 use serde::{Deserialize, Serialize};
 
@@ -9,6 +11,20 @@ pub enum SenseType {
     Sight,
     Touch,
     Hearing,
+}
+
+impl FromStr for SenseType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Self" | "SelfSense" => Ok(SenseType::SelfSense),
+            "Sight" => Ok(SenseType::Sight),
+            "Touch" => Ok(SenseType::Touch),
+            "Hearing" => Ok(SenseType::Hearing),
+            _ => Err(format!("Unknown sense type: {}", s)),
+        }
+    }
 }
 
 /// Describe information that an avatar want retrieved for a given turn

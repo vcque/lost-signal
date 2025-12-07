@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     events::GEvent,
     leaderboard::Leaderboard,
-    sense::{Senses, SensesInfo},
+    sense::{SenseType, Senses, SensesInfo},
     types::{ClientAction, GameOver, PlayerId, ServerAction, StageId, StageTurn, Timeline, Turn},
 };
 
@@ -32,17 +32,27 @@ pub struct TurnMessage {
     pub timeline: Timeline,
 }
 
+/// Received when changing stages
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TransitionMessage {
     pub player_id: PlayerId,
     /// The avatar's turn. Used to Keep track of which response corresponds to which command
     pub turn: Turn,
+    pub stage_id: StageId,
+    pub stage_info: StageInfo,
     /// The stage turn, interesting info to know where people are relative to each other
     pub stage_turn: Turn,
-    pub stage: StageId,
     /// Senses info gathered when entering the stage
     pub info: Option<SensesInfo>,
     pub timeline: Timeline,
+}
+
+/// Static information about the stage. Namely its id, name and senses
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct StageInfo {
+    pub name: String,
+    pub timeline_length: u32,
+    pub senses: Vec<SenseType>,
 }
 
 pub struct LimboMessage {}

@@ -1,7 +1,7 @@
 use log::{debug, warn};
 use losig_core::{
     fov,
-    network::{TransitionMessage, TurnMessage},
+    network::{StageInfo, TransitionMessage, TurnMessage},
     sense::{Senses, SensesInfo, SightInfo},
     types::{
         ClientAction, Offset, Position, ServerAction, StageId, StageTurn, Tile, Tiles, Timeline,
@@ -21,7 +21,7 @@ const START_POS: Position = Position {
 #[derive(Debug, Clone)]
 pub struct WorldView {
     pub winner: bool,
-    pub stage: StageId,
+    pub stage_id: StageId,
     pub turn: Turn,
 
     history: Vec<WorldDiff>,
@@ -32,6 +32,7 @@ pub struct WorldView {
     pub timeline: Timeline,
     pub last_latency: Option<Duration>,
     action_sent_at: Option<Instant>,
+    pub stage_info: StageInfo,
 }
 
 impl WorldView {
@@ -41,12 +42,13 @@ impl WorldView {
 
         Self {
             winner: false,
-            stage: 0,
+            stage_id: 0,
             turn: 1,
             stage_turn: 1,
             history: vec![],
             past_state: WorldState::default(),
             current_state: WorldState::default(),
+            stage_info: StageInfo::default(),
             logs,
             timeline: Timeline { head: 1, tail: 1 },
             last_latency: None,
@@ -112,10 +114,10 @@ impl WorldView {
 
         // Update global info
         if diff == 0 {
-            if self.stage != stage {
+            if self.stage_id != stage {
                 self.clear();
             }
-            self.stage = stage;
+            self.stage_id = stage;
         }
 
         self.logs.add_server_events(turn, events);
@@ -144,14 +146,16 @@ impl WorldView {
             player_id: _,
             turn: _,
             stage_turn,
-            stage,
+            stage_info,
             info,
             timeline,
+            stage_id,
         }: TransitionMessage,
     ) {
         self.clear();
 
-        self.stage = stage;
+        self.stage_id = stage_id;
+        self.stage_info = stage_info;
         self.stage_turn = stage_turn;
         self.history.push(WorldDiff {
             action: ClientAction::Wait,
@@ -211,7 +215,7 @@ impl WorldView {
     }
 
     pub fn update_timeline(&mut self, stage: StageId, timeline: Timeline) {
-        if self.stage == stage {
+        if self.stage_id == stage {
             self.timeline = timeline;
         }
     }

@@ -27,6 +27,7 @@ pub struct ThemePalette {
     pub tile_wall: Color,
     pub tile_floor: Color,
     pub tile_unseen: Color,
+    pub tile_stair: Color,
 
     pub important: Color,
     pub avatar: Color,
@@ -61,6 +62,7 @@ pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme {
         tile_wall: Color::from_hsl(Hsl::new(270.0, 1.0, 0.5)),
         tile_floor: Color::from_hsl(Hsl::new(270.0, 0.2, 0.5)),
         tile_unseen: Color::from_hsl(Hsl::new(270.0, 0.0, 0.1)),
+        tile_stair: Color::from_hsl(Hsl::new(55.0, 1.0, 0.55)),
 
         ui: Color::White,
         ui_disabled: Color::from_hsl(Hsl::new(0.0, 0.0, 0.5)),

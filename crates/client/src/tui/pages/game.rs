@@ -251,6 +251,8 @@ fn render_tile(tile: Tile) -> (char, Style) {
         Tile::Unknown => (' ', *DEFAULT_STYLE),
         Tile::Empty => ('.', Style::new().fg(THEME.palette.tile_floor)),
         Tile::Pylon => ('|', Style::new().fg(THEME.palette.important)),
+        Tile::StairUp => ('<', Style::new().fg(THEME.palette.tile_stair)),
+        Tile::StairDown => ('>', Style::new().fg(THEME.palette.tile_stair)),
     }
 }
 

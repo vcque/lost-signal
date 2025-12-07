@@ -44,6 +44,8 @@ const SPAWN_ID: u32 = 2;
 const ORB_ID: u32 = 3;
 const WALL_ID: u32 = 4;
 const PYLON_ID: u32 = 5;
+const STAIR_UP_ID: u32 = 7;
+const STAIR_DOWN_ID: u32 = 8;
 
 impl tiled::ResourceReader for AssetsReader {
     type Resource = Cursor<&'static [u8]>;
@@ -85,6 +87,8 @@ fn convert_tiled(value: &tiled::TileLayer) -> Result<Tiles> {
                 SPAWN_ID => Tile::Spawn,
                 WALL_ID => Tile::Wall,
                 PYLON_ID => Tile::Pylon,
+                STAIR_UP_ID => Tile::StairUp,
+                STAIR_DOWN_ID => Tile::StairDown,
                 _ => Tile::Empty,
             };
             result.grid[(x, y)] = tile;

@@ -120,6 +120,8 @@ impl GameTui {
                     Tile::Empty => '.',
                     Tile::Wall => '#',
                     Tile::Pylon => '|',
+                    Tile::StairUp => '<',
+                    Tile::StairDown => '>',
                 };
 
                 buf.set_string(

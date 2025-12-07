@@ -187,6 +187,8 @@ pub enum Tile {
     Empty,
     Spawn,
     Pylon,
+    StairUp,
+    StairDown,
 }
 
 impl Tile {

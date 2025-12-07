@@ -6,7 +6,7 @@ use std::str::FromStr;
 use anyhow::{Result, anyhow};
 use grid::Grid;
 use losig_core::sense::SenseType;
-use losig_core::types::{Foe, FoeType, Position, Tile, TimelineType, Tiles};
+use losig_core::types::{Foe, FoeType, Position, Tile, Tiles, TimelineType};
 use tiled::{Layer, Loader};
 
 use crate::world::{StageTemplate, World};
@@ -36,6 +36,7 @@ const STAGES: &[(&str, &[u8])] = include_stages![
     "arena_big",
     "lvl_1",
     "lvl_2",
+    "hub"
 ];
 
 const MINDSNARE_ID: u32 = 1;
@@ -111,8 +112,7 @@ fn convert_map(id: String, value: &tiled::Map) -> Result<StageTemplate> {
     let orb_layer = value
         .layers()
         .find(|l| l.name == "Orb")
-        .and_then(Layer::as_tile_layer)
-        .ok_or(anyhow!("No Orb layer"))?;
+        .and_then(Layer::as_tile_layer);
 
     // Read custom properties
     let name = value
@@ -146,12 +146,14 @@ fn convert_map(id: String, value: &tiled::Map) -> Result<StageTemplate> {
                 .filter_map(|sense| SenseType::from_str(sense.trim()).ok())
                 .collect()
         })
-        .unwrap_or_else(|| vec![
-            SenseType::SelfSense,
-            SenseType::Sight,
-            SenseType::Touch,
-            SenseType::Hearing,
-        ]);
+        .unwrap_or_else(|| {
+            vec![
+                SenseType::SelfSense,
+                SenseType::Sight,
+                SenseType::Touch,
+                SenseType::Hearing,
+            ]
+        });
 
     let timeline_length = value
         .properties
@@ -176,7 +178,7 @@ fn convert_map(id: String, value: &tiled::Map) -> Result<StageTemplate> {
         id,
         name,
         convert_tiled(&terrain_layer)?,
-        get_orb_spawns(&orb_layer)?,
+        orb_layer.map(|layer| get_orb_spawns(&layer)).transpose()?,
         get_foes(&foes_layer)?,
         fp_regen,
         senses,
@@ -265,8 +267,8 @@ pub fn load_arena() -> Result<World> {
 }
 
 #[allow(unused)]
-pub fn load_remi() -> Result<World> {
-    load_world(&["lvl_1", "lvl_2", "tuto_hearing", "tuto_sight", "arena_big"])
+pub fn load_default() -> Result<World> {
+    load_world(&["hub", "tuto_self"])
 }
 
 pub fn load_world(stage_ids: &[&str]) -> Result<World> {
@@ -301,16 +303,16 @@ mod tests {
         use losig_core::sense::SenseType;
         use losig_core::types::TimelineType;
 
-        let world = load_arena();
+        let world = load_default();
         assert!(world.is_ok());
 
         let world = world.unwrap();
         let template = &world.stages[0].template;
 
-        assert_eq!(template.name, "Arena");
-        assert_eq!(template.fp_regen, 4);
-        assert_eq!(template.timeline_length, 100);
-        assert_eq!(template.timeline_type, TimelineType::Asynchronous);
+        assert_eq!(template.name, "The hub");
+        assert_eq!(template.fp_regen, 100);
+        assert_eq!(template.timeline_length, 1);
+        assert_eq!(template.timeline_type, TimelineType::Immediate);
         assert_eq!(
             template.senses,
             vec![

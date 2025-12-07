@@ -34,7 +34,11 @@ fn gather_hearing(
     _async_stage: &Stage,
     state: &StageState,
 ) -> HearingInfo {
-    let dist = avatar.position.dist(&state.orb.position) as u8;
+    let Some(ref orb) = state.orb else {
+        return HearingInfo { range: None };
+    };
+
+    let dist = avatar.position.dist(&orb.position) as u8;
 
     for s in 1..(strength + 1) {
         if let Some(range) = HearingInfo::dist(s)
@@ -72,12 +76,14 @@ fn gather_sight(strength: u8, avatar: &Avatar, stage: &Stage, state: &StageState
         }
     }
 
-    let offset = state.orb.position - avatar.position;
-    let fov_position = center + offset;
-    let orb = match tiles.get(fov_position) {
-        Tile::Unknown => None,
-        _ => Some(offset),
-    };
+    let orb = state.orb.as_ref().and_then(|orb| {
+        let offset = orb.position - avatar.position;
+        let fov_position = center + offset;
+        match tiles.get(fov_position) {
+            Tile::Unknown => None,
+            _ => Some(offset),
+        }
+    });
 
     let mut allies = vec![];
     for ally in state.avatars.values() {
@@ -148,7 +154,11 @@ fn gather_touch(avatar: &Avatar, async_stage: &Stage, state: &StageState) -> Tou
         tiles,
         foes,
         traps,
-        orb: state.orb.position.dist(&avatar.position) <= 1,
+        orb: state
+            .orb
+            .as_ref()
+            .map(|orb| orb.position.dist(&avatar.position) <= 1)
+            .unwrap_or(false),
     }
 }
 

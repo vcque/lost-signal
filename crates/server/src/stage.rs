@@ -59,10 +59,7 @@ impl Stage {
         let state = StageState {
             turn: head_turn,
             foes: new.template.foes.clone(),
-            orb: Orb {
-                position: orb_spawn(&new, head_turn),
-                excited: false,
-            },
+            orb: orb_spawn(&new, head_turn),
             avatars,
             player: None,
             events: EventManager::default(),
@@ -278,10 +275,10 @@ impl Stage {
         }
         state.events.clear();
         // Turn init
-        if state.orb.excited {
-            state.orb.position = orb_spawn(self, state.turn);
-            state.orb.excited = false;
-        }
+        if let Some(ref mut orb) = state.orb
+            && orb.excited {
+                state.orb = orb_spawn(self, state.turn);
+            }
 
         self.enact_avatars(state, diff);
         self.enact_foes(state, &self.bounds);
@@ -339,29 +336,31 @@ impl Stage {
             action::act(player_action, &mut avatar, state, self);
 
             // Orb on tile
-            if avatar.position == state.orb.position {
-                state.orb.excited = true;
-                if let Some(ref mut player) = state.player
-                    && avatar.player_id == player.id
-                {
-                    player.transition = Some(Transition::Orb);
+            if let Some(ref mut orb) = state.orb {
+                if avatar.position == orb.position {
+                    orb.excited = true;
+                    if let Some(ref mut player) = state.player
+                        && avatar.player_id == player.id
+                    {
+                        player.transition = Some(Transition::Orb);
+                    }
                 }
-            }
 
-            // Orb in sight
-            if fov::can_see(
-                &self.template.tiles,
-                avatar.position,
-                state.orb.position,
-                senses.sight.get(),
-            ) & !state.orb.excited
-            {
-                state.orb.excited = true;
-                state.events.add(GameEventSource {
-                    senses: EventSenses::All,
-                    source: EventSource::Position(state.orb.position),
-                    event: GameEvent::OrbSeen,
-                });
+                // Orb in sight
+                if fov::can_see(
+                    &self.template.tiles,
+                    avatar.position,
+                    orb.position,
+                    senses.sight.get(),
+                ) & !orb.excited
+                {
+                    orb.excited = true;
+                    state.events.add(GameEventSource {
+                        senses: EventSenses::All,
+                        source: EventSource::Position(orb.position),
+                        event: GameEvent::OrbSeen,
+                    });
+                }
             }
 
             if let Some(ref mut player) = state.player {
@@ -586,7 +585,7 @@ impl StagePlayer {
 pub struct StageState {
     pub turn: StageTurn,
     pub foes: Vec<Foe>,
-    pub orb: Orb,
+    pub orb: Option<Orb>,
     pub avatars: BTreeMap<PlayerId, Avatar>,
 
     /// The player that is currently playing. only set on the current's player turn. Empty for
@@ -657,10 +656,10 @@ pub struct StageCommandResult {
     pub timeline: Timeline,
 }
 
-fn orb_spawn(stage: &Stage, stage_turn: StageTurn) -> Position {
-    let spawns: Vec<Position> = stage
-        .template
-        .orb_spawns
+fn orb_spawn(stage: &Stage, stage_turn: StageTurn) -> Option<Orb> {
+    let orb_spawns = stage.template.orb_spawns.as_ref()?;
+
+    let spawns: Vec<Position> = orb_spawns
         .indexed_iter()
         .filter(|(_, val)| **val)
         .map(|(pos, _)| Position::from(pos))
@@ -668,7 +667,7 @@ fn orb_spawn(stage: &Stage, stage_turn: StageTurn) -> Position {
 
     if spawns.is_empty() {
         warn!("Couldn't find a spawn point for lvl");
-        return Default::default();
+        return None;
     }
 
     // Deterministic random selection based on seed and stage_turn
@@ -678,5 +677,9 @@ fn orb_spawn(stage: &Stage, stage_turn: StageTurn) -> Position {
         .wrapping_add(stage_turn)
         .wrapping_mul(6364136223846793005);
     let i = (hash as usize) % spawns.len();
-    spawns[i]
+
+    Some(Orb {
+        position: spawns[i],
+        excited: false,
+    })
 }

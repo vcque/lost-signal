@@ -148,15 +148,17 @@ impl GameTui {
             );
         }
 
-        let Position { x, y } = state.orb.position + offset;
+        if let Some(ref orb) = state.orb {
+            let Position { x, y } = orb.position + offset;
 
-        if (0..area.width).contains(&(x as u16)) && (0..area.height).contains(&(y as u16)) {
-            buf.set_string(
-                area.x + x as u16,
-                area.y + y as u16,
-                "¤",
-                Style::default().yellow(),
-            );
+            if (0..area.width).contains(&(x as u16)) && (0..area.height).contains(&(y as u16)) {
+                buf.set_string(
+                    area.x + x as u16,
+                    area.y + y as u16,
+                    "¤",
+                    Style::default().yellow(),
+                );
+            }
         }
 
         for foe in state.foes.iter() {

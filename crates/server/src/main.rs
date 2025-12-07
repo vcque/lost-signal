@@ -26,7 +26,7 @@ fn main() {
     let (server, sm_tx, cm_rx) = WsServer::new();
     server.run();
 
-    let world = tiled::load_remi().unwrap();
+    let world = tiled::load_default().unwrap();
     let leaderboard = Leaderboard::default();
     let services = Services::new(world, leaderboard, sm_tx);
 

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="64" height="24" tilewidth="16" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="1">
  <properties>
-  <property name="fp_regen" value="100"/>
+  <property name="fp_regen" type="int" value="100"/>
   <property name="name" value="The hub"/>
   <property name="senses" value="Self;Sight;Touch;Hearing"/>
-  <property name="timeline_length" value="1"/>
+  <property name="timeline_length" type="int" value="1"/>
   <property name="timeline_type" value="Immediate"/>
  </properties>
  <tileset firstgid="1" source="tileset/editor.tsx"/>

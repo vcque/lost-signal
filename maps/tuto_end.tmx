@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="74" height="28" tilewidth="16" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="3">
  <properties>
-  <property name="fp_regen" value="4"/>
+  <property name="fp_regen" type="int" value="4"/>
   <property name="name" value="Tutorial: End"/>
   <property name="senses" value="Self;Sight;Touch;Hearing"/>
-  <property name="timeline_length" value="100"/>
+  <property name="timeline_length" type="int" value="100"/>
   <property name="timeline_type" value="Asynchronous"/>
  </properties>
  <tileset firstgid="1" source="tileset/editor.tsx"/>

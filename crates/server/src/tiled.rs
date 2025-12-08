@@ -31,12 +31,11 @@ const STAGES: &[(&str, &[u8])] = include_stages![
     "tuto_touch",
     "tuto_hearing",
     "tuto_sight",
-    "tuto_end",
-    "arena",
-    "arena_corridor",
-    "arena_big",
-    "lvl_1",
-    "lvl_2",
+    "battlefield_1",
+    "battlefield_2",
+    "battlefield_3",
+    "battlefield_4",
+    "battlefield_end",
     "hub"
 ];
 
@@ -296,16 +295,23 @@ pub fn load_default() -> Result<World> {
             "tuto_touch",
             "tuto_hearing",
             "tuto_sight",
-            "arena",
-            "arena_corridor",
-            "lvl_1",
-            "lvl_2",
+            "battlefield_1",
+            "battlefield_2",
+            "battlefield_3",
+            "battlefield_4",
+            "battlefield_end",
         ],
         Box::new(|world, stage_id, transition| {
             let id = world.stages[stage_id].template.id.as_str();
             match (id, transition) {
-                ("hub", Transition::Stairs(pos)) => TransitionDestination::Stage(3),
-                ("lvl_2", _) => TransitionDestination::End,
+                ("hub", Transition::Stairs(pos)) => {
+                    if pos.y > 20 {
+                        TransitionDestination::Stage(5)
+                    } else {
+                        TransitionDestination::Stage(1)
+                    }
+                }
+                ("battlefield_end" | "tuto_sight", _) => TransitionDestination::End,
                 _ => TransitionDestination::Stage(stage_id + 1),
             }
         }),

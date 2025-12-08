@@ -276,9 +276,10 @@ impl Stage {
         state.events.clear();
         // Turn init
         if let Some(ref mut orb) = state.orb
-            && orb.excited {
-                state.orb = orb_spawn(self, state.turn);
-            }
+            && orb.excited
+        {
+            state.orb = orb_spawn(self, state.turn);
+        }
 
         self.enact_avatars(state, diff);
         self.enact_foes(state, &self.bounds);
@@ -334,6 +335,16 @@ impl Stage {
 
             // Execute the action
             action::act(player_action, &mut avatar, state, self);
+
+            // Player on stairs
+            if matches!(
+                self.template.tiles.get(avatar.position),
+                Tile::StairUp | Tile::StairDown
+            ) && let Some(ref mut player) = state.player
+                && avatar.player_id == player.id
+            {
+                player.transition = Some(Transition::Stairs(avatar.position));
+            }
 
             // Orb on tile
             if let Some(ref mut orb) = state.orb {

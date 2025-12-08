@@ -251,8 +251,8 @@ pub struct Avatar {
 /// It can occur only on a player move and no more than once per turn.
 #[derive(Clone, Copy)]
 pub enum Transition {
-    /// Just go to the next stage
     Orb,
+    Stairs(Position),
 }
 
 impl Avatar {

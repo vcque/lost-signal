@@ -328,7 +328,7 @@ fn find_destination(
     previous_stage: StageId,
 ) -> TransitionDestination {
     match transition {
-        Transition::Orb => {
+        Transition::Orb | Transition::Stairs(_) => {
             let max_stage = stages.len() - 1;
             let next_stage = previous_stage + 1;
             if next_stage > max_stage {

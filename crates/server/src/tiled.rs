@@ -36,6 +36,11 @@ const STAGES: &[(&str, &[u8])] = include_stages![
     "battlefield_3",
     "battlefield_4",
     "battlefield_end",
+    "timelab_basics",
+    "timelab_pinning",
+    "timelab_infinity",
+    "timelab_blind_kill",
+    "timelab_deathbound",
     "hub"
 ];
 
@@ -281,7 +286,12 @@ pub fn load_tutorial() -> Result<World> {
 #[allow(unused)]
 pub fn load_arena() -> Result<World> {
     load_world(
-        &["battlefield_1", "battlefield_2", "battlefield_3", "battlefield_4"],
+        &[
+            "battlefield_1",
+            "battlefield_2",
+            "battlefield_3",
+            "battlefield_4",
+        ],
         default_transition_resolver(),
     )
 }
@@ -300,6 +310,11 @@ pub fn load_default() -> Result<World> {
             "battlefield_3",
             "battlefield_4",
             "battlefield_end",
+            "timelab_basics",
+            "timelab_pinning",
+            "timelab_deathbound",
+            "timelab_blind_kill",
+            "timelab_infinity",
         ],
         Box::new(|world, stage_id, transition| {
             let id = world.stages[stage_id].template.id.as_str();
@@ -307,11 +322,15 @@ pub fn load_default() -> Result<World> {
                 ("hub", Transition::Stairs(pos)) => {
                     if pos.y > 20 {
                         TransitionDestination::Stage(5)
-                    } else {
+                    } else if pos.x > 20 {
                         TransitionDestination::Stage(1)
+                    } else {
+                        TransitionDestination::Stage(10)
                     }
                 }
-                ("battlefield_end" | "tuto_sight", _) => TransitionDestination::End,
+                ("battlefield_end" | "tuto_sight" | "timelab_infinity", _) => {
+                    TransitionDestination::End
+                }
                 _ => TransitionDestination::Stage(stage_id + 1),
             }
         }),

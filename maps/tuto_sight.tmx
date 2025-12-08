@@ -2,7 +2,7 @@
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="32" infinite="0" nextlayerid="4" nextobjectid="1">
  <properties>
   <property name="fp_regen" type="int" value="4"/>
-  <property name="name" value="Tutorial: Sight"/>
+  <property name="name" value="Senses - Sight"/>
   <property name="senses" value="Self;Sight;Touch;Hearing"/>
   <property name="timeline_length" type="int" value="100"/>
   <property name="timeline_type" value="Asynchronous"/>

@@ -142,7 +142,7 @@ impl HelpWidget {
             Line::from("Shows how many adjacent entities there are."),
             Line::from(""),
             Line::from("FOCUS"),
-            Line::from("You can recharge focus either by respawning with 'r' or by standing next to a pylon '|'."),
+            Line::from("You can recharge focus by standing next to a pylon '|'."),
             Line::from(""),
             Line::from("SELECTING A SENSE"),
             Line::from("Shift + Up/Down to select a sense that you can then enable/disable."),

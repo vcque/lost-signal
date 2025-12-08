@@ -1,6 +1,6 @@
 use losig_core::{
     events::{GameEvent, Target},
-    types::{Avatar, ClientAction, Direction, HP_MAX, PlayerId, Position, ServerAction},
+    types::{Avatar, ClientAction, Direction, PlayerId, Position, ServerAction},
 };
 
 use crate::{
@@ -9,19 +9,12 @@ use crate::{
 };
 
 /// Execute an action for an avatar
-pub fn act(action: &ServerAction, avatar: &mut Avatar, state: &mut StageState, stage: &Stage) {
+pub fn act(action: &ServerAction, avatar: &mut Avatar, state: &mut StageState, _stage: &Stage) {
     match action {
-        ServerAction::Spawn => act_spawn(avatar, stage),
         ServerAction::Move(position) => act_move(avatar, *position),
         ServerAction::Attack(target_index) => act_attack(avatar, *target_index, state),
         ServerAction::Wait | ServerAction::Enter => {}
     }
-}
-
-fn act_spawn(avatar: &mut Avatar, stage: &Stage) {
-    let spawn_position = stage.find_spawns();
-    avatar.position = spawn_position[avatar.player_id as usize % spawn_position.len()];
-    avatar.hp = HP_MAX;
 }
 
 fn act_move(avatar: &mut Avatar, position: Position) {
@@ -63,7 +56,6 @@ fn act_attack(avatar: &mut Avatar, target_index: usize, state: &mut StageState) 
 
 pub fn convert_client(action: ClientAction, stage: &mut Stage, pid: PlayerId) -> ServerAction {
     match action {
-        ClientAction::Spawn => ServerAction::Spawn,
         ClientAction::MoveOrAttack(direction) => {
             convert_move_or_attack_action(direction, stage, pid).unwrap_or(ServerAction::Wait)
         }

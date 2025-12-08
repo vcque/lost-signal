@@ -14,7 +14,6 @@ pub const TURN_FOR_HP_REGEN: u64 = 10;
 */
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum ClientAction {
-    Spawn,
     MoveOrAttack(Direction),
     Wait,
 }
@@ -24,7 +23,6 @@ pub enum ClientAction {
 */
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub enum ServerAction {
-    Spawn,
     Wait,
     Move(Position),
     /// foe id, should stay server side though

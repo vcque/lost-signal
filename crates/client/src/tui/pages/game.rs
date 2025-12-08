@@ -216,7 +216,6 @@ impl GamePage {
                 Some(ClientAction::MoveOrAttack(Direction::DownRight))
             }
             KeyCode::Char('5') | KeyCode::Char(' ') => Some(ClientAction::Wait),
-            KeyCode::Char('r') => Some(ClientAction::Spawn),
             KeyCode::Char('?') => {
                 game_state.help.open = true;
                 return true;

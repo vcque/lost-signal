@@ -57,10 +57,6 @@ impl WorldView {
     }
 
     pub fn act(&mut self, action: &ClientAction, senses: &Senses) {
-        if matches!(action, ClientAction::Spawn) {
-            self.clear();
-        }
-
         // Record timestamp when action is sent
         self.action_sent_at = Some(Instant::now());
 
@@ -290,9 +286,6 @@ impl WorldState {
 
     fn update_action(&mut self, action: &ClientAction, server_action: Option<&ServerAction>) {
         match action {
-            ClientAction::Spawn => {
-                // Spawning actually cleans up the state
-            }
             ClientAction::MoveOrAttack(dir) => {
                 if matches!(server_action, None | Some(ServerAction::Move(_))) {
                     let new_pos = self.position + dir.offset();

@@ -5,7 +5,7 @@ use losig_core::{
     sense::{Senses, SensesInfo, SightInfo},
     types::{
         ClientAction, Offset, Position, ServerAction, StageId, StageTurn, Tile, Tiles, Timeline,
-        Turn,
+        TimelineType, Turn,
     },
 };
 use web_time::{Duration, Instant};
@@ -103,7 +103,10 @@ impl WorldView {
             timeline,
         }: TurnMessage,
     ) {
-        let diff = turn.abs_diff(self.turn);
+        let diff = match self.stage_info.timeline_type {
+            TimelineType::Immediate => 0,
+            TimelineType::Asynchronous => turn.abs_diff(self.turn),
+        };
 
         // Calculate latency if this is a response to our action
         if diff == 0
@@ -193,8 +196,15 @@ impl WorldView {
     pub fn update_on_timeline(&mut self, stage_turn: StageTurn, info: SensesInfo) {
         // Calculate turn from stage_turn
         let turn_diff = (self.turn as i64) - (self.stage_turn as i64);
+
         let turn = (stage_turn as i64 + turn_diff) as u64;
-        let diff = self.turn.abs_diff(turn);
+        let diff = match self.stage_info.timeline_type {
+            TimelineType::Immediate => {
+                self.stage_turn = stage_turn;
+                0
+            }
+            TimelineType::Asynchronous => turn.abs_diff(self.turn),
+        };
 
         // Update the history entry at the calculated position
         if self.history.len() > diff as usize {

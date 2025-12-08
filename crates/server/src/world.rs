@@ -60,6 +60,7 @@ impl From<&StageTemplate> for StageInfo {
         StageInfo {
             name: value.name.clone(),
             timeline_length: value.timeline_length,
+            timeline_type: value.timeline_type,
             senses: value.senses.clone(),
         }
     }

@@ -8,8 +8,8 @@ use losig_core::{
     sense::{Senses, SensesInfo},
     types::{
         Avatar, AvatarId, ClientAction, FOCUS_MAX, Foe, HP_MAX, MAX_WITHOUT_PLAY, Offset, Orb,
-        PlayerId, Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline, Transition,
-        Turn,
+        PlayerId, Position, ServerAction, StageTurn, TURN_FOR_HP_REGEN, Tile, Timeline,
+        TimelineType, Transition, Turn,
     },
 };
 
@@ -164,6 +164,24 @@ impl Stage {
         self.diffs[diff_index]
             .cmd_by_avatar
             .push((pid, avatar_diff));
+        match self.template.timeline_type {
+            TimelineType::Immediate => {
+                let previous_diff = self.diffs[diff_index - 1].clone();
+                for (other_id, mut cmd) in previous_diff.cmd_by_avatar {
+                    cmd.action = ServerAction::Wait;
+                    cmd.leaves = false;
+                    self.diffs[diff_index].cmd_by_avatar.push((other_id, cmd));
+                }
+
+                for player in self.players.values_mut() {
+                    if player.id == pid {
+                        continue;
+                    }
+                    player.turn = stage_turn;
+                }
+            }
+            TimelineType::Asynchronous => {}
+        };
         let turn_diff = &self.diffs[diff_index];
 
         // Update state based on diff

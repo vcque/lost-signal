@@ -212,14 +212,17 @@ pub type FoeId = usize;
 pub const MAX_WITHOUT_PLAY: Turn = 5;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Default)]
 pub enum TimelineType {
     /// Anytime a player acts, the state moves forward for every player (other players pass). There
     /// is no timeline
     Immediate,
     /// Default mode: each player play at their pace. If a player falls x turns behind he goes into
     /// limbo
+    #[default]
     Asynchronous,
 }
+
 
 impl std::str::FromStr for TimelineType {
     type Err = String;

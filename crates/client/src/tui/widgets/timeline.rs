@@ -1,4 +1,4 @@
-use losig_core::types::{StageTurn, Timeline};
+use losig_core::types::{StageTurn, Timeline, TimelineType};
 use ratatui::{
     prelude::{Buffer, Rect},
     style::{Color, Stylize},
@@ -12,6 +12,7 @@ pub struct TimelineWidget {
     timeline: Timeline,
     current: StageTurn,
     stage_name: String,
+    timeline_type: TimelineType,
 }
 
 impl TimelineWidget {
@@ -20,12 +21,20 @@ impl TimelineWidget {
             timeline: world.timeline,
             current: world.stage_turn,
             stage_name: world.stage_info.name.clone(),
+            timeline_type: world.stage_info.timeline_type,
         }
     }
 
     fn as_line(&self) -> Line<'static> {
-        let stage_span = Span::from(format!("{} - ", self.stage_name));
-        let turn_span = Span::from(format!("Turn {}: ", self.current));
+        let stage_span = Span::from(self.stage_name.to_string());
+
+        // For Immediate timeline type, only show the stage name
+        if self.timeline_type == TimelineType::Immediate {
+            return Line::from(vec![stage_span]);
+        }
+
+        // For Asynchronous timeline type, show the full timeline with turns
+        let turn_span = Span::from(format!(" - Turn {}: ", self.current));
 
         let mut timelines_spans: Vec<Span> = vec![stage_span, turn_span];
         let chars_before = self.current.saturating_sub(self.timeline.tail).div_ceil(5);

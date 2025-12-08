@@ -4,7 +4,10 @@ use crate::{
     events::GEvent,
     leaderboard::Leaderboard,
     sense::{SenseType, Senses, SensesInfo},
-    types::{ClientAction, GameOver, PlayerId, ServerAction, StageId, StageTurn, Timeline, Turn},
+    types::{
+        ClientAction, GameOver, PlayerId, ServerAction, StageId, StageTurn, Timeline,
+        TimelineType, Turn,
+    },
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,6 +55,7 @@ pub struct TransitionMessage {
 pub struct StageInfo {
     pub name: String,
     pub timeline_length: u32,
+    pub timeline_type: TimelineType,
     pub senses: Vec<SenseType>,
 }
 

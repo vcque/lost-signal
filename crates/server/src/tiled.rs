@@ -281,7 +281,7 @@ pub fn load_tutorial() -> Result<World> {
 #[allow(unused)]
 pub fn load_arena() -> Result<World> {
     load_world(
-        &["arena", "arena_corridor", "arena_big"],
+        &["battlefield_1", "battlefield_2", "battlefield_3", "battlefield_4"],
         default_transition_resolver(),
     )
 }

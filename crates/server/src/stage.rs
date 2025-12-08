@@ -88,14 +88,11 @@ impl Stage {
         self.player_turn(player.id, ServerAction::Enter, senses)
     }
 
-    pub fn remove_player(&mut self, pid: PlayerId) -> Option<Avatar> {
-        let state = self.state_for(pid)?;
-        let avatar = state.avatars.get(&pid);
-
-        self.players.remove(&pid);
+    pub fn remove_player(&mut self, pid: PlayerId) -> Option<()> {
+        self.players.remove(&pid)?;
         self.bounds.release(pid);
         self.clean_history();
-        avatar.cloned()
+        Some(())
     }
 
     pub fn add_command(
@@ -189,6 +186,7 @@ impl Stage {
         self.enact_turn(&mut state, turn_diff);
         let mut player = state.player.take().unwrap();
         let transition = player.transition.take();
+        let avatar;
         if transition.is_some() {
             self.diffs[diff_index]
                 .cmd_by_avatar
@@ -196,9 +194,10 @@ impl Stage {
                 .find_map(|(aid, cmd)| if *aid == pid { Some(cmd) } else { None })
                 .unwrap()
                 .leaves = true;
+            avatar = state.avatars.remove(&pid).unwrap();
+        } else {
+            avatar = state.avatars[&pid].clone();
         }
-
-        let avatar = state.avatars[&pid].clone();
 
         // Insert state back
         self.states.insert(player.turn, state);
@@ -207,7 +206,7 @@ impl Stage {
         self.players.insert(pid, player);
 
         // Gather info, update bounds
-        let (info, events) = if has_focus {
+        let (info, events) = if has_focus && transition.is_none() {
             let info = gather(&senses, self, pid);
 
             let state = &self.states[&stage_turn];
@@ -301,7 +300,6 @@ impl Stage {
 
         self.enact_avatars(state, diff);
         self.enact_foes(state, &self.bounds);
-
         self.welcome_avatar(state, diff);
 
         self.bounds.enforce(state);

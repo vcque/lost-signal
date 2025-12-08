@@ -176,8 +176,12 @@ impl World {
         let player = self.player_by_id.remove(&pid)?;
 
         if let Some(stage_id) = player.stage {
-            let avatar = self.stages.get_mut(stage_id)?.remove_player(pid)?;
-            Some(GameOver::new(&avatar, GameOverStatus::Dead, stage_id))
+            self.stages.get_mut(stage_id)?.remove_player(pid)?;
+            Some(GameOver::new(
+                &player.last_avatar,
+                GameOverStatus::Dead,
+                stage_id,
+            ))
         } else {
             player.gameover
         }
@@ -279,12 +283,9 @@ impl World {
             .get_mut(stage_id)
             .ok_or_else(|| anyhow!("Stage not found"))?;
 
-        let mut avatar = stage
+        stage
             .remove_player(pid)
             .ok_or_else(|| anyhow!("Couldn't find avatar {pid} in stage for transition"))?;
-
-        avatar.reset();
-        player.last_avatar = avatar;
 
         let limbos_from_leave = stage.handle_limbo();
 

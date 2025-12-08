@@ -100,15 +100,17 @@ pub trait FoeTypeRender {
 impl FoeTypeRender for FoeType {
     fn grapheme(&self) -> &'static str {
         match self {
-            FoeType::MindSnare => "¤",
-            FoeType::Simple => "s",
+            FoeType::Trap => "^",
+            FoeType::Dummy => "d",
+            FoeType::KingDummy => "K",
         }
     }
 
     fn label(&self) -> &'static str {
         match self {
-            FoeType::MindSnare => "mindsnare",
-            FoeType::Simple => "simple foe",
+            FoeType::Trap => "trap",
+            FoeType::Dummy => "dummy",
+            FoeType::KingDummy => "King of dummies",
         }
     }
 }

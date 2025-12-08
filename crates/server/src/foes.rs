@@ -89,8 +89,8 @@ fn compute_possible_actions(
     let mut actions = vec![FoeAction::Wait];
 
     match foe.foe_type {
-        FoeType::MindSnare => {
-            // MindSnare can only attack avatars on its own tile
+        FoeType::Trap => {
+            // Trap can only attack avatars on its own tile
             if let Some((avatar_id, avatar)) = state
                 .avatars
                 .iter()
@@ -102,8 +102,8 @@ fn compute_possible_actions(
                 }
             }
         }
-        FoeType::Simple => {
-            // Simple foes can attack adjacent avatars and move normally
+        FoeType::Dummy | FoeType::KingDummy => {
+            // Dummy and KingDummy foes can attack adjacent avatars and move normally
             const DIRECTIONS: [Direction; 8] = [
                 Direction::Up,
                 Direction::UpRight,

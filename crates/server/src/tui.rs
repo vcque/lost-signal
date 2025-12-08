@@ -155,7 +155,7 @@ impl GameTui {
                 buf.set_string(
                     area.x + x as u16,
                     area.y + y as u16,
-                    "¤",
+                    "^",
                     Style::default().yellow(),
                 );
             }

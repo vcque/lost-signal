@@ -42,6 +42,7 @@ const STAGES: &[(&str, &[u8])] = include_stages![
 
 const MINDSNARE_ID: u32 = 1;
 const SIMPLE_FOE_ID: u32 = 6;
+const KING_DUMMY_ID: u32 = 9;
 const SPAWN_ID: u32 = 2;
 const ORB_ID: u32 = 3;
 const WALL_ID: u32 = 4;
@@ -234,7 +235,7 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
             let foe = if tile.id() == MINDSNARE_ID {
                 Foe {
                     id,
-                    foe_type: FoeType::MindSnare,
+                    foe_type: FoeType::Trap,
                     position,
                     hp: 1,
                     attack: 3,
@@ -242,10 +243,18 @@ fn get_foes(layer: &tiled::TileLayer) -> Result<Vec<Foe>> {
             } else if tile.id() == SIMPLE_FOE_ID {
                 Foe {
                     id,
-                    foe_type: FoeType::Simple,
+                    foe_type: FoeType::Dummy,
                     position,
                     hp: 3,
                     attack: 2,
+                }
+            } else if tile.id() == KING_DUMMY_ID {
+                Foe {
+                    id,
+                    foe_type: FoeType::KingDummy,
+                    position,
+                    hp: 6,
+                    attack: 4,
                 }
             } else {
                 continue;

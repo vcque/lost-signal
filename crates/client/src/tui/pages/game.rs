@@ -316,8 +316,9 @@ impl<'a> Widget for WorldViewWidget<'a> {
                 let y = center_y + foe.offset.y;
 
                 let char = match foe.foe_type {
-                    FoeType::Simple => "s",
-                    FoeType::MindSnare => "¤",
+                    FoeType::Dummy => "d",
+                    FoeType::KingDummy => "K",
+                    FoeType::Trap => "^",
                 };
 
                 let style = if foe.alive {

@@ -300,8 +300,9 @@ impl Foe {
 
     pub fn is_trap(&self) -> bool {
         match self.foe_type {
-            FoeType::Simple => false,
-            FoeType::MindSnare => true,
+            FoeType::Dummy => false,
+            FoeType::KingDummy => false,
+            FoeType::Trap => true,
         }
     }
 }
@@ -387,8 +388,9 @@ impl GameOver {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug, Hash)]
 pub enum FoeType {
-    MindSnare,
-    Simple,
+    Trap,
+    Dummy,
+    KingDummy,
 }
 
 /// Represents a timeline for a given stage

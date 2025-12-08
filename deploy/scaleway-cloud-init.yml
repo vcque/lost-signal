@@ -5,7 +5,9 @@ runcmd:
   - systemctl enable docker
   - systemctl start docker
   - mkdir -p /mnt/block-storage/lost-signal-data
+  - mkdir -p /opt/letsencrypt
+  - mkdir -p /opt/letsencrypt-lib
   - docker rm -f lost-signal || true
   - docker rm -f watchtower || true
-  - docker run -d --name lost-signal --restart=always -p 80:8080 -v /mnt/block-storage/lost-signal-data:/data ghcr.io/vcque/lost-signal:latest
+  - docker run -d --name lost-signal --restart=always -p 80:80 -p 443:443 -v /mnt/block-storage/lost-signal-data:/data -v /opt/letsencrypt:/etc/letsencrypt -v /opt/letsencrypt-lib:/var/lib/letsencrypt ghcr.io/vcque/lost-signal:latest
   - docker run -d --name watchtower --restart=always -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower --cleanup --interval 60

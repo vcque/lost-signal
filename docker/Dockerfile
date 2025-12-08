@@ -16,7 +16,7 @@ RUN cargo build --release -p losig-server --no-default-features
 
 # Runtime image with nginx (Alpine)
 FROM nginx:1.27-alpine
-RUN apk add --no-cache supervisor
+RUN apk add --no-cache supervisor certbot openssl
 
 # Copy built assets
 COPY --from=wasm-builder /app/crates/client-wasm/dist /usr/share/nginx/html
@@ -32,5 +32,9 @@ COPY docker/supervisord.conf /etc/supervisord.conf
 COPY docker/start.sh /start.sh
 RUN chmod +x /start.sh
 
-EXPOSE 8080
+# Create directories for certbot
+RUN mkdir -p /var/www/certbot
+RUN mkdir -p /etc/letsencrypt
+
+EXPOSE 80 443
 CMD ["/start.sh"]

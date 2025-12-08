@@ -117,14 +117,19 @@ pub struct World {
     pub player_by_id: BTreeMap<PlayerId, Player>,
     pub stages: Vec<Stage>,
     pub name_gen: usize,
+    pub transition_resolver: TransitionResolver,
 }
 
+pub type TransitionResolver =
+    Box<dyn Fn(&World, usize, Transition) -> TransitionDestination + Send + 'static>;
+
 impl World {
-    pub fn new(stages: Vec<StageTemplate>) -> Self {
+    pub fn new(stages: Vec<StageTemplate>, transition_resolver: TransitionResolver) -> Self {
         World {
             stages: stages.into_iter().map(Stage::new).collect(),
             player_by_id: Default::default(),
             name_gen: 0,
+            transition_resolver,
         }
     }
 
@@ -199,7 +204,7 @@ impl World {
         let timeline_updates = vec![(stage_id, scr.timeline)];
 
         let result = if let Some(transition) = &scr.transition {
-            match self.handle_transition(pid, *transition, senses) {
+            match self.handle_transition(pid, stage_id, *transition, senses) {
                 Ok(mut tr_scr) => {
                     tr_scr.limbos.extend(scr.limbos);
                     tr_scr.timeline_updates.extend(timeline_updates);
@@ -254,9 +259,12 @@ impl World {
     fn handle_transition(
         &mut self,
         pid: PlayerId,
+        stage_id: StageId,
         transition: Transition,
         senses: Senses,
     ) -> Result<CommandResult> {
+        let destination = (self.transition_resolver)(self, stage_id, transition);
+
         let player = self
             .player_by_id
             .get_mut(&pid)
@@ -279,7 +287,7 @@ impl World {
 
         let limbos_from_leave = stage.handle_limbo();
 
-        match find_destination(&self.stages, &transition, stage_id) {
+        match destination {
             TransitionDestination::End => {
                 player.stage = None;
                 let gameover = GameOver::new(&player.last_avatar, GameOverStatus::Win, stage_id);
@@ -319,23 +327,5 @@ impl World {
             .get(stage)
             .map(|st| st.get_all_infos())
             .unwrap_or_default()
-    }
-}
-
-fn find_destination(
-    stages: &[Stage],
-    transition: &Transition,
-    previous_stage: StageId,
-) -> TransitionDestination {
-    match transition {
-        Transition::Orb | Transition::Stairs(_) => {
-            let max_stage = stages.len() - 1;
-            let next_stage = previous_stage + 1;
-            if next_stage > max_stage {
-                TransitionDestination::End
-            } else {
-                TransitionDestination::Stage(next_stage)
-            }
-        }
     }
 }

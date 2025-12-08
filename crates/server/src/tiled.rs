@@ -9,7 +9,8 @@ use losig_core::sense::SenseType;
 use losig_core::types::{Foe, FoeType, Position, Tile, Tiles, TimelineType};
 use tiled::{Layer, Loader};
 
-use crate::world::{StageTemplate, World};
+use crate::world::{StageTemplate, TransitionDestination, TransitionResolver, World};
+use losig_core::types::Transition;
 
 struct AssetsReader {}
 
@@ -59,11 +60,19 @@ impl tiled::ResourceReader for AssetsReader {
         match path.to_str() {
             Some("tileset/editor.tsx") => Ok(Cursor::new(TILESET)),
             Some(lvl) => {
-                let bytes = STAGES
+                match STAGES
                     .iter()
                     .find_map(|(name, bytes)| if *name == lvl { Some(bytes) } else { None })
-                    .unwrap();
-                Ok(Cursor::new(bytes))
+                {
+                    Some(bytes) => Ok(Cursor::new(bytes)),
+                    None => {
+                        log::error!("{lvl} not found");
+                        Err(std::io::Error::new(
+                            std::io::ErrorKind::NotFound,
+                            format!("Could not determine name from {path:?}"),
+                        ))
+                    }
+                }
             }
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -258,20 +267,58 @@ pub fn load_tutorial() -> Result<World> {
         .filter(|id| id.starts_with("tuto"))
         .collect();
 
-    load_world(&tutos)
+    load_world(&tutos, default_transition_resolver())
 }
 
 #[allow(unused)]
 pub fn load_arena() -> Result<World> {
-    load_world(&["arena", "arena_corridor", "arena_big"])
+    load_world(
+        &["arena", "arena_corridor", "arena_big"],
+        default_transition_resolver(),
+    )
 }
 
 #[allow(unused)]
 pub fn load_default() -> Result<World> {
-    load_world(&["hub", "tuto_self"])
+    load_world(
+        &[
+            "hub",
+            "tuto_self",
+            "tuto_touch",
+            "tuto_hearing",
+            "tuto_sight",
+            "arena",
+            "arena_corridor",
+            "lvl_1",
+            "lvl_2",
+        ],
+        Box::new(|world, stage_id, transition| {
+            let id = world.stages[stage_id].template.id.as_str();
+            match (id, transition) {
+                ("hub", Transition::Stairs(pos)) => TransitionDestination::Stage(3),
+                ("lvl_2", _) => TransitionDestination::End,
+                _ => TransitionDestination::Stage(stage_id + 1),
+            }
+        }),
+    )
 }
 
-pub fn load_world(stage_ids: &[&str]) -> Result<World> {
+/// Creates a default transition resolver that advances linearly through stages
+fn default_transition_resolver() -> TransitionResolver {
+    Box::new(|world, previous_stage, transition| match transition {
+        Transition::Orb | Transition::Stairs(_) => {
+            let max_stage = world.stages.len() - 1;
+            let next_stage = previous_stage + 1;
+            if next_stage > max_stage {
+                TransitionDestination::End
+            } else {
+                TransitionDestination::Stage(next_stage)
+            }
+        }
+    })
+}
+
+pub fn load_world(stage_ids: &[&str], transition_resolver: TransitionResolver) -> Result<World> {
     let mut stages = vec![];
     let mut loader = Loader::with_reader(AssetsReader {});
 
@@ -281,7 +328,7 @@ pub fn load_world(stage_ids: &[&str]) -> Result<World> {
         stages.push(stage);
     }
 
-    Ok(World::new(stages))
+    Ok(World::new(stages, transition_resolver))
 }
 
 #[cfg(test)]

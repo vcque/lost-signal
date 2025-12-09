@@ -429,7 +429,7 @@ impl WorldState {
 
         // Copy other sense infos from previous state
         let selfi = previous_info.and_then(|info| info.selfi.clone());
-        let touch = previous_info.and_then(|info| info.touch.clone());
+        let touch = None;
         let hearing = previous_info.and_then(|info| info.hearing.clone());
 
         // Return intermediate info if at least one sense is present

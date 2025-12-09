@@ -5,7 +5,7 @@ use losig_core::{
     sense::{Senses, SensesInfo, SightInfo},
     types::{
         ClientAction, Offset, Position, ServerAction, StageId, StageTurn, Tile, Tiles, Timeline,
-        TimelineType, Turn,
+        Turn,
     },
 };
 use web_time::{Duration, Instant};
@@ -99,10 +99,7 @@ impl WorldView {
             timeline,
         }: TurnMessage,
     ) {
-        let diff = match self.stage_info.timeline_type {
-            TimelineType::Immediate => 0,
-            TimelineType::Asynchronous => turn.abs_diff(self.turn),
-        };
+        let diff = turn.abs_diff(self.turn);
 
         // Calculate latency if this is a response to our action
         if diff == 0
@@ -189,25 +186,19 @@ impl WorldView {
         }
     }
 
-    pub fn update_on_timeline(&mut self, stage_turn: StageTurn, info: SensesInfo) {
-        // Calculate turn from stage_turn
-        let turn_diff = (self.turn as i64) - (self.stage_turn as i64);
-
-        let turn = (stage_turn as i64 + turn_diff) as u64;
-        let diff = match self.stage_info.timeline_type {
-            TimelineType::Immediate => {
-                self.stage_turn = stage_turn;
-                0
+    pub fn update_on_timeline(&mut self, info: SensesInfo) {
+        // Find last turn with a server response
+        let mut history_index = self.history.len() - 1;
+        for (i, history) in self.history.iter().enumerate().rev() {
+            if history.update_received {
+                history_index = i;
+                break;
             }
-            TimelineType::Asynchronous => turn.abs_diff(self.turn),
-        };
+        }
 
         // Update the history entry at the calculated position
-        if self.history.len() > diff as usize {
-            let index = self.history.len() - diff as usize - 1;
-            self.history[index].info = Some(info);
-            self.rebuild_current_state();
-        }
+        self.history[history_index].info = Some(info);
+        self.rebuild_current_state();
     }
 
     fn rebuild_current_state(&mut self) {

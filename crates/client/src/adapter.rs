@@ -27,7 +27,17 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
             let state = shared_state.clone();
             callback = Box::new(move |msg: ServerMessage| {
                 let mut state = state.lock().unwrap();
-                debug!("msg received: {msg:?}");
+                debug!(
+                    "msg received: {}",
+                    match &msg {
+                        ServerMessage::Leaderboard(_) => "Leaderboard".to_string(),
+                        ServerMessage::Turn(turn_message) => format!("{}", turn_message.turn),
+                        ServerMessage::Transition(_) => "Transition".to_string(),
+                        ServerMessage::GameOver(_) => "Game over".to_string(),
+                        ServerMessage::Limbo { .. } => "Limbo".to_string(),
+                        ServerMessage::Timeline(_, _, _, _) => "Timeline".to_string(),
+                    }
+                );
                 match msg {
                     ServerMessage::Turn(tr) => {
                         state.world.update(tr);
@@ -48,10 +58,10 @@ impl<C: Client, T: TuiAdapter> Adapter<C, T> {
                             state.world.update_on_averted(info);
                         }
                     }
-                    ServerMessage::Timeline(stage_id, stage_turn, timeline, senses_info) => {
+                    ServerMessage::Timeline(stage_id, _, timeline, senses_info) => {
                         state.world.update_timeline(stage_id, timeline);
                         if let Some(info) = senses_info {
-                            state.world.update_on_timeline(stage_turn, info);
+                            state.world.update_on_timeline(info);
                         }
                     }
                     ServerMessage::Transition(transition_message) => {

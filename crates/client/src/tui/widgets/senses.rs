@@ -323,7 +323,16 @@ fn to_widget_lines(info: &SightInfo, max_lines: usize) -> Vec<SightWidgetLine> {
         .iter()
         .filter(|f| f.alive)
         .map(|f| f.foe_type)
-        .counts()
+        .fold(vec![], |mut acc, ft| {
+            for (ft_o, i) in acc.iter_mut() {
+                if ft == *ft_o {
+                    *i += 1;
+                    return acc;
+                }
+            }
+            acc.push((ft, 1));
+            acc
+        })
         .into_iter()
         .map(|(foe_type, count)| SightWidgetLine::Foe(foe_type, count))
         .collect::<Vec<_>>();

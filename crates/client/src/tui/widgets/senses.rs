@@ -371,9 +371,24 @@ impl<'a> Widget for SensesWidget<'a> {
     {
         use losig_core::sense::SenseType;
 
+        // Define fixed order for senses
+        const SENSE_ORDER: [SenseType; 4] = [
+            SenseType::SelfSense,
+            SenseType::Touch,
+            SenseType::Hearing,
+            SenseType::Sight,
+        ];
+
+        // Filter to only include available senses in the fixed order
+        let ordered_senses: Vec<SenseType> = SENSE_ORDER
+            .iter()
+            .filter(|s| self.available_senses.contains(s))
+            .copied()
+            .collect();
+
         // Build constraints dynamically based on available senses
         let mut constraints = vec![];
-        for sense_type in self.available_senses {
+        for sense_type in &ordered_senses {
             let height = match sense_type {
                 SenseType::SelfSense => 2,
                 SenseType::Touch => 4,
@@ -384,16 +399,14 @@ impl<'a> Widget for SensesWidget<'a> {
         }
         // Ensure last constraint takes remaining space for Sight
         if let Some(last) = constraints.last_mut()
-            && matches!(
-                self.available_senses.last(),
-                Some(SenseType::Sight)
-            ) {
-                *last = Constraint::Min(2);
-            }
+            && matches!(ordered_senses.last(), Some(SenseType::Sight))
+        {
+            *last = Constraint::Min(2);
+        }
 
         let rows = Layout::vertical(constraints).split(area);
 
-        for (idx, sense_type) in self.available_senses.iter().enumerate() {
+        for (idx, sense_type) in ordered_senses.iter().enumerate() {
             let selected = self.selection == idx;
             match sense_type {
                 SenseType::SelfSense => {

@@ -45,10 +45,29 @@ pub struct GameState {
 }
 
 impl GameState {
+    fn get_ordered_senses(available_senses: &[losig_core::sense::SenseType]) -> Vec<losig_core::sense::SenseType> {
+        use losig_core::sense::SenseType;
+
+        // Define fixed order for senses (must match the widget order)
+        const SENSE_ORDER: [SenseType; 4] = [
+            SenseType::SelfSense,
+            SenseType::Touch,
+            SenseType::Hearing,
+            SenseType::Sight,
+        ];
+
+        SENSE_ORDER
+            .iter()
+            .filter(|s| available_senses.contains(s))
+            .copied()
+            .collect()
+    }
+
     pub fn decr_sense(&mut self, available_senses: &[losig_core::sense::SenseType]) {
         use losig_core::sense::SenseType;
 
-        let Some(&sense_type) = available_senses.get(self.sense_selection) else {
+        let ordered = Self::get_ordered_senses(available_senses);
+        let Some(&sense_type) = ordered.get(self.sense_selection) else {
             return;
         };
 
@@ -64,7 +83,8 @@ impl GameState {
     pub fn incr_sense(&mut self, available_senses: &[losig_core::sense::SenseType]) {
         use losig_core::sense::SenseType;
 
-        let Some(&sense_type) = available_senses.get(self.sense_selection) else {
+        let ordered = Self::get_ordered_senses(available_senses);
+        let Some(&sense_type) = ordered.get(self.sense_selection) else {
             return;
         };
 

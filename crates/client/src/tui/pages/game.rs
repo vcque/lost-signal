@@ -49,8 +49,6 @@ impl GamePage {
     ) {
         let [world_a, log_a, _senses_a] = Self::layout(area);
         let world = &services.state.world;
-        state.game.stage = 5; // TODO: fix this
-        state.game.help.next_page(world.stage_id as u8);
 
         let world_widget = WorldViewWidget { world };
         let timeline = TimelineWidget::new(world);

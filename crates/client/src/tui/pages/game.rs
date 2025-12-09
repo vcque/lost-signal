@@ -70,12 +70,14 @@ impl GamePage {
             .render(log_a, buf);
 
         let game_state = &mut state.game;
+        let available_senses = &world.stage_info.senses;
         let senses_widget = SensesWidget {
             stage_turn: world.stage_turn,
             senses: game_state.senses.clone(),
             info: world.last_info(),
             selection: game_state.sense_selection,
-            max_sense: game_state.stage as usize,
+            max_sense: available_senses.len().saturating_sub(1),
+            available_senses,
         };
 
         let cost = game_state.senses.cost();
@@ -168,16 +170,16 @@ impl GamePage {
                     game_state.sense_selection = game_state.sense_selection.saturating_sub(1);
                 }
                 KeyCode::Down | KeyCode::Char('2') | KeyCode::Char('J') => {
-                    let max_sense = game_state.stage.min(3);
-                    if game_state.sense_selection < max_sense as usize {
+                    let max_sense_idx = services.state.world.stage_info.senses.len().saturating_sub(1);
+                    if game_state.sense_selection < max_sense_idx {
                         game_state.sense_selection += 1;
                     }
                 }
                 KeyCode::Right | KeyCode::Char('6') | KeyCode::Char('L') => {
-                    game_state.incr_sense();
+                    game_state.incr_sense(&services.state.world.stage_info.senses);
                 }
                 KeyCode::Left | KeyCode::Char('4') | KeyCode::Char('H') => {
-                    game_state.decr_sense();
+                    game_state.decr_sense(&services.state.world.stage_info.senses);
                 }
                 _ => {
                     consumed = false;

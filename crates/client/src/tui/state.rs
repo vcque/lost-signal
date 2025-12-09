@@ -40,31 +40,40 @@ impl Default for MenuState {
 #[derive(Debug, Default)]
 pub struct GameState {
     pub senses: Senses,
-    pub stage: u8,
     pub sense_selection: usize,
     pub help: HelpState,
 }
 
 impl GameState {
-    pub fn decr_sense(&mut self) {
+    pub fn decr_sense(&mut self, available_senses: &[losig_core::sense::SenseType]) {
+        use losig_core::sense::SenseType;
+
+        let Some(&sense_type) = available_senses.get(self.sense_selection) else {
+            return;
+        };
+
         let senses = &mut self.senses;
-        match self.sense_selection {
-            0 => senses.selfs = senses.selfs.decr(),
-            1 => senses.touch = senses.touch.decr(),
-            2 => senses.hearing = senses.hearing.decr(),
-            3 => senses.sight = senses.sight.decr(),
-            _ => {}
+        match sense_type {
+            SenseType::SelfSense => senses.selfs = senses.selfs.decr(),
+            SenseType::Touch => senses.touch = senses.touch.decr(),
+            SenseType::Hearing => senses.hearing = senses.hearing.decr(),
+            SenseType::Sight => senses.sight = senses.sight.decr(),
         }
     }
 
-    pub fn incr_sense(&mut self) {
+    pub fn incr_sense(&mut self, available_senses: &[losig_core::sense::SenseType]) {
+        use losig_core::sense::SenseType;
+
+        let Some(&sense_type) = available_senses.get(self.sense_selection) else {
+            return;
+        };
+
         let senses = &mut self.senses;
-        match self.sense_selection {
-            0 => senses.selfs = senses.selfs.incr(),
-            1 => senses.touch = senses.touch.incr(),
-            2 => senses.hearing = senses.hearing.incr(),
-            3 => senses.sight = senses.sight.incr(),
-            _ => {}
+        match sense_type {
+            SenseType::SelfSense => senses.selfs = senses.selfs.incr(),
+            SenseType::Touch => senses.touch = senses.touch.incr(),
+            SenseType::Hearing => senses.hearing = senses.hearing.incr(),
+            SenseType::Sight => senses.sight = senses.sight.incr(),
         }
     }
 }

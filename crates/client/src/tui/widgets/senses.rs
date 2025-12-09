@@ -361,6 +361,7 @@ pub struct SensesWidget<'a> {
     pub info: Option<&'a SensesInfo>,
     pub selection: usize,
     pub max_sense: usize,
+    pub available_senses: &'a [losig_core::sense::SenseType],
 }
 
 impl<'a> Widget for SensesWidget<'a> {
@@ -368,57 +369,67 @@ impl<'a> Widget for SensesWidget<'a> {
     where
         Self: Sized,
     {
-        let rows = Layout::vertical(vec![
-            Constraint::Length(2),
-            Constraint::Length(4),
-            Constraint::Length(2),
-            Constraint::Min(2),
-        ])
-        .split(area);
-        let mut row_index = 0;
+        use losig_core::sense::SenseType;
 
-        SelfSenseWidget {
-            sense: self.senses.selfs,
-            info: self.info.and_then(|i| i.selfi.as_ref()),
-            selected: self.selection == row_index,
+        // Build constraints dynamically based on available senses
+        let mut constraints = vec![];
+        for sense_type in self.available_senses {
+            let height = match sense_type {
+                SenseType::SelfSense => 2,
+                SenseType::Touch => 4,
+                SenseType::Hearing => 2,
+                SenseType::Sight => 2,
+            };
+            constraints.push(Constraint::Length(height));
         }
-        .render(rows[row_index], buf);
-        row_index += 1;
+        // Ensure last constraint takes remaining space for Sight
+        if let Some(last) = constraints.last_mut()
+            && matches!(
+                self.available_senses.last(),
+                Some(SenseType::Sight)
+            ) {
+                *last = Constraint::Min(2);
+            }
 
-        if self.max_sense < 1 {
-            return;
-        }
+        let rows = Layout::vertical(constraints).split(area);
 
-        TouchSenseWidget {
-            sense: self.senses.touch,
-            info: self.info.and_then(|i| i.touch.as_ref()),
-            selected: self.selection == row_index,
+        for (idx, sense_type) in self.available_senses.iter().enumerate() {
+            let selected = self.selection == idx;
+            match sense_type {
+                SenseType::SelfSense => {
+                    SelfSenseWidget {
+                        sense: self.senses.selfs,
+                        info: self.info.and_then(|i| i.selfi.as_ref()),
+                        selected,
+                    }
+                    .render(rows[idx], buf);
+                }
+                SenseType::Touch => {
+                    TouchSenseWidget {
+                        sense: self.senses.touch,
+                        info: self.info.and_then(|i| i.touch.as_ref()),
+                        selected,
+                    }
+                    .render(rows[idx], buf);
+                }
+                SenseType::Hearing => {
+                    HearingSenseWidget {
+                        sense: self.senses.hearing,
+                        info: self.info.and_then(|i| i.hearing.as_ref()),
+                        selected,
+                    }
+                    .render(rows[idx], buf);
+                }
+                SenseType::Sight => {
+                    SightSenseWidget {
+                        stage_turn: self.stage_turn,
+                        sense: self.senses.sight,
+                        info: self.info.and_then(|i| i.sight.as_ref()),
+                        selected,
+                    }
+                    .render(rows[idx], buf);
+                }
+            }
         }
-        .render(rows[row_index], buf);
-        row_index += 1;
-
-        if self.max_sense < 2 {
-            return;
-        }
-
-        HearingSenseWidget {
-            sense: self.senses.hearing,
-            info: self.info.and_then(|i| i.hearing.as_ref()),
-            selected: self.selection == row_index,
-        }
-        .render(rows[row_index], buf);
-        row_index += 1;
-
-        if self.max_sense < 3 {
-            return;
-        }
-
-        SightSenseWidget {
-            stage_turn: self.stage_turn,
-            sense: self.senses.sight,
-            info: self.info.and_then(|i| i.sight.as_ref()),
-            selected: self.selection == row_index,
-        }
-        .render(rows[row_index], buf);
     }
 }

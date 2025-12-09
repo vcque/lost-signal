@@ -72,6 +72,21 @@ impl Senses {
         self.hearing = BoundedU8::merge(senses.hearing, self.hearing);
         self
     }
+
+    pub fn restrict_to(&mut self, available_senses: &[SenseType]) {
+        if !available_senses.contains(&SenseType::SelfSense) {
+            self.selfs = false;
+        }
+        if !available_senses.contains(&SenseType::Touch) {
+            self.touch = false;
+        }
+        if !available_senses.contains(&SenseType::Hearing) {
+            self.hearing = BoundedU8::const_new::<0>();
+        }
+        if !available_senses.contains(&SenseType::Sight) {
+            self.sight = BoundedU8::const_new::<0>();
+        }
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize, Clone, Default)]

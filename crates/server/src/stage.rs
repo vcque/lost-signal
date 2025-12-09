@@ -130,6 +130,9 @@ impl Stage {
             self.states[&player.turn].clone()
         };
 
+        // Senses filtering
+        senses.restrict_to(&self.template.senses);
+
         // Focus handling
         player.focus = (player.focus + self.template.fp_regen as u8).min(FOCUS_MAX);
         let focus_cost = senses.cost();
